@@ -355,7 +355,12 @@ async function getClaude(acc = {}, idx = 0) {
         return cached;
       } catch {}
     }
-    return { ok: false, items: [], error: String(e.message || e) };
+    // 클린 환경(첫 설치·미로그인·키체인 거부) → raw 에러 대신 원인 분류
+    const msg = String(e.message || e);
+    const reason = /find-generic-password|keychain|SecKeychain/i.test(msg)
+      ? "login"      // 로그인 안 됨 / 키체인 접근 불가
+      : /ENOENT|no such file/i.test(msg) ? "login" : "error";
+    return { ok: false, items: [], error: msg, reason };
   }
 }
 
@@ -738,9 +743,14 @@ for (let ai = 0; ai < accounts.length; ai++) {
       const r = Math.round(100 - i.used);
       out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% 남음 · ${fmtReset(i.resets)} | font=Menlo size=12 color=${heatHex(r)}`);
     }
-    if (cl.stale) out.push(`⚠️ 갱신 실패, 캐시 표시 중 (${cl.error}) | size=11 color=#8b949e`);
+    if (cl.stale) out.push(`⚠️ 갱신 실패, 캐시 표시 중 | size=11 color=#8b949e`);
+  } else if (cl.reason === "login") {
+    // 첫 설치·미로그인 → 친절 안내 (raw 에러 노출 금지)
+    out.push("🔑 Claude Code에 먼저 로그인하세요 | size=12 color=#ffcc00");
+    out.push("--터미널에서  claude  실행 → 로그인 후 자동 표시됩니다 | size=11 color=#8b949e");
   } else {
-    out.push(`데이터 없음: ${cl.error || "?"} | size=11 color=#ff453a`);
+    out.push("⚠️ 사용량을 불러오지 못했습니다 | size=12 color=#ff453a");
+    out.push(`--${(cl.error || "").slice(0, 60)} | size=11 color=#8b949e`);
   }
 }
 
