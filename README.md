@@ -49,9 +49,17 @@ cd tokenjuice
 ./install.sh
 ```
 
-The installer checks bun & SwiftBar (offering to install what's missing), registers the plugin, and launches SwiftBar.
+The installer checks bun & SwiftBar (auto-installing what's missing), registers the plugin, launches SwiftBar, and adds it to your login items so it survives reboots.
 
 > **First run:** macOS may show a **keychain access** prompt — click **Always Allow**. It's used to read your Claude usage; no token is ever stored. If the battery says "log in first," run `claude` and sign in.
+
+### Install it with an AI agent
+
+Hand this repo to Claude Code (or any coding agent) and let it do the work:
+
+> Clone https://github.com/kendrick-na/tokenjuice and run its `install.sh` for me. The installer is non-interactive-safe, so it won't block. After it finishes, tell me the two manual steps I still need to do myself (the macOS keychain prompt and Claude login) — you can't click those for me.
+
+`install.sh` auto-proceeds when there's no TTY (or set `CCB_YES=1`), so an agent can run it end-to-end. **Two steps stay human-only by macOS design:** clicking *Always Allow* on the keychain prompt, and being logged into Claude Code. Everything else is automated.
 
 ## Refresh rate
 
@@ -140,9 +148,11 @@ cd tokenjuice
 ./install.sh
 ```
 
-bun·SwiftBar를 확인(없으면 설치 제안)하고 플러그인을 등록한 뒤 SwiftBar를 띄운다.
+bun·SwiftBar를 확인(없으면 자동 설치)하고 플러그인을 등록한 뒤 SwiftBar를 띄우고, **로그인 항목에 등록해 재부팅 후에도 자동 실행**되게 한다.
 
 > **첫 실행:** macOS **키체인 접근** 창이 뜨면 **"항상 허용"** 클릭. Claude 사용량을 읽기 위한 것으로 토큰은 저장하지 않는다. 배터리에 "로그인하세요"가 뜨면 터미널에서 `claude` 실행 후 로그인.
+
+**AI 에이전트로 설치**: `install.sh`는 비대화형(TTY 없거나 `CCB_YES=1`)에서 자동 진행하므로, Claude Code 같은 에이전트에게 저장소 링크를 주고 설치를 맡길 수 있다. 단 **키체인 "항상 허용" 클릭 + Claude 로그인** 두 가지는 macOS 보안상 사람이 직접 해야 한다.
 
 ## 갱신 주기
 
