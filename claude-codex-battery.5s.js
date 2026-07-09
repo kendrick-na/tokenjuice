@@ -320,11 +320,26 @@ function readLocalUsageCache(acc = {}) {
   return null;
 }
 
+// API 모드(키체인 접근)는 명시적 옵트인. 기본은 키체인을 절대 건드리지 않음.
+//   켜는 법: 환경변수 CCB_API=1  또는  ~/.config/claude-codex-battery/config.json {"api": true}
+function apiModeEnabled() {
+  if (process.env.CCB_API === "1") return true;
+  try {
+    const c = JSON.parse(readFileSync(path.join(HOME, ".config", "claude-codex-battery", "config.json"), "utf8"));
+    return c.api === true;
+  } catch { return false; }
+}
+
 const CLAUDE_TTL_MS = 60 * 1000; // API는 최대 60초마다만 호출 (레이트리밋 보호). 세션 컨텍스트는 매 실행 실시간.
 async function getClaude(acc = {}, idx = 0) {
-  // 1순위: Claude Code 로컬 사용량 캐시 (원본 dennykim123 방식) — 실시간·무네트워크
+  // 1순위: Claude Code 로컬 사용량 캐시 (원본 dennykim123 방식) — 실시간·무네트워크·키체인 X
   const local = readLocalUsageCache(acc);
   if (local) return local;
+
+  // 로컬 캐시가 없고 API 모드도 꺼져 있으면 → 키체인을 건드리지 않고 안내만 반환
+  if (!apiModeEnabled()) {
+    return { ok: false, items: [], reason: "needs-api" };
+  }
 
   // 2순위: 우리 API 캐시가 신선하면 API 스킵
   const cacheFile = path.join(CACHE_DIR, `claude-${idx}.json`);
@@ -334,7 +349,7 @@ async function getClaude(acc = {}, idx = 0) {
       if (cached.at && Date.now() - cached.at < CLAUDE_TTL_MS) { cached.fresh = true; return cached; }
     } catch {}
   }
-  // 3순위: usage API 직접 호출
+  // 3순위: usage API 직접 호출 (여기서만 키체인 토큰을 읽음 — 옵트인 상태에서만 도달)
   try {
     const token = readClaudeToken(acc);
     const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
@@ -757,8 +772,14 @@ for (let ai = 0; ai < accounts.length; ai++) {
       out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${fmtReset(i.resets)} | font=Menlo size=12 color=${heatHex(r)}`);
     }
     if (cl.stale) out.push(`⚠️ refresh failed — showing cache | size=11 color=#8b949e`);
+  } else if (cl.reason === "needs-api") {
+    // 로컬 캐시 없음 + API 옵트인 꺼짐 → 키체인 안 건드리고 켜는 법만 안내
+    out.push("ⓘ Claude limits need API mode | size=12 color=#8b949e");
+    out.push("--No local usage cache on this Claude version. | size=11 color=#8b949e");
+    out.push("--Enable it (reads a keychain token, read-only): | size=11 color=#8b949e");
+    out.push('--  export CCB_API=1   — or  ~/.config/claude-codex-battery/config.json {"api":true} | font=Menlo size=11 color=#8b949e');
+    out.push("--Sessions & Codex work without this. | size=11 color=#8b949e");
   } else if (cl.reason === "login") {
-    // 첫 설치·미로그인 → 친절 안내 (raw 에러 노출 금지)
     out.push("🔑 Log in to Claude Code first | size=12 color=#ffcc00");
     out.push("--Run  claude  in a terminal and sign in — it shows up automatically | size=11 color=#8b949e");
   } else {

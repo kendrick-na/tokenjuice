@@ -39,7 +39,7 @@ The number = **% remaining**. Under 20% turns red.
 - **macOS** (menu bar is macOS-only — see [Windows / Linux](#windows--linux) for the CLI)
 - **[bun](https://bun.sh)** — the runtime (installer offers to set it up for you)
 - **[SwiftBar](https://github.com/swiftbar/SwiftBar)** — the menu bar host (installer sets it up via Homebrew)
-- **You must be logged into Claude Code** (`claude` in a terminal) — that's where usage data comes from
+- **Claude Code and/or Codex installed & used** — tokenjuice reads their local files (no login step needed unless you opt into API mode; see [Privacy & security](#privacy--security))
 
 ## Install
 
@@ -51,15 +51,15 @@ cd tokenjuice
 
 The installer checks bun & SwiftBar (auto-installing what's missing), registers the plugin, launches SwiftBar, and adds it to your login items so it survives reboots.
 
-> **First run:** macOS may show a **keychain access** prompt — click **Always Allow**. It's used to read your Claude usage; no token is ever stored. If the battery says "log in first," run `claude` and sign in.
+> **No keychain prompt by default.** Sessions & Codex work from local files immediately. Claude limits only need the keychain if you turn on [API mode](#privacy--security) — and only then does macOS ask you to *Always Allow*.
 
 ### Install it with an AI agent
 
 Hand this repo to Claude Code (or any coding agent) and let it do the work:
 
-> Clone https://github.com/kendrick-na/tokenjuice and run its `install.sh` for me. The installer is non-interactive-safe, so it won't block. After it finishes, tell me the two manual steps I still need to do myself (the macOS keychain prompt and Claude login) — you can't click those for me.
+> Clone https://github.com/kendrick-na/tokenjuice and run its `install.sh` for me. The installer is non-interactive-safe, so it won't block.
 
-`install.sh` auto-proceeds when there's no TTY (or set `CCB_YES=1`), so an agent can run it end-to-end. **Two steps stay human-only by macOS design:** clicking *Always Allow* on the keychain prompt, and being logged into Claude Code. Everything else is automated.
+`install.sh` auto-proceeds when there's no TTY (or set `CCB_YES=1`), so an agent can run it end-to-end — and it needs **no** keychain or login step by default. (Only if you later opt into API mode does macOS ask you to click *Always Allow* once — an agent can't click that for you.)
 
 ## Refresh rate
 
@@ -73,9 +73,18 @@ Rename to `.2s.js` for faster, `.30s.js` for slower.
 
 | Group | Source |
 |-------|--------|
-| Claude limits | **①** local cache `~/.claude/**/usage-cache.json` (real-time, no network) if present → **②** fallback to `api.anthropic.com/api/oauth/usage` (keychain OAuth token, 60s cache) |
-| Session context | `~/.claude/projects/*/*.jsonl` — last usage totals |
-| Codex limits | `~/.codex/sessions/**/*.jsonl` — latest `rate_limits` |
+| Claude limits | **①** local cache `~/.claude/**/usage-cache.json` (real-time, no network, **no keychain**) if present → **②** *opt-in* API mode: `api.anthropic.com/api/oauth/usage` (60s cache) |
+| Session context | `~/.claude/projects/*/*.jsonl` — last usage totals (local files) |
+| Codex limits | `~/.codex/sessions/**/*.jsonl` — latest `rate_limits` (local files) |
+
+## Privacy & security
+
+Everything reads **your own local files** and renders locally. Specifically:
+
+- **By default, tokenjuice never touches your keychain.** Sessions and Codex read local files only. Claude limits read a local cache file if your Claude Code version writes one.
+- **API mode is strictly opt-in.** Some Claude Code versions don't write a local usage cache. Only then, *and only if you explicitly turn it on* (`export CCB_API=1` or `config.json {"api": true}`), does tokenjuice read the Claude OAuth token from your keychain to call the **read-only** usage endpoint. The token is used in-memory for that one request — never stored, never sent anywhere else.
+- **Nothing leaves your machine** except that optional usage call to Anthropic's own API.
+- **It's one auditable file** (~35 KB of plain JS, no dependencies). Read it before you run it.
 
 ## Sessions (S)
 
@@ -150,9 +159,11 @@ cd tokenjuice
 
 bun·SwiftBar를 확인(없으면 자동 설치)하고 플러그인을 등록한 뒤 SwiftBar를 띄우고, **로그인 항목에 등록해 재부팅 후에도 자동 실행**되게 한다.
 
-> **첫 실행:** macOS **키체인 접근** 창이 뜨면 **"항상 허용"** 클릭. Claude 사용량을 읽기 위한 것으로 토큰은 저장하지 않는다. 배터리에 "로그인하세요"가 뜨면 터미널에서 `claude` 실행 후 로그인.
+> **기본은 키체인 접근 없음.** 세션·Codex는 로컬 파일만 읽어 바로 뜬다. Claude 한도는 로컬 캐시가 없는 버전에서만, 그리고 **직접 API 모드를 켤 때만**(`export CCB_API=1`) 키체인 토큰을 읽는다. 그때만 macOS가 "항상 허용"을 묻는다.
 
-**AI 에이전트로 설치**: `install.sh`는 비대화형(TTY 없거나 `CCB_YES=1`)에서 자동 진행하므로, Claude Code 같은 에이전트에게 저장소 링크를 주고 설치를 맡길 수 있다. 단 **키체인 "항상 허용" 클릭 + Claude 로그인** 두 가지는 macOS 보안상 사람이 직접 해야 한다.
+**개인정보/보안**: 전부 **내 로컬 파일**만 읽어 로컬에서 렌더. 기본값은 키체인 미접근. API 모드는 옵트인이며, 켜도 토큰은 **읽기 전용 조회 1회에 메모리에서만** 쓰고 저장·전송하지 않는다. 단일 파일(약 35KB, 의존성 0)이라 실행 전 직접 감사 가능.
+
+**AI 에이전트로 설치**: `install.sh`는 비대화형(TTY 없거나 `CCB_YES=1`)에서 자동 진행 → 에이전트에게 저장소 링크를 주고 맡길 수 있다. 기본 설치엔 키체인·로그인 단계가 **없다**.
 
 ## 갱신 주기
 
