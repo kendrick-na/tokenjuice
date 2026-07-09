@@ -113,10 +113,12 @@ CLAUDE_CONFIG_DIR=~/.claude-work claude   # log into your work account here
 
 ## Windows / Linux
 
-The **data logic is cross-platform**, but the **menu bar display is macOS-only**. On other OSes, use CLI mode and pipe it into your own tray/bar:
+**tokenjuice is a macOS menu bar app** — the battery display needs SwiftBar, which is macOS-only. There's no Windows/Linux menu bar build.
+
+That said, the **data logic is cross-platform**, so on other OSes you can still get the numbers via CLI and feed them into your own tray/bar (Waybar, polybar, a Windows tray util, etc.):
 ```bash
 bun claude-codex-battery.5s.js --text   # human-readable
-bun claude-codex-battery.5s.js --json    # for tray widgets (Waybar, polybar, ...)
+bun claude-codex-battery.5s.js --json    # structured, for tray widgets
 ```
 
 ## License
