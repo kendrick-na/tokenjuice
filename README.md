@@ -12,6 +12,11 @@ A [SwiftBar](https://github.com/swiftbar/SwiftBar) plugin that shows your Claude
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue">
 </p>
 
+<p align="center">
+  <img alt="dropdown" src="docs/screenshot.png" width="440">
+  <br><sub>Click the battery for a full breakdown — per-limit resets and every active session's context window.</sub>
+</p>
+
 <p align="center"><i><a href="#한국어">🇰🇷 한국어 아래로 ↓</a></i></p>
 
 ```

@@ -291,9 +291,9 @@ function readClaudeToken(acc = {}) {
 // 사용량 JSON → items 배열 (로컬 캐시 파일과 API 응답이 같은 스키마라 공용)
 function parseUsageItems(d) {
   const items = [];
-  if (d.five_hour) items.push({ name: "5시간 세션", used: d.five_hour.utilization, resets: d.five_hour.resets_at });
-  if (d.seven_day) items.push({ name: "주간 (7일)", used: d.seven_day.utilization, resets: d.seven_day.resets_at });
-  for (const [k, label] of [["seven_day_opus", "주간 Opus"], ["seven_day_sonnet", "주간 Sonnet"], ["seven_day_cowork", "주간 Cowork"]]) {
+  if (d.five_hour) items.push({ name: "5-hour", used: d.five_hour.utilization, resets: d.five_hour.resets_at });
+  if (d.seven_day) items.push({ name: "Weekly", used: d.seven_day.utilization, resets: d.seven_day.resets_at });
+  for (const [k, label] of [["seven_day_opus", "Weekly Opus"], ["seven_day_sonnet", "Weekly Sonnet"], ["seven_day_cowork", "Weekly Cowork"]]) {
     if (d[k] && d[k].utilization != null) items.push({ name: label, used: d[k].utilization, resets: d[k].resets_at });
   }
   return items;
@@ -396,13 +396,13 @@ function getCodex() {
       const items = [];
       if (rl.primary && rl.primary.used_percent != null) {
         items.push({
-          name: rl.primary.window_minutes >= 10000 ? "주간" : "5시간",
+          name: rl.primary.window_minutes >= 10000 ? "Weekly" : "5-hour",
           used: rl.primary.used_percent, resets: rl.primary.resets_at,
         });
       }
       if (rl.secondary && rl.secondary.used_percent != null) {
         items.push({
-          name: rl.secondary.window_minutes >= 10000 ? "주간" : "5시간",
+          name: rl.secondary.window_minutes >= 10000 ? "Weekly" : "5-hour",
           used: rl.secondary.used_percent, resets: rl.secondary.resets_at,
         });
       }
@@ -584,18 +584,31 @@ function extractCodexTopic(tail) {
   return null;
 }
 
+// 데모 모드: CCB_DEMO=1 이면 세션명·주제를 예시로 치환 → 스크린샷용 (프라이버시 보호)
+const DEMO = process.env.CCB_DEMO === "1";
+const DEMO_SESSIONS = [
+  { name: "my-web-app", topic: "add dark mode toggle to settings" },
+  { name: "api-server", topic: "fix rate limiter edge case" },
+  { name: "landing-page", topic: "refactor hero section" },
+  { name: "cli-tool", topic: "write tests for parser" },
+];
+function anonymize(sessions) {
+  if (!DEMO) return sessions;
+  return sessions.map((s, i) => ({ ...s, ...DEMO_SESSIONS[i % DEMO_SESSIONS.length] }));
+}
+
 // Claude + Codex 세션을 최근순 병합, 팔레트 배정 (드롭다운은 최대 8개까지 전부 나열)
 function getAllSessions() {
-  const all = [...getSessions(), ...getCodexSessions()].sort((a, b) => b.mtime - a.mtime).slice(0, 8);
+  const all = anonymize([...getSessions(), ...getCodexSessions()].sort((a, b) => b.mtime - a.mtime).slice(0, 8));
   all.forEach((s, i) => { s.color = SESSION_COLORS[i % SESSION_COLORS.length]; });
   return all;
 }
 
 function fmtAgo(mtime) {
   const min = Math.round((Date.now() - mtime) / 60000);
-  if (min < 1) return "방금";
-  if (min < 60) return `${min}분 전`;
-  return `${Math.round(min / 60)}시간 전`;
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  return `${Math.round(min / 60)}h ago`;
 }
 function fmtK(n) { return n >= 1000 ? `${Math.round(n / 1000)}k` : String(n); }
 
@@ -640,7 +653,7 @@ function getLetsur() {
 }
 
 // ───────────────────────── 포맷 유틸 ─────────────────────────
-const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function fmtReset(resets) {
   if (resets == null) return "";
   const t = typeof resets === "number" ? new Date(resets * 1000) : new Date(resets);
@@ -648,8 +661,8 @@ function fmtReset(resets) {
   const now = new Date();
   const hm = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
   const sameDay = t.toDateString() === now.toDateString();
-  if (sameDay) return `오늘 ${hm} 리셋`;
-  return `${t.getMonth() + 1}/${t.getDate()}(${DAYS[t.getDay()]}) ${hm} 리셋`;
+  if (sameDay) return `resets ${hm} today`;
+  return `resets ${t.getMonth() + 1}/${t.getDate()} (${DAYS[t.getDay()]}) ${hm}`;
 }
 function textBar(remain, len = 14) {
   const filled = Math.round((remain / 100) * len);
@@ -673,8 +686,8 @@ function isDarkMode() {
 // ccbattery letsur reset        → 이번 달 원장 초기화
 const argv = process.argv.slice(2);
 if (argv[0] === "letsur") {
-  if (argv[1] === "add") { const l = letsurAdd(argv[2]); console.log(`누적: ${l.spent} (${l.month})`); process.exit(0); }
-  if (argv[1] === "reset") { saveLedger({ month: ymNow(), spent: 0 }); console.log("원장 초기화"); process.exit(0); }
+  if (argv[1] === "add") { const l = letsurAdd(argv[2]); console.log(`total: ${l.spent} (${l.month})`); process.exit(0); }
+  if (argv[1] === "reset") { saveLedger({ month: ymNow(), spent: 0 }); console.log("ledger reset"); process.exit(0); }
   if (argv[1] === "status") { console.log(JSON.stringify(getLetsur())); process.exit(0); }
 }
 
@@ -735,34 +748,34 @@ out.push("---");
 for (let ai = 0; ai < accounts.length; ai++) {
   const cl = claudes[ai];
   const title = accounts.length > 1 ? `Claude Code — ${accounts[ai].name}` : "Claude Code";
-  const src = cl.source === "local" ? "🟢 실시간(로컬)" : cl.source === "api" ? "🌐 API·최대60초" : "";
+  const src = cl.source === "local" ? "🟢 live (local)" : cl.source === "api" ? "🌐 API · up to 60s" : "";
   if (ai > 0) out.push("---");
   out.push(`${title}  ${src} | size=13 color=#8b949e`);
   if (cl.items.length) {
     for (const i of cl.items) {
       const r = Math.round(100 - i.used);
-      out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% 남음 · ${fmtReset(i.resets)} | font=Menlo size=12 color=${heatHex(r)}`);
+      out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${fmtReset(i.resets)} | font=Menlo size=12 color=${heatHex(r)}`);
     }
-    if (cl.stale) out.push(`⚠️ 갱신 실패, 캐시 표시 중 | size=11 color=#8b949e`);
+    if (cl.stale) out.push(`⚠️ refresh failed — showing cache | size=11 color=#8b949e`);
   } else if (cl.reason === "login") {
     // 첫 설치·미로그인 → 친절 안내 (raw 에러 노출 금지)
-    out.push("🔑 Claude Code에 먼저 로그인하세요 | size=12 color=#ffcc00");
-    out.push("--터미널에서  claude  실행 → 로그인 후 자동 표시됩니다 | size=11 color=#8b949e");
+    out.push("🔑 Log in to Claude Code first | size=12 color=#ffcc00");
+    out.push("--Run  claude  in a terminal and sign in — it shows up automatically | size=11 color=#8b949e");
   } else {
-    out.push("⚠️ 사용량을 불러오지 못했습니다 | size=12 color=#ff453a");
+    out.push("⚠️ Couldn't load usage | size=12 color=#ff453a");
     out.push(`--${(cl.error || "").slice(0, 60)} | size=11 color=#8b949e`);
   }
 }
 
 if (sessions.length) {
   out.push("---");
-  out.push("세션 컨텍스트  (■ 색 = 메뉴바 배터리) | size=13 color=#8b949e");
+  out.push("Session context  (■ = menu bar battery) | size=13 color=#8b949e");
   sessions.forEach((s) => {
     const r = Math.round(100 - s.pct);
     const isLive = liveSessions.includes(s);
     const dot = isLive ? "🟢" : "⚪";
     const plat = s.platform === "codex" ? "🟣 Codex" : "🟠 Claude";
-    const warn = s.pct >= 80 ? "  ⚠️컴팩트 임박" : "";
+    const warn = s.pct >= 80 ? "  ⚠️compaction soon" : "";
     // 1행: 색 스와치 + 플랫폼 + 프로젝트명 + 진행 배터리 + %
     out.push(`■ ${dot} ${plat} · ${s.name}  ▕${textBar(r)}▏ ${r}%${warn} | font=Menlo size=13 color=${rgbHex(s.color)}`);
     // 2행: 주제 (있으면)
@@ -784,26 +797,26 @@ out.push(`Codex${codex.plan ? ` (${codex.plan})` : ""} | size=13 color=#8b949e`)
 if (codex.items.length) {
   for (const i of codex.items) {
     const r = Math.round(100 - i.used);
-    const tail = i.wasReset ? "리셋 완료" : fmtReset(i.resets);
-    out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% 남음 · ${tail} | font=Menlo size=12 color=${heatHex(r)}`);
+    const tail = i.wasReset ? "reset done" : fmtReset(i.resets);
+    out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${tail} | font=Menlo size=12 color=${heatHex(r)}`);
   }
   const ageMin = Math.round((Date.now() - codex.at) / 60000);
-  if (ageMin > 60) out.push(`ℹ️ 마지막 세션 기준 (${Math.round(ageMin / 60)}시간 전) | size=11 color=#8b949e`);
+  if (ageMin > 60) out.push(`ℹ️ from your last session (${Math.round(ageMin / 60)}h ago) | size=11 color=#8b949e`);
 } else {
-  out.push("세션 기록 없음 (Codex 실행 후 표시됨) | size=11 color=#8b949e");
+  out.push("No session data yet (shows after you run Codex) | size=11 color=#8b949e");
 }
 
 if (letsur) {
   out.push("---");
-  out.push(`${letsur.label}  (월 한도 대비) | size=13 color=#8b949e`);
+  out.push(`${letsur.label}  (vs monthly limit) | size=13 color=#8b949e`);
   const r = Math.round(100 - letsur.pct);
-  out.push(`이번 달  ▕${textBar(r)}▏ ${r}% 남음 | font=Menlo size=12 color=${heatHex(r)}`);
-  out.push(`--${letsur.spent} / ${letsur.limit} ${letsur.currency} 사용  ·  남은 ${letsur.remain} ${letsur.currency} | font=Menlo size=11 color=#6b7280`);
-  out.push(`--매월 1일 자동 리셋  ·  ⚠️ unit=통화 정의는 Letsur 대시보드 확인 | size=11 color=#6b7280`);
+  out.push(`This month  ▕${textBar(r)}▏ ${r}% left | font=Menlo size=12 color=${heatHex(r)}`);
+  out.push(`--${letsur.spent} / ${letsur.limit} ${letsur.currency} used  ·  ${letsur.remain} ${letsur.currency} left | font=Menlo size=11 color=#6b7280`);
+  out.push(`--auto-resets on the 1st  ·  ⚠️ check your Letsur dashboard for what a unit is worth | size=11 color=#6b7280`);
 }
 
 out.push("---");
-out.push("지금 새로고침 | refresh=true");
-out.push("Claude 사용량 페이지 열기 | href=https://claude.ai/settings/usage");
-if (letsur) out.push("Letsur 대시보드 열기 | href=https://platform.letsur.ai");
+out.push("Refresh now | refresh=true");
+out.push("Open Claude usage page | href=https://claude.ai/settings/usage");
+if (letsur) out.push("Open Letsur dashboard | href=https://platform.letsur.ai");
 console.log(out.join("\n"));
