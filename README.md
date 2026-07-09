@@ -35,7 +35,7 @@ bun·SwiftBar(brew) 자동 확인 후 `~/.swiftbar-plugins/`에 등록하고 Swi
 
 | 그룹 | 출처 |
 |------|------|
-| Claude 한도 | `api.anthropic.com/api/oauth/usage` (키체인 OAuth 토큰) |
+| Claude 한도 | **① 로컬 캐시 우선** (`~/.claude/**/usage-cache.json`, 있으면 실시간·무네트워크) → **② 없으면 API 폴백** (`api.anthropic.com/api/oauth/usage`, 키체인 OAuth 토큰, 60초 캐싱) |
 | 세션 컨텍스트 | `~/.claude/projects/*/*.jsonl` 마지막 usage 합산 |
 | Codex 한도 | `~/.codex/sessions/**/*.jsonl` 최신 `rate_limits` |
 

@@ -288,16 +288,53 @@ function readClaudeToken(acc = {}) {
   return JSON.parse(raw).claudeAiOauth.accessToken;
 }
 
+// 사용량 JSON → items 배열 (로컬 캐시 파일과 API 응답이 같은 스키마라 공용)
+function parseUsageItems(d) {
+  const items = [];
+  if (d.five_hour) items.push({ name: "5시간 세션", used: d.five_hour.utilization, resets: d.five_hour.resets_at });
+  if (d.seven_day) items.push({ name: "주간 (7일)", used: d.seven_day.utilization, resets: d.seven_day.resets_at });
+  for (const [k, label] of [["seven_day_opus", "주간 Opus"], ["seven_day_sonnet", "주간 Sonnet"], ["seven_day_cowork", "주간 Cowork"]]) {
+    if (d[k] && d[k].utilization != null) items.push({ name: label, used: d[k].utilization, resets: d[k].resets_at });
+  }
+  return items;
+}
+
+// Claude Code가 스스로 갱신하는 로컬 사용량 캐시 (버전에 따라 경로가 다르거나 없을 수 있음)
+// → 있으면 네트워크 없이 진짜 실시간. 없으면 null 반환하고 API로 폴백.
+function readLocalUsageCache(acc = {}) {
+  const base = acc.configDir || path.join(HOME, ".claude");
+  const candidates = [
+    path.join(base, "MEMORY", "STATE", "usage-cache.json"),
+    path.join(base, "usage-cache.json"),
+    path.join(base, "cache", "usage-cache.json"),
+    path.join(base, "STATE", "usage-cache.json"),
+  ];
+  for (const f of candidates) {
+    try {
+      if (!existsSync(f)) continue;
+      const d = JSON.parse(readFileSync(f, "utf8"));
+      const items = parseUsageItems(d);
+      if (items.length) return { ok: true, items, at: Date.now(), source: "local" };
+    } catch {}
+  }
+  return null;
+}
+
 const CLAUDE_TTL_MS = 60 * 1000; // API는 최대 60초마다만 호출 (레이트리밋 보호). 세션 컨텍스트는 매 실행 실시간.
 async function getClaude(acc = {}, idx = 0) {
+  // 1순위: Claude Code 로컬 사용량 캐시 (원본 dennykim123 방식) — 실시간·무네트워크
+  const local = readLocalUsageCache(acc);
+  if (local) return local;
+
+  // 2순위: 우리 API 캐시가 신선하면 API 스킵
   const cacheFile = path.join(CACHE_DIR, `claude-${idx}.json`);
-  // 신선한 캐시가 있으면 API 스킵 → 5초 주기로 돌아도 API는 분당 1회
   if (existsSync(cacheFile)) {
     try {
       const cached = JSON.parse(readFileSync(cacheFile, "utf8"));
       if (cached.at && Date.now() - cached.at < CLAUDE_TTL_MS) { cached.fresh = true; return cached; }
     } catch {}
   }
+  // 3순위: usage API 직접 호출
   try {
     const token = readClaudeToken(acc);
     const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
@@ -306,14 +343,8 @@ async function getClaude(acc = {}, idx = 0) {
     });
     if (!res.ok) throw new Error(`usage api ${res.status}`);
     const d = await res.json();
-    const items = [];
-    if (d.five_hour) items.push({ name: "5시간 세션", used: d.five_hour.utilization, resets: d.five_hour.resets_at });
-    if (d.seven_day) items.push({ name: "주간 (7일)", used: d.seven_day.utilization, resets: d.seven_day.resets_at });
-    // 모델별 주간 상한 (있을 때만)
-    for (const [k, label] of [["seven_day_opus", "주간 Opus"], ["seven_day_sonnet", "주간 Sonnet"], ["seven_day_cowork", "주간 Cowork"]]) {
-      if (d[k] && d[k].utilization != null) items.push({ name: label, used: d[k].utilization, resets: d[k].resets_at });
-    }
-    const out = { ok: true, items, at: Date.now() };
+    const items = parseUsageItems(d);
+    const out = { ok: true, items, at: Date.now(), source: "api" };
     writeFileSync(cacheFile, JSON.stringify(out));
     return out;
   } catch (e) {
@@ -699,8 +730,9 @@ out.push("---");
 for (let ai = 0; ai < accounts.length; ai++) {
   const cl = claudes[ai];
   const title = accounts.length > 1 ? `Claude Code — ${accounts[ai].name}` : "Claude Code";
+  const src = cl.source === "local" ? "🟢 실시간(로컬)" : cl.source === "api" ? "🌐 API·최대60초" : "";
   if (ai > 0) out.push("---");
-  out.push(`${title} | size=13 color=#8b949e`);
+  out.push(`${title}  ${src} | size=13 color=#8b949e`);
   if (cl.items.length) {
     for (const i of cl.items) {
       const r = Math.round(100 - i.used);
