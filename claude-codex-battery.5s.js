@@ -18,28 +18,46 @@ const IS_MAC = process.platform === "darwin";
 const CACHE_DIR = path.join(HOME, ".cache", "claude-codex-battery");
 try { mkdirSync(CACHE_DIR, { recursive: true }); } catch {}
 
-// 노치 맥북 감지 → 컴팩트 모드 (노치가 넓은 메뉴바 아이콘을 가려서 안 보이는 문제 회피).
-// SwiftBar는 화면별 다른 출력이 불가하므로, "이 맥이 노치 모델인지"(하드웨어)로 판단한다.
-// system_profiler는 느려서 하루 캐싱. 강제: CCB_COMPACT=1(켬) / CCB_COMPACT=0(끔).
-function isNotchMac() {
+// 컴팩트 모드: 메뉴바가 실제로 뜨는 "주 디스플레이"가 노치 내장 화면이면 폭을 줄인다.
+// (노치가 넓은 아이콘을 가려 안 보이는 문제 회피). 외장 모니터가 주 디스플레이면 풀버전.
+// → 모니터를 바꾸면 자동 전환. SwiftBar는 화면별 다른 출력이 불가하므로 "주 디스플레이 1개" 기준.
+// system_profiler가 느려서 30초 캐싱(디스플레이 연결은 드문 이벤트라 충분). 렌더는 5초 유지.
+// 수동 오버라이드: CCB_COMPACT=1(항상 컴팩트) / CCB_COMPACT=0(항상 풀버전).
+function shouldCompact() {
   if (process.env.CCB_COMPACT === "1") return true;
   if (process.env.CCB_COMPACT === "0") return false;
   if (!IS_MAC) return false;
-  const cacheF = path.join(CACHE_DIR, "notch.json");
+  const cacheF = path.join(CACHE_DIR, "display.json");
   try {
     const c = JSON.parse(readFileSync(cacheF, "utf8"));
-    if (c.at && Date.now() - c.at < 86400000) return c.notch;
+    if (c.at && Date.now() - c.at < 30000) return c.compact;
   } catch {}
-  let notch = false;
+  let compact = false;
   try {
     const out = execSync("system_profiler SPDisplaysDataType", { encoding: "utf8", timeout: 8000 });
-    // 내장 Liquid Retina XDR = 노치 세대 맥북 (14"/16" Pro, 노치 Air 포함 계열)
-    notch = /Built-in Liquid Retina XDR Display/i.test(out) || /Built-in Retina Display/i.test(out) && /Notch/i.test(out);
+    // 실제 구조 (system_profiler):
+    //   Displays:
+    //       <모니터이름>:                    ← 디스플레이 블록 헤더 (8칸 들여쓰기 + 콜론)
+    //         Resolution / Main Display / Display Type / Connection Type ...
+    // 주 디스플레이(Main Display: Yes) 블록이 "내장"이면 컴팩트.
+    // 내장 판별: "Display Type: Built-in ..." 또는 "Connection Type: Internal".
+    const lines = out.split("\n");
+    const DISPLAY_HEADER = /^ {8}\S.*:\s*$/; // "        S32B80P:" 같은 모니터 이름 줄
+    let curInternal = false, curMain = false, mainIsInternal = false;
+    const flush = () => { if (curMain) mainIsInternal = curInternal; };
+    for (const ln of lines) {
+      if (DISPLAY_HEADER.test(ln)) { flush(); curInternal = false; curMain = false; } // 새 디스플레이 블록
+      if (/Display Type:\s*Built-in/i.test(ln)) curInternal = true;
+      if (/Connection Type:\s*Internal/i.test(ln)) curInternal = true;
+      if (/Main Display:\s*Yes/i.test(ln)) curMain = true;
+    }
+    flush(); // 마지막 블록
+    compact = mainIsInternal;
   } catch {}
-  try { writeFileSync(cacheF, JSON.stringify({ notch, at: Date.now() })); } catch {}
-  return notch;
+  try { writeFileSync(cacheF, JSON.stringify({ compact, at: Date.now() })); } catch {}
+  return compact;
 }
-const COMPACT = isNotchMac();
+const COMPACT = shouldCompact();
 
 // ───────────────────────── PNG 인코더 ─────────────────────────
 const CRC_TABLE = (() => {
