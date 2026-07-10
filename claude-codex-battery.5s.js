@@ -18,6 +18,29 @@ const IS_MAC = process.platform === "darwin";
 const CACHE_DIR = path.join(HOME, ".cache", "claude-codex-battery");
 try { mkdirSync(CACHE_DIR, { recursive: true }); } catch {}
 
+// 노치 맥북 감지 → 컴팩트 모드 (노치가 넓은 메뉴바 아이콘을 가려서 안 보이는 문제 회피).
+// SwiftBar는 화면별 다른 출력이 불가하므로, "이 맥이 노치 모델인지"(하드웨어)로 판단한다.
+// system_profiler는 느려서 하루 캐싱. 강제: CCB_COMPACT=1(켬) / CCB_COMPACT=0(끔).
+function isNotchMac() {
+  if (process.env.CCB_COMPACT === "1") return true;
+  if (process.env.CCB_COMPACT === "0") return false;
+  if (!IS_MAC) return false;
+  const cacheF = path.join(CACHE_DIR, "notch.json");
+  try {
+    const c = JSON.parse(readFileSync(cacheF, "utf8"));
+    if (c.at && Date.now() - c.at < 86400000) return c.notch;
+  } catch {}
+  let notch = false;
+  try {
+    const out = execSync("system_profiler SPDisplaysDataType", { encoding: "utf8", timeout: 8000 });
+    // 내장 Liquid Retina XDR = 노치 세대 맥북 (14"/16" Pro, 노치 Air 포함 계열)
+    notch = /Built-in Liquid Retina XDR Display/i.test(out) || /Built-in Retina Display/i.test(out) && /Notch/i.test(out);
+  } catch {}
+  try { writeFileSync(cacheF, JSON.stringify({ notch, at: Date.now() })); } catch {}
+  return notch;
+}
+const COMPACT = isNotchMac();
+
 // ───────────────────────── PNG 인코더 ─────────────────────────
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
@@ -714,16 +737,19 @@ const dark = isDarkMode();
 const asJson = argv.includes("--json");
 const asText = argv.includes("--text");
 
+// 노치 맥북(COMPACT): 메뉴바 아이콘이 노치에 가려 안 보이므로 폭을 최소화.
+//   한도는 첫 항목(5시간)만, 세션은 위험순 1개만. 드롭다운은 그대로 전부 표시.
 const groups = [];
 for (let ai = 0; ai < accounts.length; ai++) {
   const label = accounts.length > 1 ? (accounts[ai].name || "C")[0].toUpperCase() : "C";
   const cl = claudes[ai];
-  if (cl.items.length) groups.push({ label, color: CLAUDE_ORANGE, items: cl.items.map((i) => ({ remain: 100 - i.used })) });
-  else groups.push({ label, color: CLAUDE_ORANGE, items: [{ remain: null }] });
+  if (cl.items.length) {
+    const items = (COMPACT ? cl.items.slice(0, 1) : cl.items).map((i) => ({ remain: 100 - i.used }));
+    groups.push({ label, color: CLAUDE_ORANGE, items });
+  } else groups.push({ label, color: CLAUDE_ORANGE, items: [{ remain: null }] });
 }
-// 지금 작업 중인 세션(15분 내 활동). 메뉴바엔 공간 한계상 최대 3개 배터리 + 나머지는 "+N" 요약.
-// (전부 다 보기는 드롭다운에서 — 거긴 세로라 개수 제한 없음)
-const MENUBAR_MAX = 3;
+// 세션: 메뉴바 표시 개수 (컴팩트=1, 일반=3). 드롭다운은 개수 제한 없이 전부.
+const MENUBAR_MAX = COMPACT ? 1 : 3;
 const activeSessions = sessions.filter((s) => Date.now() - s.mtime < 15 * 60 * 1000);
 const liveSessions = activeSessions.slice(0, 2); // "곧 컴팩트" 경고용(2개)은 별개로 유지
 if (activeSessions.length) {
@@ -734,7 +760,10 @@ if (activeSessions.length) {
   const overflow = activeSessions.length - shown.length;
   groups.push({ label: "S", color: CLAUDE_ORANGE, items, overflow });
 }
-if (codex.items.length) groups.push({ label: "X", color: CODEX_VIOLET, items: codex.items.map((i) => ({ remain: 100 - i.used })) });
+if (codex.items.length) {
+  const cxItems = (COMPACT ? codex.items.slice(0, 1) : codex.items).map((i) => ({ remain: 100 - i.used }));
+  groups.push({ label: "X", color: CODEX_VIOLET, items: cxItems });
+}
 if (letsur) groups.push({ label: "L", color: LETSUR_CYAN, items: [{ remain: 100 - letsur.pct }] });
 
 // ─ CLI 출력 모드 (윈도우/리눅스/터미널용) ─
