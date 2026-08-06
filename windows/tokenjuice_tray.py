@@ -40,10 +40,15 @@ YELLOW = (255, 204, 0)
 RED = (255, 69, 58)
 DIM = (110, 118, 129)
 
-# Windows renders the tray icon at 16px logical; we draw at 4x and downsample so
-# the pixel battery keeps clean edges on 125%/150%/200% scaling.
-SCALE = 4
+# Tray icon sizing. pystray hands our PIL image to Windows as an .ICO and loads
+# it with LR_DEFAULTSIZE, so Windows picks a frame from *inside* the file by the
+# current DPI: 100%=16, 125%=20, 150%=24, and the Win10+ taskbar uses 24.
+# A 16-only ICO therefore gets upscaled and looks blurry on most laptops, which
+# ship at 125% or 150% — so we render every size natively instead.
+ICON_SIZES = (16, 20, 24, 32)
 ICON_BASE = 16
+# Draw oversampled, then downsample: keeps the 1px battery outline crisp.
+SCALE = 4
 
 
 def heat(remain: float) -> tuple[int, int, int]:
@@ -181,18 +186,19 @@ def worst_remaining(groups: list[dict]) -> float | None:
 # ───────────────────────── icon drawing ─────────────────────────
 
 
-def draw_battery(d: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int, remain: float | None):
+def draw_battery(
+    d: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int, remain: float | None, lw: int
+):
     """
     A pixel battery: outline, fill proportional to remaining, nub on the right.
 
     Two things matter at 16px and cost us a redraw to learn:
       - the empty part must be a dark trough, not transparent. Left transparent
         it picks up the taskbar behind it and the bar stops reading as a battery.
-      - the outline must be exactly 1 logical pixel (SCALE), not thicker, or a
+      - the outline must be exactly 1 logical pixel (`lw`), not thicker, or a
         short bar closes up into a solid blob with no discernible shape.
     """
     col = DIM if remain is None else heat(remain)
-    lw = SCALE  # 1 logical px after downsampling
     TROUGH = (18, 20, 24, 235)
 
     d.rectangle([x, y, x + w - 1, y + h - 1], fill=TROUGH, outline=col, width=lw)
@@ -221,22 +227,25 @@ def draw_battery(d: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int, remain:
     )
 
 
-def render_icon(groups: list[dict], error: bool = False) -> Image.Image:
+def render_frame(groups: list[dict], error: bool = False, target: int = ICON_BASE) -> Image.Image:
     """
-    The Windows tray gives us a ~16px square — far less room than a macOS menu
-    bar. So we do NOT try to reproduce the wide `[C 88][17]` strip. We stack up
-    to 3 batteries vertically (the worst offenders) and leave the numbers to the
-    menu, which is where there is actually space to read them.
+    Render one icon frame at `target`x`target` px.
+
+    The Windows tray gives us ~16-24px — far less room than a macOS menu bar. So
+    we do NOT try to reproduce the wide `[C 88][17]` strip. We stack up to 3
+    batteries vertically (the worst offenders) and leave the numbers to the menu,
+    which is where there is actually space to read them.
     """
-    size = ICON_BASE * SCALE
+    size = target * SCALE
+    lw = SCALE  # 1 logical px at this target size
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
 
     if error:
         pad = 3 * SCALE
-        d.line([pad, pad, size - pad, size - pad], fill=RED, width=SCALE)
-        d.line([size - pad, pad, pad, size - pad], fill=RED, width=SCALE)
-        return img.resize((ICON_BASE, ICON_BASE), Image.LANCZOS)
+        d.line([pad, pad, size - pad, size - pad], fill=RED, width=lw)
+        d.line([size - pad, pad, pad, size - pad], fill=RED, width=lw)
+        return img.resize((target, target), Image.LANCZOS)
 
     bars = [b for g in groups for b in g["bars"]]
     if not bars:
@@ -246,19 +255,47 @@ def render_icon(groups: list[dict], error: bool = False) -> Image.Image:
     bars = (known or [None])[:3]
 
     n = len(bars)
-    gap = SCALE
-    avail_h = size - 2 * SCALE
-    bar_w = size - 4 * SCALE
+    gap = lw
+    avail_h = size - 2 * lw
+    bar_w = size - 4 * lw
     # Cap the height so a single battery stays battery-shaped instead of
     # stretching into a square blob; the stack is then centred vertically.
     bar_h = min((avail_h - gap * (n - 1)) // n, round(bar_w * 0.55))
     stack_h = bar_h * n + gap * (n - 1)
     y = (size - stack_h) // 2
     for b in bars:
-        draw_battery(d, SCALE, y, bar_w, bar_h, b)
+        draw_battery(d, lw, y, bar_w, bar_h, b, lw)
         y += bar_h + gap
 
-    return img.resize((ICON_BASE, ICON_BASE), Image.LANCZOS)
+    return img.resize((target, target), Image.LANCZOS)
+
+
+def render_icon(groups: list[dict], error: bool = False) -> Image.Image:
+    """
+    Build the icon Windows will actually use.
+
+    pystray saves our image with a bare `image.save(fp, format='ICO')`, and
+    Pillow's ICO writer then does two things that decide what we can do here:
+
+      1. it only emits frames whose size is <= the base image's size
+         (IcoImagePlugin._save: `if size[0] > width: continue`), and
+      2. it reads `append_images` from *encoderinfo* — i.e. save() kwargs —
+         which pystray does not pass, so attaching frames to the image is
+         silently ignored.
+
+    So we cannot hand over a 16px base and attach bigger frames; verified
+    empirically that only the 16px frame survives. Instead render at the largest
+    size we care about (32px) and let Pillow downscale for the smaller entries,
+    which it will do because they are all <= 32. Windows can then pick the frame
+    matching the user's DPI (100%=16, 125%=20, 150%=24, taskbar=24) instead of
+    upscaling a lone 16px bitmap.
+    """
+    biggest = max(ICON_SIZES)
+    base = render_frame(groups, error, biggest)
+    # Consumed by Pillow only if something passes it through to save(); harmless
+    # otherwise, and it documents the sizes this icon is meant to serve.
+    base.info["sizes"] = [(s, s) for s in ICON_SIZES]
+    return base
 
 
 def bar_text(remain: float, width: int = 12) -> str:
