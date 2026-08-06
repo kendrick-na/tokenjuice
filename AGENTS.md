@@ -7,6 +7,24 @@ this for a user. Follow the branch for the user's OS; do not run both.
 and Codex usage the user has left. macOS uses SwiftBar; Windows uses a Python
 tray app. Both run the same engine, `claude-codex-battery.5s.js`.
 
+## Step 0 — is it already installed?
+
+Check before cloning. Cloning blindly next to an existing copy leaves two
+checkouts and the user can no longer tell which one is live.
+
+```bash
+ls ~/.swiftbar-plugins/claude-codex-battery.5s.js   # macOS: installed?
+ls "$(cygpath -u "$USERPROFILE" 2>/dev/null)/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/tokenjuice.lnk"  # Windows
+```
+
+If either exists, this is an **update**, not an install. Find the existing clone
+(`git -C <path> remote -v` should show `tokenjuice`) and re-run the installer
+there — both are idempotent and re-copy the current engine. Do **not** clone a
+second copy.
+
+`git pull` first only if the checkout is clean. Check `git status` — a user who
+edited files locally should be asked before you touch their work.
+
 ## Step 1 — detect the OS
 
 Do not assume. Windows and macOS have entirely separate installers, and running
@@ -26,14 +44,21 @@ Ask which one the user means before continuing.
 
 ## macOS
 
+**Ask the user where to clone** if they have a convention; otherwise clone into a
+directory you know, not whatever the shell happens to be sitting in:
+
 ```bash
-git clone https://github.com/kendrick-na/tokenjuice.git
-cd tokenjuice
+git clone https://github.com/kendrick-na/tokenjuice.git ~/tokenjuice
+cd ~/tokenjuice
 CCB_YES=1 ./install.sh
 ```
 
 `install.sh` installs bun and SwiftBar via Homebrew if missing, registers the
 plugin, launches SwiftBar, and adds a login item. `CCB_YES=1` stops it prompting.
+
+**Homebrew is required** unless SwiftBar is already installed — the installer
+exits if SwiftBar is missing and `brew` isn't available. Install Homebrew first,
+or install SwiftBar manually, if that's the case.
 
 **Verify:** `bun claude-codex-battery.5s.js --text` prints battery lines. Then
 tell the user to look for the batteries in their menu bar.
@@ -94,6 +119,48 @@ No tray build exists. Don't try to make one. Report the CLI and stop:
 bun claude-codex-battery.5s.js --text   # human-readable
 bun claude-codex-battery.5s.js --json   # for a bar/widget (waybar, polybar, …)
 ```
+
+## Updating
+
+The installers copy the engine into place, so an update is a pull plus a re-run.
+The copy is what matters: pulling alone changes the checkout but leaves the
+running menu bar / tray on the old engine.
+
+```bash
+# macOS
+cd <existing clone> && git pull && CCB_YES=1 ./install.sh
+```
+```powershell
+# Windows
+cd <existing clone>; git pull; cd windows; .\install.ps1
+```
+
+To check whether a running install is stale, compare the installed copy against
+the checkout. Skip line 1: the installer rewrites the shebang to bun's absolute
+path, so a plain `diff` always reports a difference and looks like a false stale.
+
+```bash
+diff <(tail -n +2 ~/.swiftbar-plugins/claude-codex-battery.5s.js) \
+     <(tail -n +2 ./claude-codex-battery.5s.js) && echo "up to date"
+```
+
+## Uninstalling
+
+```bash
+# macOS — removing the plugin is enough; SwiftBar keeps running with none.
+rm ~/.swiftbar-plugins/claude-codex-battery.5s.js
+```
+The login item `install.sh` adds is **SwiftBar**, not tokenjuice, so leave it
+alone unless SwiftBar was installed only for this — in which case remove SwiftBar
+from System Settings › General › Login Items and `brew uninstall --cask swiftbar`.
+```powershell
+# Windows: delete the startup shortcut, then quit from the tray menu
+Remove-Item "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\tokenjuice.lnk"
+```
+
+Neither leaves anything else behind: no daemons, no registry keys. The cache in
+`~/.cache/claude-codex-battery` and any config in
+`~/.config/claude-codex-battery` can be deleted too.
 
 ## Things that are true on every OS
 

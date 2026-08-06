@@ -62,9 +62,9 @@ is off, which is the default. Sessions and Codex work regardless.
 
 ## Requirements
 
-- **macOS** or **Windows 10/11** (Linux: CLI only, see [Linux](#linux))
+- **macOS** or **Windows 10 1809+ / 11** (Linux: CLI only, see [Linux](#linux))
 - **[bun](https://bun.sh)** — the runtime (installer offers to set it up for you)
-- **[SwiftBar](https://github.com/swiftbar/SwiftBar)** — macOS only, the menu bar host (installer sets it up via Homebrew)
+- **[SwiftBar](https://github.com/swiftbar/SwiftBar)** — macOS only, the menu bar host. The installer fetches it with **[Homebrew](https://brew.sh)**, so on macOS you need Homebrew unless SwiftBar is already installed.
 - **Claude Code and/or Codex installed & used** — tokenjuice reads their local files (no login step needed unless you opt into API mode; see [Privacy & security](#privacy--security))
 
 ## Install (macOS)
@@ -78,6 +78,28 @@ cd tokenjuice
 The installer checks bun & SwiftBar (auto-installing what's missing), registers the plugin, launches SwiftBar, and adds it to your login items so it survives reboots.
 
 > **No keychain prompt by default.** Sessions & Codex work from local files immediately. Claude limits only need the keychain if you turn on [API mode](#privacy--security) — and only then does macOS ask you to *Always Allow*.
+
+### Update / uninstall
+
+The installer *copies* the engine into place, so `git pull` alone leaves your menu
+bar on the old version. Re-run the installer after pulling:
+
+```bash
+cd tokenjuice && git pull && ./install.sh      # macOS
+cd tokenjuice && git pull && cd windows && .\install.ps1   # Windows (PowerShell)
+```
+
+Check whether you're running stale code (skip line 1 — the installer rewrites the
+shebang to bun's absolute path, so a plain `diff` always reports a difference):
+```bash
+diff <(tail -n +2 ~/.swiftbar-plugins/claude-codex-battery.5s.js) \
+     <(tail -n +2 ./claude-codex-battery.5s.js) && echo "up to date"
+```
+
+To remove it: delete `~/.swiftbar-plugins/claude-codex-battery.5s.js` (macOS) or
+`tokenjuice.lnk` from your Startup folder (`shell:startup`, Windows). Nothing else
+is left behind — the only other traces are `~/.cache/claude-codex-battery` and
+`~/.config/claude-codex-battery`, both safe to delete.
 
 ### Install it with an AI agent
 
