@@ -2,12 +2,12 @@
 
 **See how much Claude Code & Codex you have left — right in your menu bar.**
 
-A [SwiftBar](https://github.com/swiftbar/SwiftBar) plugin that shows your Claude Code / Codex usage limits *and* your live session context window as battery icons. Green = go, red = wrap it up.
+Shows your Claude Code / Codex usage limits *and* your live session context window as battery icons — in the **macOS menu bar** ([SwiftBar](https://github.com/swiftbar/SwiftBar)) or the **Windows system tray**. Green = go, red = wrap it up.
 
 ![demo](docs/demo.gif)
 
 <p align="center">
-  <img alt="platform" src="https://img.shields.io/badge/platform-macOS-black?logo=apple">
+  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-black">
   <img alt="runtime" src="https://img.shields.io/badge/runtime-bun-black?logo=bun">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue">
 </p>
@@ -34,14 +34,16 @@ The number = **% remaining**. Under 20% turns red.
 
 ---
 
+> **On Windows?** Jump to [Windows](#windows) — there's a native system-tray build.
+
 ## Requirements
 
-- **macOS** (menu bar is macOS-only — see [Windows / Linux](#windows--linux) for the CLI)
+- **macOS** or **Windows 10/11** (Linux: CLI only, see [Linux](#linux))
 - **[bun](https://bun.sh)** — the runtime (installer offers to set it up for you)
-- **[SwiftBar](https://github.com/swiftbar/SwiftBar)** — the menu bar host (installer sets it up via Homebrew)
+- **[SwiftBar](https://github.com/swiftbar/SwiftBar)** — macOS only, the menu bar host (installer sets it up via Homebrew)
 - **Claude Code and/or Codex installed & used** — tokenjuice reads their local files (no login step needed unless you opt into API mode; see [Privacy & security](#privacy--security))
 
-## Install
+## Install (macOS)
 
 ```bash
 git clone https://github.com/kendrick-na/tokenjuice.git
@@ -111,15 +113,92 @@ CLAUDE_CONFIG_DIR=~/.claude-work claude   # log into your work account here
 ```
 `~/.claude` and `~/.claude-work` then show as separate battery groups. Manual override: `~/.config/claude-codex-battery/accounts.json`.
 
-## Windows / Linux
+## Windows
 
-**tokenjuice is a macOS menu bar app** — the battery display needs SwiftBar, which is macOS-only. There's no Windows/Linux menu bar build.
+Same batteries, in the system tray. Both platforms run the **same engine**
+(`claude-codex-battery.5s.js`) — only the drawing layer differs, so the numbers
+can't drift between them.
 
-That said, the **data logic is cross-platform**, so on other OSes you can still get the numbers via CLI and feed them into your own tray/bar (Waybar, polybar, a Windows tray util, etc.):
+### Option A — from source (2 commands)
+
+```powershell
+git clone https://github.com/kendrick-na/tokenjuice.git
+cd tokenjuice\windows
+.\install.ps1
+```
+
+`install.ps1` checks bun and Python (offering to install bun if missing),
+installs the two Python packages, registers a start-at-login shortcut, runs a
+smoke test, and launches the tray.
+
+### Option B — the exe
+
+Grab `tokenjuice.exe` from [Releases](https://github.com/kendrick-na/tokenjuice/releases),
+keep `claude-codex-battery.5s.js` **in the same folder**, and double-click.
+Python is bundled; you still need [bun](https://bun.sh):
+
+```powershell
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+> **Can't see the icon?** Windows hides new tray icons by default. Click the
+> **^** arrow next to the clock, then drag tokenjuice onto the taskbar to pin it.
+
+**Requirements:** Windows 10/11 · [bun](https://bun.sh) · Python 3.9+ (only for Option A)
+
+### How the tray icon differs from the menu bar
+
+The Windows tray gives an app ~16×16 px — far less than a macOS menu bar. So
+instead of the wide `C [95][99]` strip, the tray stacks the **three tightest
+batteries** vertically and puts every number in the menu, where there's room to
+read it. Hover for a one-line summary; click for the full breakdown.
+
+| State | Icon |
+|---|---|
+| Healthy | green battery, mostly full |
+| Under 50% | yellow |
+| Under 20% | red |
+| Exhausted (0%) | red battery with an ✕ through it |
+| No data yet | grey outline |
+| Engine error | red ✕ (open the menu for the reason) |
+
+### Windows-specific commands
+
+```powershell
+python tokenjuice_tray.py            # run in the foreground
+python tokenjuice_tray.py --once     # print one reading and exit (debugging)
+.\build-exe.ps1                      # build dist\tokenjuice.exe yourself
+.\install.ps1 -NoAutostart           # install without start-at-login
+```
+
+To remove it: delete `tokenjuice.lnk` from your Startup folder
+(`shell:startup`) and quit from the tray menu.
+
+## Linux
+
+No tray build. The engine is cross-platform, so feed the CLI into your own bar
+(Waybar, polybar, i3blocks):
+
 ```bash
 bun claude-codex-battery.5s.js --text   # human-readable
-bun claude-codex-battery.5s.js --json    # structured, for tray widgets
+bun claude-codex-battery.5s.js --json   # structured, for tray widgets
 ```
+
+## Privacy: session topics
+
+A session's "topic" is **your raw prompt text**. Since a menu bar and a tray are
+both visible in screen shares and screenshots, topics are **hidden by default**
+on every platform, and stripped from `--json` entirely rather than merely
+hidden at render time.
+
+Turn them on only if you want them:
+
+```bash
+export CCB_TOPICS=1                                   # macOS / Linux
+bun claude-codex-battery.5s.js --json --topics         # one-off
+```
+On Windows, use **Show prompt topics** in the tray menu. Or set
+`{"topics": true}` in `~/.config/claude-codex-battery/config.json`.
 
 ## License
 
@@ -146,12 +225,14 @@ Claude Code / Codex 사용 한도와 **지금 세션의 컨텍스트 잔량**을
 
 ## 준비물
 
-- **macOS** (메뉴바는 맥 전용 — 윈도우/리눅스는 CLI 모드)
+- **macOS** 또는 **Windows 10/11** (리눅스는 CLI 모드)
 - **[bun](https://bun.sh)** — 런타임 (설치 스크립트가 자동 설치 제안)
-- **[SwiftBar](https://github.com/swiftbar/SwiftBar)** — 메뉴바 호스트 (설치 스크립트가 brew로 설치)
+- **[SwiftBar](https://github.com/swiftbar/SwiftBar)** — 맥 전용, 메뉴바 호스트 (설치 스크립트가 brew로 설치)
 - **Claude Code에 로그인돼 있어야 함** (터미널에서 `claude`) — 사용량 데이터 출처
 
-## 설치
+> **윈도우 사용자는** 아래 [윈도우](#윈도우) 섹션으로. 시스템 트레이 전용 빌드가 있다.
+
+## 설치 (macOS)
 
 ```bash
 git clone https://github.com/kendrick-na/tokenjuice.git
@@ -173,7 +254,81 @@ bun·SwiftBar를 확인(없으면 자동 설치)하고 플러그인을 등록한
 
 ## 데이터 출처 · 세션 · 멀티계정 · Letsur
 
-위 영문 섹션과 동일 — 요약: Claude 한도는 **로컬 캐시 우선 → API 폴백**, 세션은 Claude+Codex 병합·위험순 3개+`+N`, 멀티계정은 config-dir 자동 감지, Letsur는 월 한도 대비 누적. CLI 모드(`--json`/`--text`)로 윈도우/리눅스 트레이에 연동 가능.
+위 영문 섹션과 동일 — 요약: Claude 한도는 **로컬 캐시 우선 → API 폴백**, 세션은 Claude+Codex 병합·위험순 3개+`+N`, 멀티계정은 config-dir 자동 감지, Letsur는 월 한도 대비 누적.
+
+<a name="윈도우"></a>
+## 윈도우
+
+같은 배터리를 시스템 트레이에 띄운다. **엔진(`claude-codex-battery.5s.js`)은
+맥과 완전히 동일**하고 그리는 층만 다르다 — 그래서 두 OS의 숫자가 어긋날 수 없다.
+
+### 방법 A — 소스에서 (명령 2줄)
+
+```powershell
+git clone https://github.com/kendrick-na/tokenjuice.git
+cd tokenjuice\windows
+.\install.ps1
+```
+
+`install.ps1`이 bun·파이썬을 확인(bun 없으면 설치 제안)하고, 파이썬 패키지 2개를
+깔고, **시작프로그램에 등록**하고, 동작 테스트를 한 뒤 트레이를 띄운다.
+
+### 방법 B — exe
+
+[Releases](https://github.com/kendrick-na/tokenjuice/releases)에서 `tokenjuice.exe`를
+받고, `claude-codex-battery.5s.js`를 **같은 폴더에** 두고 더블클릭.
+파이썬은 exe에 들어있고, [bun](https://bun.sh)만 따로 필요하다:
+
+```powershell
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+> **아이콘이 안 보이면** — 윈도우는 새 트레이 아이콘을 기본으로 숨긴다.
+> 시계 옆 **^** 화살표를 누르고, tokenjuice를 작업표시줄로 끌어다 고정하면 된다.
+
+**준비물**: Windows 10/11 · [bun](https://bun.sh) · 파이썬 3.9+ (방법 A만)
+
+### 트레이 아이콘이 메뉴바와 다른 이유
+
+윈도우 트레이는 앱에 **16×16 픽셀**만 준다 — 맥 메뉴바보다 훨씬 좁다. 그래서
+넓은 `C [95][99]` 띠 대신, **가장 빡빡한 배터리 3개**를 위아래로 쌓고 숫자는
+전부 메뉴에 넣었다. 마우스를 올리면 한 줄 요약, 클릭하면 전체 내역이 나온다.
+
+| 상태 | 아이콘 |
+|---|---|
+| 여유 | 초록 배터리, 거의 꽉 참 |
+| 50% 미만 | 노랑 |
+| 20% 미만 | 빨강 |
+| 소진(0%) | 빨강 배터리에 ✕ |
+| 데이터 없음 | 회색 테두리 |
+| 엔진 오류 | 빨강 ✕ (메뉴 열면 이유 표시) |
+
+### 윈도우 전용 명령
+
+```powershell
+python tokenjuice_tray.py            # 창에서 바로 실행
+python tokenjuice_tray.py --once     # 한 번만 읽고 종료 (디버깅)
+.\build-exe.ps1                      # exe 직접 빌드
+.\install.ps1 -NoAutostart           # 시작프로그램 등록 없이 설치
+```
+
+삭제는 시작프로그램 폴더(`shell:startup`)에서 `tokenjuice.lnk`를 지우고 트레이
+메뉴에서 종료하면 끝.
+
+## 프라이버시: 세션 주제
+
+세션 "주제"는 **내가 친 프롬프트 원문**이다. 메뉴바도 트레이도 화면공유·스크린샷에
+그대로 찍히는 자리라서, **모든 OS에서 기본 숨김**이고 `--json`에서는 렌더만 막는
+게 아니라 **키 자체를 빼버린다**.
+
+보고 싶을 때만 켠다:
+
+```bash
+export CCB_TOPICS=1                                    # macOS / 리눅스
+bun claude-codex-battery.5s.js --json --topics         # 일회성
+```
+윈도우는 트레이 메뉴의 **Show prompt topics**. 또는
+`~/.config/claude-codex-battery/config.json`에 `{"topics": true}`.
 
 ## 라이선스
 

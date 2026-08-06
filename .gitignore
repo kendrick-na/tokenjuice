@@ -5,3 +5,10 @@ node_modules/
 scratchpad/
 scripts/frames/
 홍보_카피.md
+
+# Windows build artifacts
+windows/build/
+windows/dist/
+windows/__pycache__/
+windows/*.spec
+_백업/
