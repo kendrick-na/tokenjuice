@@ -816,7 +816,11 @@ if (asJson) {
   // 여기서 빼는 게 유일하게 확실한 차단 지점이다.
   const safeSessions = SHOW_TOPICS ? sessions : sessions.map(({ topic, ...rest }) => rest);
   console.log(JSON.stringify({
-    claude: claudes.map((c, i) => ({ account: accounts[i]?.name, items: c.items })),
+    // `reason` matters to consumers: without it a tray cannot tell "not logged
+    // in" from "API mode is off" and ends up printing the wrong fix.
+    claude: claudes.map((c, i) => ({
+      account: accounts[i]?.name, items: c.items, reason: c.reason ?? null, source: c.source ?? null,
+    })),
     sessions: safeSessions, codex: codex.items, letsur,
     topicsIncluded: SHOW_TOPICS,
   }, null, 2));
@@ -893,18 +897,23 @@ if (sessions.length) {
   });
 }
 
-out.push("---");
-out.push(`Codex${codex.plan ? ` (${codex.plan})` : ""} | size=13 color=#8b949e`);
-if (codex.items.length) {
-  for (const i of codex.items) {
-    const r = Math.round(100 - i.used);
-    const tail = i.wasReset ? "reset done" : fmtReset(i.resets);
-    out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${tail} | font=Menlo size=12 color=${heatHex(r)}`);
+// Codex section: only for people who actually have Codex. Someone who only uses
+// Claude should not carry a permanently empty "Codex — no data" row; the absence
+// of ~/.codex is the signal, since Codex creates it on first run.
+if (codex.items.length || existsSync(path.join(HOME, ".codex"))) {
+  out.push("---");
+  out.push(`Codex${codex.plan ? ` (${codex.plan})` : ""} | size=13 color=#8b949e`);
+  if (codex.items.length) {
+    for (const i of codex.items) {
+      const r = Math.round(100 - i.used);
+      const tail = i.wasReset ? "reset done" : fmtReset(i.resets);
+      out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${tail} | font=Menlo size=12 color=${heatHex(r)}`);
+    }
+    const ageMin = Math.round((Date.now() - codex.at) / 60000);
+    if (ageMin > 60) out.push(`ℹ️ from your last session (${Math.round(ageMin / 60)}h ago) | size=11 color=#8b949e`);
+  } else {
+    out.push("No session data yet (shows after you run Codex) | size=11 color=#8b949e");
   }
-  const ageMin = Math.round((Date.now() - codex.at) / 60000);
-  if (ageMin > 60) out.push(`ℹ️ from your last session (${Math.round(ageMin / 60)}h ago) | size=11 color=#8b949e`);
-} else {
-  out.push("No session data yet (shows after you run Codex) | size=11 color=#8b949e");
 }
 
 if (letsur) {

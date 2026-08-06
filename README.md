@@ -32,6 +32,21 @@ Shows your Claude Code / Codex usage limits *and* your live session context wind
 
 The number = **% remaining**. Under 20% turns red.
 
+### You only see what you use
+
+Nothing is shown for a tool you don't have. If you only use Claude Code, you get
+**C** and **S** — no empty Codex row taking up space.
+
+| Battery | Appears when | Claude-only user |
+|---|---|---|
+| **C** | you're logged in to Claude Code | ✅ |
+| **S** | a session was active in the last 15 min | ✅ |
+| **X** | `~/.codex` exists (Codex has been run) | — hidden |
+| **L** | you configured Letsur yourself | — hidden |
+
+If **C** is blank, the menu says why and how to fix it — usually [API mode](#privacy--security)
+is off, which is the default. Sessions and Codex work regardless.
+
 ---
 
 > **On Windows?** Jump to [Windows](#windows) — there's a native system-tray build.
@@ -222,6 +237,21 @@ Claude Code / Codex 사용 한도와 **지금 세션의 컨텍스트 잔량**을
 | **L** | 🩵 청록 | Letsur 게이트웨이 월 한도 (선택) |
 
 배터리 숫자 = **남은 %**. 20% 미만은 빨강 경고.
+
+### 안 쓰는 건 안 뜬다
+
+없는 도구는 아예 표시되지 않는다. Claude Code만 쓰면 **C·S만** 뜨고, 빈 Codex 칸이
+자리를 차지하지 않는다.
+
+| 배터리 | 뜨는 조건 | 클로드만 쓰면 |
+|---|---|---|
+| **C** | Claude Code 로그인됨 | ✅ |
+| **S** | 최근 15분 내 세션 활동 | ✅ |
+| **X** | `~/.codex` 존재 (Codex 실행한 적 있음) | — 숨김 |
+| **L** | Letsur를 직접 설정 | — 숨김 |
+
+**C**가 비어 있으면 메뉴가 이유와 해결법을 알려준다 — 대개 [API 모드](#privacy--security)가
+꺼져 있어서인데, 그게 기본값이다. 세션·Codex는 그것과 무관하게 작동한다.
 
 ## 준비물
 

@@ -298,6 +298,19 @@ def render_icon(groups: list[dict], error: bool = False) -> Image.Image:
     return base
 
 
+def explain_no_limits(reason: str | None) -> list[str]:
+    """Why the Claude limit batteries are blank, and what to do about it."""
+    if reason == "needs-api":
+        return [
+            "limits need API mode",
+            "set CCB_API=1 and restart tokenjuice",
+            "sessions and Codex work without it",
+        ]
+    if reason == "login":
+        return ["log in first — run  claude  in a terminal"]
+    return ["no usage data yet"]
+
+
 def bar_text(remain: float, width: int = 12) -> str:
     filled = round(width * max(0.0, min(100.0, remain)) / 100)
     return "█" * filled + "░" * (width - filled)
@@ -323,6 +336,10 @@ def build_tooltip(groups: list[dict], err: str | None) -> str:
         return f"{APP_NAME} — error"
     parts = []
     for g in groups:
+        # Drop all-blank groups from the tooltip. "C --" reads like a fault; the
+        # menu is where the reason and the fix belong.
+        if all(b is None for b in g["bars"]):
+            continue
         vals = "/".join("--" if b is None else f"{round(b)}%" for b in g["bars"])
         parts.append(f"{g['label']} {vals}")
     if not parts:
@@ -365,7 +382,10 @@ class TrayApp:
             yield MenuItem(f"Claude Code — {name}", None, enabled=False)
             items = acc.get("items") or []
             if not items:
-                yield MenuItem("   no usage data (log in to Claude Code)", None, enabled=False)
+                # Say the actual cause. "log in" is wrong when you *are* logged in
+                # and the limits simply need API mode turned on.
+                for line in explain_no_limits(acc.get("reason")):
+                    yield MenuItem(f"   {line}", None, enabled=False)
             for i in items:
                 r = round(100 - i.get("used", 0))
                 yield MenuItem(f"   {i.get('name')}  {bar_text(r)}  {r}% left", None, enabled=False)
