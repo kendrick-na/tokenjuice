@@ -16,6 +16,16 @@ import path from "node:path";
 const HOME = os.homedir();
 const IS_MAC = process.platform === "darwin";
 const argvHas = (flag) => process.argv.slice(2).includes(flag);
+
+// Claude Code's config root. CLAUDE_CONFIG_DIR moves *everything* under it —
+// transcripts included, not just .credentials.json — so honouring it is what
+// keeps sessions visible for anyone who relocates their config.
+function claudeHome() {
+  const custom = process.env.CLAUDE_CONFIG_DIR;
+  if (custom) return custom.replace(/^~/, HOME);
+  return path.join(HOME, ".claude");
+}
+
 const CACHE_DIR = path.join(HOME, ".cache", "claude-codex-battery");
 try { mkdirSync(CACHE_DIR, { recursive: true }); } catch {}
 
@@ -300,7 +310,7 @@ function loadAccounts() {
     const list = JSON.parse(readFileSync(f, "utf8"));
     if (Array.isArray(list) && list.length) return list;
   } catch {}
-  const accounts = [{ name: accountLabel(path.join(HOME, ".claude")) || "Claude" }];
+  const accounts = [{ name: accountLabel(claudeHome()) || "Claude" }];
   try {
     for (const e of readdirSync(HOME)) {
       if (!e.startsWith(".claude") || e === ".claude" || e.endsWith(".json") || e.endsWith(".backup")) continue;
@@ -318,7 +328,7 @@ function readClaudeToken(acc = {}) {
   if (explicit) return JSON.parse(readFileSync(explicit, "utf8")).claudeAiOauth.accessToken;
   // Windows / Linux: 자격증명은 평문 파일(~/.claude/.credentials.json)
   if (!IS_MAC) {
-    const p = path.join(acc.configDir || path.join(HOME, ".claude"), ".credentials.json");
+    const p = path.join(acc.configDir || claudeHome(), ".credentials.json");
     return JSON.parse(readFileSync(p, "utf8")).claudeAiOauth.accessToken;
   }
   // macOS: 키체인
@@ -344,7 +354,7 @@ function parseUsageItems(d) {
 // Claude Code가 스스로 갱신하는 로컬 사용량 캐시 (버전에 따라 경로가 다르거나 없을 수 있음)
 // → 있으면 네트워크 없이 진짜 실시간. 없으면 null 반환하고 API로 폴백.
 function readLocalUsageCache(acc = {}) {
-  const base = acc.configDir || path.join(HOME, ".claude");
+  const base = acc.configDir || claudeHome();
   const candidates = [
     path.join(base, "MEMORY", "STATE", "usage-cache.json"),
     path.join(base, "usage-cache.json"),
@@ -546,7 +556,7 @@ function extractTopic(file, tail) {
 }
 
 function getSessions() {
-  const projDir = path.join(HOME, ".claude", "projects");
+  const projDir = path.join(claudeHome(), "projects");
   const files = [];
   let dirs;
   try { dirs = readdirSync(projDir); } catch { return []; }
