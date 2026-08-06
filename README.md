@@ -72,11 +72,21 @@ The installer checks bun & SwiftBar (auto-installing what's missing), registers 
 
 ### Install it with an AI agent
 
-Hand this repo to Claude Code (or any coding agent) and let it do the work:
+Paste this to Claude Code, Codex, Cursor, or any coding agent — it works on both
+macOS and Windows, and the agent picks the right installer for you:
 
-> Clone https://github.com/kendrick-na/tokenjuice and run its `install.sh` for me. The installer is non-interactive-safe, so it won't block.
+> Install tokenjuice from https://github.com/kendrick-na/tokenjuice and follow the
+> AGENTS.md in the repo root. Detect my OS and use the matching installer.
 
-`install.sh` auto-proceeds when there's no TTY (or set `CCB_YES=1`), so an agent can run it end-to-end — and it needs **no** keychain or login step by default. (Only if you later opt into API mode does macOS ask you to click *Always Allow* once — an agent can't click that for you.)
+Both installers auto-proceed with no TTY (or `CCB_YES=1`), so an agent can run
+them end to end. Neither needs a login or keychain step by default.
+
+[`AGENTS.md`](AGENTS.md) holds the machine-readable version: OS detection, the
+exact commands, the compatibility gates, and how to verify it worked. Agents
+should read that rather than guessing from this README.
+
+> On macOS, the one thing an agent **can't** do is click *Always Allow* on the
+> keychain prompt — and that only appears if you opt into API mode later.
 
 ## Refresh rate
 
@@ -314,7 +324,18 @@ bun·SwiftBar를 확인(없으면 자동 설치)하고 플러그인을 등록한
 
 **개인정보/보안**: 전부 **내 로컬 파일**만 읽어 로컬에서 렌더. 기본값은 키체인 미접근. API 모드는 옵트인이며, 켜도 토큰은 **읽기 전용 조회 1회에 메모리에서만** 쓰고 저장·전송하지 않는다. 단일 파일(약 35KB, 의존성 0)이라 실행 전 직접 감사 가능.
 
-**AI 에이전트로 설치**: `install.sh`는 비대화형(TTY 없거나 `CCB_YES=1`)에서 자동 진행 → 에이전트에게 저장소 링크를 주고 맡길 수 있다. 기본 설치엔 키체인·로그인 단계가 **없다**.
+**AI 에이전트로 설치**: 클로드 코드·Codex·커서 등에 아래를 그대로 붙여넣으면 된다.
+**맥·윈도우 둘 다** 되고, 에이전트가 내 OS를 판별해 맞는 설치본을 고른다.
+
+> https://github.com/kendrick-na/tokenjuice 에서 tokenjuice를 설치해줘.
+> 저장소 루트의 AGENTS.md를 따라서, 내 OS를 판별해 맞는 설치 스크립트를 써.
+
+양쪽 설치 스크립트 모두 비대화형(TTY 없거나 `CCB_YES=1`)에서 자동 진행되고, 기본
+설치엔 **키체인·로그인 단계가 없다**. [`AGENTS.md`](AGENTS.md)에 OS 판별·정확한 명령·
+호환성 게이트·설치 확인법이 기계가 읽을 형태로 들어있다.
+
+> ⚠️ 맥에서 API 모드를 켠 경우에만 나오는 키체인 "항상 허용" 클릭은 **에이전트가 못 한다.**
+> 그 외 단계는 전부 자동으로 끝난다.
 
 ## 갱신 주기
 

@@ -8,6 +8,34 @@ PLUGIN="claude-codex-battery.5s.js"
 bold() { printf "\033[1m%s\033[0m\n" "$1"; }
 dim()  { printf "\033[2m%s\033[0m\n" "$1"; }
 
+# This installer is macOS-only: it needs Homebrew and SwiftBar, and it registers a
+# launch agent. Stop early with the right pointer instead of failing halfway and
+# leaving a half-configured machine behind — an agent handed the wrong command
+# should be told where to go, not left guessing.
+case "$(uname -s)" in
+  Darwin) ;;
+  Linux)
+    if grep -qi microsoft /proc/version 2>/dev/null; then
+      bold "This is WSL, and SwiftBar is macOS-only."
+      dim  "For a Windows tray icon, run windows\\install.ps1 from PowerShell — not WSL."
+      dim  "(A tray icon started inside WSL can't reach the Windows taskbar, and WSL"
+      dim  " has its own ~/.claude, so it would report the Linux-side usage.)"
+    else
+      bold "No tray build for Linux."
+      dim  "Use the CLI and feed it into your bar (waybar, polybar, i3blocks):"
+    fi
+    dim  "  bun claude-codex-battery.5s.js --text"
+    dim  "  bun claude-codex-battery.5s.js --json"
+    exit 1
+    ;;
+  *)
+    bold "install.sh is for macOS."
+    dim  "On Windows, use PowerShell:  cd windows;  .\\install.ps1"
+    dim  "See AGENTS.md for the per-OS instructions."
+    exit 1
+    ;;
+esac
+
 bold "🔋 Installing tokenjuice"
 echo
 
