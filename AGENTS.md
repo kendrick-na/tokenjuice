@@ -67,6 +67,10 @@ launches the tray.
 should appear; Windows hides new tray icons, so tell the user to click the **^**
 arrow near the clock and drag tokenjuice onto the taskbar to pin it.
 
+If something looks wrong, `python selftest.py` checks icon rendering, the ICO
+conversion Windows consumes, and the degraded-data paths. Exit 0 means the tray
+side is fine and the problem is elsewhere (usually bun or the engine).
+
 ### Hard blockers on Windows — check before promising it will work
 
 `install.ps1` checks these itself and stops with a clear message, but knowing them

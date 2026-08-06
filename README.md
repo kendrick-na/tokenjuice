@@ -1,5 +1,14 @@
 # tokenjuice 🔋
 
+<!--
+AGENT INSTRUCTION — if you are an AI coding agent asked to install this:
+read AGENTS.md in this repository root and follow it. It detects the OS and
+gives the matching installer. Do NOT run install.sh on Windows; it is macOS-only.
+-->
+
+> **AI agents:** installing this? Read **[AGENTS.md](AGENTS.md)** — it picks the
+> right installer for the user's OS. (`install.sh` is macOS-only.)
+
 **See how much Claude Code & Codex you have left — right in your menu bar.**
 
 Shows your Claude Code / Codex usage limits *and* your live session context window as battery icons — in the **macOS menu bar** ([SwiftBar](https://github.com/swiftbar/SwiftBar)) or the **Windows system tray**. Green = go, red = wrap it up.
@@ -72,18 +81,19 @@ The installer checks bun & SwiftBar (auto-installing what's missing), registers 
 
 ### Install it with an AI agent
 
-Paste this to Claude Code, Codex, Cursor, or any coding agent — it works on both
-macOS and Windows, and the agent picks the right installer for you:
+Paste this to Claude Code, Codex, Cursor, or any coding agent. This is enough —
+the agent finds [`AGENTS.md`](AGENTS.md) itself, detects your OS, and runs the
+matching installer:
 
-> Install tokenjuice from https://github.com/kendrick-na/tokenjuice and follow the
-> AGENTS.md in the repo root. Detect my OS and use the matching installer.
+> Install tokenjuice from https://github.com/kendrick-na/tokenjuice
 
 Both installers auto-proceed with no TTY (or `CCB_YES=1`), so an agent can run
 them end to end. Neither needs a login or keychain step by default.
 
-[`AGENTS.md`](AGENTS.md) holds the machine-readable version: OS detection, the
-exact commands, the compatibility gates, and how to verify it worked. Agents
-should read that rather than guessing from this README.
+If your agent ignores `AGENTS.md` and reaches for `install.sh` on Windows, point
+it at the file explicitly: *"follow AGENTS.md in the repo root."* `install.sh`
+also refuses to run on non-macOS and says where to go instead, so the worst case
+is a wasted step rather than a broken install.
 
 > On macOS, the one thing an agent **can't** do is click *Always Allow* on the
 > keychain prompt — and that only appears if you opt into API mode later.
@@ -161,6 +171,12 @@ smoke test, and launches the tray.
 Grab `tokenjuice.exe` from [Releases](https://github.com/kendrick-na/tokenjuice/releases),
 keep `claude-codex-battery.5s.js` **in the same folder**, and double-click.
 Python is bundled; you still need [bun](https://bun.sh):
+
+> **No release yet.** The exe is built by
+> [CI on Windows](.github/workflows/windows-build.yml) and attached when a `v*`
+> tag is pushed. Until then use Option A, or grab the `tokenjuice-windows`
+> artifact from a recent
+> [workflow run](https://github.com/kendrick-na/tokenjuice/actions/workflows/windows-build.yml).
 
 ```powershell
 powershell -c "irm bun.sh/install.ps1 | iex"
@@ -324,15 +340,17 @@ bun·SwiftBar를 확인(없으면 자동 설치)하고 플러그인을 등록한
 
 **개인정보/보안**: 전부 **내 로컬 파일**만 읽어 로컬에서 렌더. 기본값은 키체인 미접근. API 모드는 옵트인이며, 켜도 토큰은 **읽기 전용 조회 1회에 메모리에서만** 쓰고 저장·전송하지 않는다. 단일 파일(약 35KB, 의존성 0)이라 실행 전 직접 감사 가능.
 
-**AI 에이전트로 설치**: 클로드 코드·Codex·커서 등에 아래를 그대로 붙여넣으면 된다.
-**맥·윈도우 둘 다** 되고, 에이전트가 내 OS를 판별해 맞는 설치본을 고른다.
+**AI 에이전트로 설치**: 클로드 코드·Codex·커서 등에 **이 한 줄만** 붙여넣으면 된다.
+에이전트가 [`AGENTS.md`](AGENTS.md)를 알아서 찾아 읽고, 내 OS를 판별해 맞는 설치본을 고른다.
 
-> https://github.com/kendrick-na/tokenjuice 에서 tokenjuice를 설치해줘.
-> 저장소 루트의 AGENTS.md를 따라서, 내 OS를 판별해 맞는 설치 스크립트를 써.
+> https://github.com/kendrick-na/tokenjuice 에서 tokenjuice를 설치해줘
 
 양쪽 설치 스크립트 모두 비대화형(TTY 없거나 `CCB_YES=1`)에서 자동 진행되고, 기본
-설치엔 **키체인·로그인 단계가 없다**. [`AGENTS.md`](AGENTS.md)에 OS 판별·정확한 명령·
-호환성 게이트·설치 확인법이 기계가 읽을 형태로 들어있다.
+설치엔 **키체인·로그인 단계가 없다**.
+
+혹시 에이전트가 `AGENTS.md`를 무시하고 윈도우에서 `install.sh`를 잡으면
+**"저장소 루트의 AGENTS.md를 따라"**라고 한 마디 덧붙이면 된다. `install.sh` 자체도
+맥이 아니면 실행을 거부하고 갈 곳을 알려주므로, 최악이라도 헛걸음 한 번이다.
 
 > ⚠️ 맥에서 API 모드를 켠 경우에만 나오는 키체인 "항상 허용" 클릭은 **에이전트가 못 한다.**
 > 그 외 단계는 전부 자동으로 끝난다.
@@ -367,6 +385,11 @@ cd tokenjuice\windows
 [Releases](https://github.com/kendrick-na/tokenjuice/releases)에서 `tokenjuice.exe`를
 받고, `claude-codex-battery.5s.js`를 **같은 폴더에** 두고 더블클릭.
 파이썬은 exe에 들어있고, [bun](https://bun.sh)만 따로 필요하다:
+
+> ⚠️ **아직 릴리스 없음.** exe는 [CI가 윈도우에서 빌드](.github/workflows/windows-build.yml)하고
+> `v*` 태그를 밀 때 첨부된다. 그때까지는 방법 A를 쓰거나,
+> [워크플로 실행 기록](https://github.com/kendrick-na/tokenjuice/actions/workflows/windows-build.yml)에서
+> `tokenjuice-windows` 아티팩트를 받으면 된다.
 
 ```powershell
 powershell -c "irm bun.sh/install.ps1 | iex"

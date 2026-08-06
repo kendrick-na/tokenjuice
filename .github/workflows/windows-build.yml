@@ -1,0 +1,121 @@
+name: Windows build
+
+# Builds tokenjuice.exe on a real Windows runner, because PyInstaller does not
+# cross-compile — a Windows exe has to be built on Windows. This is also the only
+# place the tray is exercised on Windows at all, so it runs the checks the
+# maintainer's mac cannot: pystray's win32 backend and the ICO path Windows loads.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'windows/**'
+      - 'claude-codex-battery.5s.js'
+      - '.github/workflows/windows-build.yml'
+  pull_request:
+    paths:
+      - 'windows/**'
+      - 'claude-codex-battery.5s.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r windows/requirements.txt pyinstaller
+
+      # A fresh runner has no ~/.claude, so the engine finds no usage — that is
+      # expected. What matters is that it executes and emits well-formed JSON.
+      - name: Engine runs on Windows
+        shell: pwsh
+        run: |
+          $out = bun claude-codex-battery.5s.js --json | ConvertFrom-Json
+          if ($null -eq $out) { throw 'engine produced no JSON' }
+          if ($out.topicsIncluded -ne $false) { throw 'prompt topics must default to off' }
+          if ($out.PSObject.Properties.Name -notcontains 'sessions') { throw 'missing sessions key' }
+          Write-Host "OK - topicsIncluded=$($out.topicsIncluded)"
+
+      - name: Tray self-test
+        shell: pwsh
+        working-directory: windows
+        run: python selftest.py
+
+      - name: Tray --once against the real engine
+        shell: pwsh
+        working-directory: windows
+        run: |
+          python tokenjuice_tray.py --once
+          # Exit 1 means "no usage data", which is correct on a bare runner.
+          # Anything else means it crashed instead of degrading.
+          if ($LASTEXITCODE -notin 0,1) { throw "unexpected exit $LASTEXITCODE" }
+
+      - name: Build exe
+        shell: pwsh
+        working-directory: windows
+        run: .\build-exe.ps1 -Clean
+
+      # An exe that cannot start is worse than no exe.
+      - name: Built exe runs
+        shell: pwsh
+        working-directory: windows/dist
+        run: |
+          if (-not (Test-Path tokenjuice.exe)) { throw 'exe not produced' }
+          if (-not (Test-Path claude-codex-battery.5s.js)) { throw 'engine not shipped beside exe' }
+          $mb = [math]::Round((Get-Item tokenjuice.exe).Length / 1MB, 1)
+          Write-Host "tokenjuice.exe = $mb MB"
+          .\tokenjuice.exe --once
+          if ($LASTEXITCODE -notin 0,1) { throw "exe exited $LASTEXITCODE" }
+          Write-Host 'exe starts and runs'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tokenjuice-windows
+          path: |
+            windows/dist/tokenjuice.exe
+            windows/dist/claude-codex-battery.5s.js
+          if-no-files-found: error
+
+  release:
+    # Attach the exe to a release only for version tags.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: tokenjuice-windows
+          path: dist
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            dist/tokenjuice.exe
+            dist/claude-codex-battery.5s.js
+          body: |
+            **Windows**: download **both** files into the same folder, then run `tokenjuice.exe`.
+
+            You also need [bun](https://bun.sh) — it runs the usage engine:
+            ```powershell
+            powershell -c "irm bun.sh/install.ps1 | iex"
+            ```
+
+            Requires Windows 10 1809+ and an AVX2-capable x64 CPU (or arm64).
+
+            **macOS**: clone the repo and run `./install.sh`.
