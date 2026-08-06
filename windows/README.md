@@ -35,6 +35,24 @@ Consequences worth knowing:
 - The engine is spawned every 5s with `CREATE_NO_WINDOW`; without that flag
   Windows flashes a console window on each poll.
 
+## Known risks
+
+Both platforms read Claude Code's local files, and Anthropic documents that
+format as unstable:
+
+> "The entry format is internal to Claude Code and changes between versions, so
+> scripts that parse these files directly can break on any release."
+> — [Claude Code docs, Manage sessions](https://code.claude.com/docs/en/sessions)
+
+Session **context** batteries are the part that depends on it. If the format
+changes, sessions are skipped silently and the limit batteries keep working —
+verified by feeding the engine a transcript with the usage fields removed. So a
+breaking release costs you the `S` batteries, not the whole app.
+
+The `/api/oauth/usage` endpoint used by API mode is likewise undocumented (it is
+what Claude Code's own `/status` calls) and is rate-limited per token, which is
+why the engine caches responses for 60s and prefers the local cache.
+
 ## Debugging
 
 ```powershell
