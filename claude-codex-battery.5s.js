@@ -15,6 +15,7 @@ import path from "node:path";
 
 const HOME = os.homedir();
 const IS_MAC = process.platform === "darwin";
+const argvHas = (flag) => process.argv.slice(2).includes(flag);
 const CACHE_DIR = path.join(HOME, ".cache", "claude-codex-battery");
 try { mkdirSync(CACHE_DIR, { recursive: true }); } catch {}
 
@@ -368,6 +369,20 @@ function apiModeEnabled() {
   try {
     const c = JSON.parse(readFileSync(path.join(HOME, ".config", "claude-codex-battery", "config.json"), "utf8"));
     return c.api === true;
+  } catch { return false; }
+}
+
+// 세션 "주제"는 프롬프트 원문이다 → 화면공유·스크린샷으로 새면 곤란하므로 기본 숨김.
+//   보고 싶으면 옵트인: CCB_TOPICS=1  또는  config.json {"topics": true}
+//   (--topics / --no-topics 플래그가 있으면 그게 최우선)
+function topicsEnabled() {
+  if (argvHas("--no-topics")) return false;
+  if (argvHas("--topics")) return true;
+  if (process.env.CCB_TOPICS === "1") return true;
+  if (process.env.CCB_TOPICS === "0") return false;
+  try {
+    const c = JSON.parse(readFileSync(path.join(HOME, ".config", "claude-codex-battery", "config.json"), "utf8"));
+    return c.topics === true;
   } catch { return false; }
 }
 
@@ -754,6 +769,7 @@ const [codex, sessions, letsur] = [getCodex(), getAllSessions(), getLetsur()];
 const dark = isDarkMode();
 const asJson = argv.includes("--json");
 const asText = argv.includes("--text");
+const SHOW_TOPICS = topicsEnabled();
 
 // 노치 맥북(COMPACT): 메뉴바 아이콘이 노치에 가려 안 보이므로 폭을 최소화.
 //   한도는 첫 항목(5시간)만, 세션은 위험순 1개만. 드롭다운은 그대로 전부 표시.
@@ -786,9 +802,13 @@ if (letsur) groups.push({ label: "L", color: LETSUR_CYAN, items: [{ remain: 100 
 
 // ─ CLI 출력 모드 (윈도우/리눅스/터미널용) ─
 if (asJson) {
+  // 기본은 topic(프롬프트 원문) 제거. 트레이 앱·외부 위젯이 이 출력을 그대로 렌더하므로
+  // 여기서 빼는 게 유일하게 확실한 차단 지점이다.
+  const safeSessions = SHOW_TOPICS ? sessions : sessions.map(({ topic, ...rest }) => rest);
   console.log(JSON.stringify({
     claude: claudes.map((c, i) => ({ account: accounts[i]?.name, items: c.items })),
-    sessions, codex: codex.items, letsur,
+    sessions: safeSessions, codex: codex.items, letsur,
+    topicsIncluded: SHOW_TOPICS,
   }, null, 2));
   process.exit(0);
 }
@@ -838,6 +858,9 @@ for (let ai = 0; ai < accounts.length; ai++) {
 if (sessions.length) {
   out.push("---");
   out.push("Session context  (■ = menu bar battery) | size=13 color=#8b949e");
+  if (!SHOW_TOPICS && sessions.some((s) => s.topic)) {
+    out.push('--Prompt topics hidden · show with  export CCB_TOPICS=1 | size=11 color=#6b7280');
+  }
   sessions.forEach((s) => {
     const r = Math.round(100 - s.pct);
     const isLive = liveSessions.includes(s);
@@ -847,7 +870,7 @@ if (sessions.length) {
     // 1행: 색 스와치 + 플랫폼 + 프로젝트명 + 진행 배터리 + %
     out.push(`■ ${dot} ${plat} · ${s.name}  ▕${textBar(r)}▏ ${r}%${warn} | font=Menlo size=13 color=${rgbHex(s.color)}`);
     // 2행: 주제 (있으면)
-    if (s.topic) out.push(`--${s.topic} | size=11 color=#8b949e`);
+    if (s.topic && SHOW_TOPICS) out.push(`--${s.topic} | size=11 color=#8b949e`);
     // 3행: 브랜치 · 모델 · 토큰 · 경과
     const meta = [
       s.branch ? `⑂ ${s.branch}` : null,
