@@ -159,7 +159,45 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 > **Can't see the icon?** Windows hides new tray icons by default. Click the
 > **^** arrow next to the clock, then drag tokenjuice onto the taskbar to pin it.
 
-**Requirements:** Windows 10/11 · [bun](https://bun.sh) · Python 3.9+ (only for Option A)
+### Will it run on my machine?
+
+`install.ps1` checks all of this before touching anything and tells you if not.
+
+| Your machine | Works? |
+|---|---|
+| Windows 11 (any) | ✅ |
+| Windows 10 **1809+** (Oct 2018 or newer), AVX2 CPU | ✅ |
+| Windows 10 older than 1809 | ❌ bun needs 1809+ |
+| Windows 7 / 8 / 8.1 | ❌ bun unsupported |
+| **x64 CPU without AVX2** (pre-2013 Intel, pre-2015 AMD) | ❌ see below |
+| Windows on ARM (Snapdragon) | ✅ bun ships a native arm64 build |
+| Windows Server 2019+ | ✅ |
+| Inside WSL | ✅ but that's the Linux path — use the CLI |
+
+In practice: **any Windows laptop from roughly 2014 onward is fine.**
+
+> **The AVX2 catch.** bun's x64 build needs AVX2, and its fallback for older CPUs
+> currently crashes on startup ([oven-sh/bun#28399](https://github.com/oven-sh/bun/issues/28399),
+> open). So a pre-2013-era CPU can't run tokenjuice until that's fixed upstream —
+> nothing we can work around from here. `install.ps1` detects it and says so
+> rather than letting you hit the panic. Such a machine can still use the
+> [CLI](#linux) output if it has any working JS runtime.
+
+**Requirements:** Windows 10 1809+ / 11 · [bun](https://bun.sh) · Python 3.9+ (only for Option A)
+
+<details>
+<summary><b>Why does it need bun? Can't it be one file?</b></summary>
+
+Both platforms run the *same* engine, and bun is what runs it. The alternative —
+reimplementing the usage calculations in Python so the exe stands alone — was
+considered and rejected: two copies of that logic means one eventually goes
+stale, and a stale copy reports a **wrong number**. Being told you have 20% left
+and then getting cut off is worse than running one install command.
+
+Bundling bun into the exe is possible but adds 94MB (that's the Bun runtime;
+`--minify` doesn't help), which is also worse than a one-line install.
+
+</details>
 
 ### How the tray icon differs from the menu bar
 
@@ -316,7 +354,42 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 > **아이콘이 안 보이면** — 윈도우는 새 트레이 아이콘을 기본으로 숨긴다.
 > 시계 옆 **^** 화살표를 누르고, tokenjuice를 작업표시줄로 끌어다 고정하면 된다.
 
-**준비물**: Windows 10/11 · [bun](https://bun.sh) · 파이썬 3.9+ (방법 A만)
+### 내 컴퓨터에서 돌아갈까?
+
+`install.ps1`이 **설치 전에 미리 확인**하고, 안 되면 이유를 알려준다.
+
+| 내 환경 | 가능? |
+|---|---|
+| 윈도우 11 (전부) | ✅ |
+| 윈도우 10 **1809 이상** (2018년 10월 이후), AVX2 CPU | ✅ |
+| 윈도우 10 1809 미만 | ❌ bun이 1809+ 요구 |
+| 윈도우 7 / 8 / 8.1 | ❌ bun 미지원 |
+| **AVX2 없는 x64 CPU** (2013년 이전 인텔, 2015년 이전 AMD) | ❌ 아래 참고 |
+| ARM 윈도우 (스냅드래곤) | ✅ bun arm64 정식 지원 |
+| 윈도우 서버 2019+ | ✅ |
+| WSL 안에서 | ✅ 단 리눅스 경로 → CLI 사용 |
+
+현실적으로: **2014년 이후 윈도우 노트북이면 거의 다 된다.**
+
+> ⚠️ **AVX2 함정.** bun의 x64 빌드는 AVX2가 필요하고, 구형 CPU용 대체 빌드는
+> 지금 실행 즉시 크래시한다([oven-sh/bun#28399](https://github.com/oven-sh/bun/issues/28399), 미해결).
+> 그래서 **2013년 이전 CPU는 bun 쪽이 고쳐질 때까지 못 쓴다** — 우리가 우회할 수
+> 있는 문제가 아니다. `install.ps1`이 이걸 미리 감지해서 크래시 대신 안내를 띄운다.
+
+**준비물**: 윈도우 10 1809+ / 11 · [bun](https://bun.sh) · 파이썬 3.9+ (방법 A만)
+
+<details>
+<summary><b>왜 bun이 필요한가? 파일 하나로 안 되나?</b></summary>
+
+맥과 윈도우가 **같은 엔진**을 쓰고, 그 엔진을 돌리는 게 bun이다. 대안 — 계산 로직을
+파이썬으로 다시 구현해 exe 하나로 만드는 것 — 은 검토했고 **기각했다**. 같은 계산이
+두 벌이면 언젠가 한쪽이 낡고, 낡은 쪽은 **틀린 숫자**를 내놓는다. "20% 남았다"는 말을
+믿고 쓰다가 갑자기 막히는 것이 설치 명령 한 줄보다 나쁘다.
+
+bun을 exe에 넣는 것도 가능하지만 **94MB**가 붙는다(Bun 런타임 자체 크기이고
+`--minify`로 줄지 않는다). 이것도 한 줄 설치보다 나쁘다.
+
+</details>
 
 ### 트레이 아이콘이 메뉴바와 다른 이유
 

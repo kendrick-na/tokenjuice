@@ -40,6 +40,41 @@ Say ''
 if (-not (Test-Path $tray))   { Die "tokenjuice_tray.py not found next to this script." }
 if (-not (Test-Path $engine)) { Die "Engine not found at $engine (run this from inside the repo)." }
 
+# ── 0. can bun even run here? ────────────────────────────────────────────
+# bun needs Windows 10 1809+ and, on x64, a CPU with AVX2. On older x64 CPUs it
+# is supposed to fall back to a baseline build, but that path currently crashes
+# with "attempt to use null value" (oven-sh/bun#28399, still open). Better to say
+# so up front than to install bun and hand the user a panic.
+Say '[0/4] Compatibility'
+$build = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentBuild -ErrorAction SilentlyContinue).CurrentBuild
+if ($build -and $build -lt 17763) {
+  Die "Windows 10 build 1809 (17763) or later is required by bun; this is build $build."
+}
+$arch = $env:PROCESSOR_ARCHITECTURE
+if ($arch -eq 'AMD64') {
+  # IsProcessorFeaturePresent(40) == PF_AVX2_INSTRUCTIONS_AVAILABLE
+  try {
+    if (-not ('Win32Feat' -as [type])) {
+      Add-Type -Name Win32Feat -Namespace TJ -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("kernel32.dll")]
+public static extern bool IsProcessorFeaturePresent(uint feature);
+'@ | Out-Null
+    }
+    if (-not [TJ.Win32Feat]::IsProcessorFeaturePresent(40)) {
+      Warn 'This CPU has no AVX2. bun requires it on x64, and its baseline'
+      Warn 'fallback currently crashes (oven-sh/bun#28399).'
+      Warn 'tokenjuice cannot run here until that is fixed upstream.'
+      if (-not (Confirm '      Continue anyway?')) { exit 1 }
+    } else {
+      Ok "Windows build $build - AVX2 present"
+    }
+  } catch {
+    Warn 'Could not check for AVX2; continuing.'
+  }
+} else {
+  Ok "Windows build $build - $arch (bun ships a native arm64 build)"
+}
+
 # ── 1. bun (the engine runtime) ──────────────────────────────────────────
 Say '[1/4] bun'
 $bun = (Get-Command bun -ErrorAction SilentlyContinue).Source
@@ -56,6 +91,12 @@ if (-not $bun) {
   } else {
     Die 'bun is required. See https://bun.sh'
   }
+}
+# Prove it actually runs — on an unsupported CPU bun installs fine and only
+# fails when invoked, which would otherwise surface later as a tray error.
+& $bun --version *> $null
+if ($LASTEXITCODE -ne 0) {
+  Die "bun is installed but won't run (exit $LASTEXITCODE). If this CPU lacks AVX2, see oven-sh/bun#28399."
 }
 Ok "bun -> $bun"
 

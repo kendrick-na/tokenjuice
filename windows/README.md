@@ -22,10 +22,18 @@ Full docs: see the [Windows section](../README.md#windows) in the main README.
 All usage maths live in `../claude-codex-battery.5s.js` — the same engine the
 macOS build uses. This app shells out to it with `--json` and draws the result.
 
-That split is deliberate. A second implementation of "how much Claude do I have
-left" would drift from the macOS one the first time either changed, and then the
-two platforms would quietly disagree. The engine is the single source of truth;
-this file owns pixels and nothing else.
+**Do not reimplement the usage calculations here.** That is why bun is a
+requirement instead of this app reading `~/.claude` itself in Python, which would
+drop the dependency and make the exe ~8x smaller. It was considered and
+rejected: two copies of "how much Claude do I have left" means one of them
+eventually goes stale, and a stale copy shows a *wrong number* — a user who
+believes they have 20% left and gets cut off was lied to by the battery. A
+smaller download is not worth that.
+
+The engine is the single source of truth; this file owns pixels and nothing else.
+Bundling bun into the exe would also work but costs 94MB (the Bun runtime is
+~94MB on its own, and `--minify` does not change that), which is worse than
+asking for a one-line install.
 
 Consequences worth knowing:
 
