@@ -194,11 +194,9 @@ Grab `tokenjuice.exe` from [Releases](https://github.com/kendrick-na/tokenjuice/
 keep `claude-codex-battery.5s.js` **in the same folder**, and double-click.
 Python is bundled; you still need [bun](https://bun.sh):
 
-> **No release yet.** The exe is built by
-> [CI on Windows](.github/workflows/windows-build.yml) and attached when a `v*`
-> tag is pushed. Until then use Option A, or grab the `tokenjuice-windows`
-> artifact from a recent
-> [workflow run](https://github.com/kendrick-na/tokenjuice/actions/workflows/windows-build.yml).
+Every release is built and smoke-tested on a real Windows runner by
+[CI](.github/workflows/windows-build.yml) — the exe is only published if it
+starts and runs.
 
 ```powershell
 powershell -c "irm bun.sh/install.ps1 | iex"
@@ -408,10 +406,8 @@ cd tokenjuice\windows
 받고, `claude-codex-battery.5s.js`를 **같은 폴더에** 두고 더블클릭.
 파이썬은 exe에 들어있고, [bun](https://bun.sh)만 따로 필요하다:
 
-> ⚠️ **아직 릴리스 없음.** exe는 [CI가 윈도우에서 빌드](.github/workflows/windows-build.yml)하고
-> `v*` 태그를 밀 때 첨부된다. 그때까지는 방법 A를 쓰거나,
-> [워크플로 실행 기록](https://github.com/kendrick-na/tokenjuice/actions/workflows/windows-build.yml)에서
-> `tokenjuice-windows` 아티팩트를 받으면 된다.
+모든 릴리스는 [CI가 실제 윈도우에서 빌드·검증](.github/workflows/windows-build.yml)한다 —
+exe가 실행되는 것까지 확인돼야 배포된다.
 
 ```powershell
 powershell -c "irm bun.sh/install.ps1 | iex"
