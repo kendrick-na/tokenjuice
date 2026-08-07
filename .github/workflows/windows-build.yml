@@ -79,9 +79,20 @@ jobs:
           if (-not (Test-Path claude-codex-battery.5s.js)) { throw 'engine not shipped beside exe' }
           $mb = [math]::Round((Get-Item tokenjuice.exe).Length / 1MB, 1)
           Write-Host "tokenjuice.exe = $mb MB"
-          .\tokenjuice.exe --once
-          if ($LASTEXITCODE -notin 0,1) { throw "exe exited $LASTEXITCODE" }
-          Write-Host 'exe starts and runs'
+
+          # Built with --noconsole, so this is a GUI-subsystem binary: PowerShell
+          # does not wait for it and leaves $LASTEXITCODE unset. Start it and wait
+          # explicitly, or we assert on an empty exit code while the exe is still
+          # running (its output then lands after the check).
+          $out = New-TemporaryFile
+          $err = New-TemporaryFile
+          $p = Start-Process -FilePath .\tokenjuice.exe -ArgumentList '--once' `
+                 -NoNewWindow -Wait -PassThru `
+                 -RedirectStandardOutput $out -RedirectStandardError $err
+          Get-Content $out, $err | Where-Object { $_ }
+          # 1 means "no usage data", correct on a runner with no ~/.claude.
+          if ($p.ExitCode -notin 0,1) { throw "exe exited $($p.ExitCode)" }
+          Write-Host "exe starts and runs (exit $($p.ExitCode))"
 
       - uses: actions/upload-artifact@v4
         with:
