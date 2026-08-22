@@ -134,6 +134,7 @@ Rename to `.2s.js` for faster, `.30s.js` for slower.
 |-------|--------|
 | Claude limits | **①** local cache `~/.claude/**/usage-cache.json` (real-time, no network, **no keychain**) if present → **②** *opt-in* API mode: `api.anthropic.com/api/oauth/usage` (60s cache) |
 | Session context | `~/.claude/projects/*/*.jsonl` — last usage totals (local files) |
+| Codex context | `~/.codex/sessions/**/*.jsonl` — latest `last_token_usage` + `model_context_window` (local files) |
 | Codex limits | `~/.codex/sessions/**/*.jsonl` — latest `rate_limits` (local files) |
 
 ## Privacy & security
@@ -148,6 +149,7 @@ Everything reads **your own local files** and renders locally. Specifically:
 ## Sessions (S)
 
 - Merges **Claude Code + Codex** sessions, newest first (🟠 Claude / 🟣 Codex in the dropdown).
+- Codex session context uses the session log's own `model_context_window` when available, so the remaining percentage tracks the active window instead of a fixed guess.
 - Menu bar shows the **3 most at-risk** sessions (least context left) + a `+N` badge; the dropdown lists up to 8 with project, topic, git branch, model, tokens.
 - Each session gets a distinct color — menu bar battery matches the `■` swatch in the dropdown.
 - `⚠️ compaction imminent` warning above 80% context used.

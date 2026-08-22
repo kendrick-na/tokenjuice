@@ -617,8 +617,27 @@ function getSessions() {
   return sessions;
 }
 
-// Codex 세션 컨텍스트: last_token_usage.total_tokens = 현재 컨텍스트 창 점유량
-const CODEX_WINDOW = 272000; // codex 기본 컨텍스트 창 (모델 따라 다를 수 있음)
+// Codex 세션 컨텍스트:
+// - last_token_usage.total_tokens = 현재 컨텍스트 창 점유량
+// - model_context_window = 실제 창 크기(로그에 있으면 우선 사용)
+const CODEX_WINDOW_FALLBACK = 272000; // 로그에 창 크기가 없을 때만 쓰는 안전한 기본값
+function readLatestCodexTokenSnapshot(lines) {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (!lines[i].includes('"token_count"') && !lines[i].includes('"last_token_usage"')) continue;
+    try {
+      const o = JSON.parse(lines[i]);
+      const payload = o?.payload ?? o;
+      const lu = payload?.last_token_usage ?? payload?.info?.last_token_usage;
+      if (!lu || lu.total_tokens == null) continue;
+      const win = payload?.model_context_window ?? payload?.info?.model_context_window ?? CODEX_WINDOW_FALLBACK;
+      return {
+        used: lu.total_tokens,
+        win: Number.isFinite(win) && win > 0 ? win : CODEX_WINDOW_FALLBACK,
+      };
+    } catch {}
+  }
+  return null;
+}
 function getCodexSessions() {
   const files = [];
   walkJsonl(path.join(HOME, ".codex", "sessions"), files);
@@ -630,17 +649,9 @@ function getCodexSessions() {
     let tail;
     try { tail = readTail(f.p); } catch { continue; }
     const lines = tail.split("\n");
-    let used = null, model = null;
-    for (let i = lines.length - 1; i >= 0 && used == null; i--) {
-      if (!lines[i].includes('"last_token_usage"')) continue;
-      try {
-        const o = JSON.parse(lines[i]);
-        const info = o?.payload?.info ?? o?.info;
-        const lu = info?.last_token_usage;
-        if (lu && lu.total_tokens != null) used = lu.total_tokens;
-      } catch {}
-    }
-    if (used == null) continue;
+    const snap = readLatestCodexTokenSnapshot(lines);
+    if (!snap) continue;
+    const { used, win } = snap;
     const cwdMatch = tail.match(/"cwd":"([^"]+)"/);
     const mMatch = tail.match(/"model":"([^"]+)"/);
     sessions.push({
@@ -651,9 +662,9 @@ function getCodexSessions() {
       topic: extractCodexTopic(tail),
       model: mMatch ? mMatch[1] : null,
       used,
-      pct: Math.min(100, (used / CODEX_WINDOW) * 100),
+      pct: Math.min(100, (used / win) * 100),
       mtime: f.mtime,
-      win: CODEX_WINDOW,
+      win,
     });
     if (sessions.length >= 3) break;
   }
@@ -692,6 +703,10 @@ function fmtAgo(mtime) {
   return `${Math.round(min / 60)}h ago`;
 }
 function fmtK(n) { return n >= 1000 ? `${Math.round(n / 1000)}k` : String(n); }
+function safeDecode(value) {
+  if (!value) return value;
+  try { return decodeURIComponent(value); } catch { return value; }
+}
 
 // ───────────────────────── 데이터: Letsur (월 한도 대비 누적) ─────────────────────────
 // Letsur는 "남은 잔액" API가 없고, 호출 응답마다 estimated_cost(unit)만 준다.
@@ -794,19 +809,28 @@ for (let ai = 0; ai < accounts.length; ai++) {
 }
 // 세션: 메뉴바 표시 개수 (컴팩트=1, 일반=3). 드롭다운은 개수 제한 없이 전부.
 const MENUBAR_MAX = COMPACT ? 1 : 3;
-const activeSessions = sessions.filter((s) => Date.now() - s.mtime < 15 * 60 * 1000);
-const liveSessions = activeSessions.slice(0, 2); // "곧 컴팩트" 경고용(2개)은 별개로 유지
-if (activeSessions.length) {
+const activeClaudeSessions = sessions.filter((s) => s.platform === "claude" && Date.now() - s.mtime < 15 * 60 * 1000);
+const activeCodexSessions = sessions.filter((s) => s.platform === "codex" && Date.now() - s.mtime < 15 * 60 * 1000);
+const liveClaudeSessions = activeClaudeSessions.slice(0, 2); // "곧 컴팩트" 경고용(2개)은 별개로 유지
+const liveCodexSessions = activeCodexSessions.slice(0, 2);
+if (activeClaudeSessions.length) {
   // 메뉴바엔 "가장 위험한(적게 남은)" 세션 우선 노출 → 놓치면 안 되는 걸 항상 보이게
-  const byRisk = [...activeSessions].sort((a, b) => b.pct - a.pct);
+  const byRisk = [...activeClaudeSessions].sort((a, b) => b.pct - a.pct);
   const shown = byRisk.slice(0, MENUBAR_MAX);
   const items = shown.map((s) => ({ remain: 100 - s.pct, color: s.color }));
-  const overflow = activeSessions.length - shown.length;
+  const overflow = activeClaudeSessions.length - shown.length;
   groups.push({ label: "S", color: CLAUDE_ORANGE, items, overflow });
 }
 if (codex.items.length) {
   const cxItems = (COMPACT ? codex.items.slice(0, 1) : codex.items).map((i) => ({ remain: 100 - i.used }));
   groups.push({ label: "X", color: CODEX_VIOLET, items: cxItems });
+}
+if (activeCodexSessions.length) {
+  const byRisk = [...activeCodexSessions].sort((a, b) => b.pct - a.pct);
+  const shown = byRisk.slice(0, MENUBAR_MAX);
+  const items = shown.map((s) => ({ remain: 100 - s.pct, color: s.color }));
+  const overflow = activeCodexSessions.length - shown.length;
+  groups.push({ label: "S", color: CODEX_VIOLET, items, overflow });
 }
 if (letsur) groups.push({ label: "L", color: LETSUR_CYAN, items: [{ remain: 100 - letsur.pct }] });
 
@@ -830,8 +854,9 @@ if (asText) {
   const line = (label, r) => `${label} ${textBar(Math.round(r), 10)} ${Math.round(r)}%`;
   const parts = [];
   for (const c of claudes) for (const i of c.items) parts.push(line("C", 100 - i.used));
-  for (const s of sessions.slice(0, 3)) parts.push(line(s.platform === "codex" ? "s·X" : "s·C", 100 - s.pct));
+  for (const s of activeClaudeSessions.slice(0, 3)) parts.push(line("s·C", 100 - s.pct));
   for (const i of codex.items) parts.push(line("X", 100 - i.used));
+  for (const s of activeCodexSessions.slice(0, 3)) parts.push(line("s·X", 100 - s.pct));
   if (letsur) parts.push(line("L", 100 - letsur.pct));
   console.log(parts.join("\n"));
   process.exit(0);
@@ -869,20 +894,19 @@ for (let ai = 0; ai < accounts.length; ai++) {
   }
 }
 
-if (sessions.length) {
+if (activeClaudeSessions.length) {
   out.push("---");
-  out.push("Session context  (■ = menu bar battery) | size=13 color=#8b949e");
-  if (!SHOW_TOPICS && sessions.some((s) => s.topic)) {
+  out.push("Claude session context  (■ = menu bar battery) | size=13 color=#8b949e");
+  if (!SHOW_TOPICS && activeClaudeSessions.some((s) => s.topic)) {
     out.push('--Prompt topics hidden · show with  export CCB_TOPICS=1 | size=11 color=#6b7280');
   }
-  sessions.forEach((s) => {
+  activeClaudeSessions.forEach((s) => {
     const r = Math.round(100 - s.pct);
-    const isLive = liveSessions.includes(s);
+    const isLive = liveClaudeSessions.includes(s);
     const dot = isLive ? "🟢" : "⚪";
-    const plat = s.platform === "codex" ? "🟣 Codex" : "🟠 Claude";
     const warn = s.pct >= 80 ? "  ⚠️compaction soon" : "";
     // 1행: 색 스와치 + 플랫폼 + 프로젝트명 + 진행 배터리 + %
-    out.push(`■ ${dot} ${plat} · ${s.name}  ▕${textBar(r)}▏ ${r}%${warn} | font=Menlo size=13 color=${rgbHex(s.color)}`);
+    out.push(`■ ${dot} 🟠 Claude · ${s.name}  ▕${textBar(r)}▏ ${r}%${warn} | font=Menlo size=13 color=${rgbHex(s.color)}`);
     // 2행: 주제 (있으면)
     if (s.topic && SHOW_TOPICS) out.push(`--${s.topic} | size=11 color=#8b949e`);
     // 3행: 브랜치 · 모델 · 토큰 · 경과
@@ -913,6 +937,29 @@ if (codex.items.length || existsSync(path.join(HOME, ".codex"))) {
     if (ageMin > 60) out.push(`ℹ️ from your last session (${Math.round(ageMin / 60)}h ago) | size=11 color=#8b949e`);
   } else {
     out.push("No session data yet (shows after you run Codex) | size=11 color=#8b949e");
+  }
+  if (activeCodexSessions.length) {
+    out.push("---");
+    out.push("Codex session context  (■ = menu bar battery) | size=13 color=#8b949e");
+    if (!SHOW_TOPICS && activeCodexSessions.some((s) => s.topic)) {
+      out.push('--Prompt topics hidden · show with  export CCB_TOPICS=1 | size=11 color=#6b7280');
+    }
+    activeCodexSessions.forEach((s) => {
+      const r = Math.round(100 - s.pct);
+      const isLive = liveCodexSessions.includes(s);
+      const dot = isLive ? "🟢" : "⚪";
+      const warn = s.pct >= 80 ? "  ⚠️compaction soon" : "";
+      out.push(`■ ${dot} 🟣 Codex · ${s.name}  ▕${textBar(r)}▏ ${r}%${warn} | font=Menlo size=13 color=${rgbHex(s.color)}`);
+      if (s.topic && SHOW_TOPICS) out.push(`--${s.topic} | size=11 color=#8b949e`);
+      const meta = [
+        s.branch ? `⑂ ${s.branch}` : null,
+        s.model,
+        `${fmtK(s.used)}/${fmtK(s.win)}`,
+        fmtAgo(s.mtime),
+        `id ${s.id}`,
+      ].filter(Boolean).join("  ·  ");
+      out.push(`--${meta} | font=Menlo size=11 color=#6b7280`);
+    });
   }
 }
 
