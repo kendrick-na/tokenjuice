@@ -75,7 +75,7 @@ cd tokenjuice
 ./install.sh
 ```
 
-The installer checks bun & SwiftBar (auto-installing what's missing), registers the plugin, launches SwiftBar, and adds it to your login items so it survives reboots.
+The installer checks bun & SwiftBar (auto-installing what's missing), registers the plugin, launches SwiftBar, and adds it to your login items plus a per-user LaunchAgent fallback so it survives reboots.
 
 > **No keychain prompt by default.** Sessions & Codex work from local files immediately. Claude limits only need the keychain if you turn on [API mode](#privacy--security) — and only then does macOS ask you to *Always Allow*.
 
@@ -96,7 +96,8 @@ diff <(tail -n +2 ~/.swiftbar-plugins/claude-codex-battery.5s.js) \
      <(tail -n +2 ./claude-codex-battery.5s.js) && echo "up to date"
 ```
 
-To remove it: delete `~/.swiftbar-plugins/claude-codex-battery.5s.js` (macOS) or
+To remove it: delete `~/.swiftbar-plugins/claude-codex-battery.5s.js` and
+`~/Library/LaunchAgents/com.tokenjuice.swiftbar.plist` (macOS), or
 `tokenjuice.lnk` from your Startup folder (`shell:startup`, Windows). Nothing else
 is left behind — the only other traces are `~/.cache/claude-codex-battery` and
 `~/.config/claude-codex-battery`, both safe to delete.

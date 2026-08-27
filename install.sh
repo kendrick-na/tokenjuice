@@ -94,13 +94,33 @@ open -a SwiftBar
 
 # ── 5. Launch at login (so it survives reboots) ─────────
 echo "⑤ Registering launch-at-login..."
+LOGIN_AGENT="$HOME/Library/LaunchAgents/com.tokenjuice.swiftbar.plist"
+mkdir -p "$HOME/Library/LaunchAgents"
+# Login-item state can be reset by macOS after an app update or migration.
+# `open -a` is idempotent, so this fallback does not create a second process.
+cat > "$LOGIN_AGENT" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.tokenjuice.swiftbar</string>
+  <key>ProgramArguments</key>
+  <array><string>/usr/bin/open</string><string>-a</string><string>/Applications/SwiftBar.app</string></array>
+  <key>RunAtLoad</key><true/>
+</dict>
+</plist>
+EOF
+chmod 644 "$LOGIN_AGENT"
+launchctl bootout "gui/$(id -u)/com.tokenjuice.swiftbar" >/dev/null 2>&1 || true
+launchctl bootstrap "gui/$(id -u)" "$LOGIN_AGENT" >/dev/null 2>&1 || true
 if osascript -e 'tell application "System Events" to get the name of every login item' 2>/dev/null | grep -qi swiftbar; then
   dim "   ✓ already a login item"
 elif osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/SwiftBar.app", hidden:false}' >/dev/null 2>&1; then
   dim "   ✓ registered (auto-starts after reboot)"
 else
-  dim "   ⓘ couldn't auto-register — turn on 'Launch at Login' in the SwiftBar menu"
+  dim "   ⓘ login item permission unavailable; LaunchAgent fallback installed"
 fi
+dim "   ✓ fallback agent: $LOGIN_AGENT"
 
 # ── Done ────────────────────────────────────────────────
 echo

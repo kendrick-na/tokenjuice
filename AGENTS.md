@@ -54,7 +54,8 @@ CCB_YES=1 ./install.sh
 ```
 
 `install.sh` installs bun and SwiftBar via Homebrew if missing, registers the
-plugin, launches SwiftBar, and adds a login item. `CCB_YES=1` stops it prompting.
+plugin, launches SwiftBar, and adds a login item plus a per-user LaunchAgent
+fallback. `CCB_YES=1` stops it prompting.
 
 **Homebrew is required** unless SwiftBar is already installed — the installer
 exits if SwiftBar is missing and `brew` isn't available. Install Homebrew first,
@@ -150,9 +151,11 @@ diff <(tail -n +2 ~/.swiftbar-plugins/claude-codex-battery.5s.js) \
 # macOS — removing the plugin is enough; SwiftBar keeps running with none.
 rm ~/.swiftbar-plugins/claude-codex-battery.5s.js
 ```
-The login item `install.sh` adds is **SwiftBar**, not tokenjuice, so leave it
+The login item `install.sh` adds is **SwiftBar**, not tokenjuice. It also installs
+`~/Library/LaunchAgents/com.tokenjuice.swiftbar.plist` as a fallback. Leave both
 alone unless SwiftBar was installed only for this — in which case remove SwiftBar
-from System Settings › General › Login Items and `brew uninstall --cask swiftbar`.
+from System Settings › General › Login Items, delete that plist, and
+`brew uninstall --cask swiftbar`.
 ```powershell
 # Windows: delete the startup shortcut, then quit from the tray menu
 Remove-Item "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\tokenjuice.lnk"
