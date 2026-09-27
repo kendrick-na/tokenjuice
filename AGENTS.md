@@ -13,7 +13,7 @@ Check before cloning. Cloning blindly next to an existing copy leaves two
 checkouts and the user can no longer tell which one is live.
 
 ```bash
-ls ~/.swiftbar-plugins/claude-codex-battery.5s.js   # macOS: installed?
+ls ~/.swiftbar-plugins/tokenjuice-battery.5s.js ~/.swiftbar-plugins/claude-codex-battery.5s.js 2>/dev/null   # macOS: installed? (old installs used the second name)
 ls "$(cygpath -u "$USERPROFILE" 2>/dev/null)/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/tokenjuice.lnk"  # Windows
 ```
 
@@ -141,15 +141,18 @@ the checkout. Skip line 1: the installer rewrites the shebang to bun's absolute
 path, so a plain `diff` always reports a difference and looks like a false stale.
 
 ```bash
-diff <(tail -n +2 ~/.swiftbar-plugins/claude-codex-battery.5s.js) \
+diff <(tail -n +2 ~/.swiftbar-plugins/tokenjuice-battery.5s.js) \
      <(tail -n +2 ./claude-codex-battery.5s.js) && echo "up to date"
 ```
 
 ## Uninstalling
 
 ```bash
-# macOS — removing the plugin is enough; SwiftBar keeps running with none.
-rm ~/.swiftbar-plugins/claude-codex-battery.5s.js
+# macOS — remove the plugin and its wake-refresh helper; SwiftBar keeps running with none.
+rm ~/.swiftbar-plugins/tokenjuice-battery.5s.js
+launchctl bootout "gui/$(id -u)/com.tokenjuice.visibility" 2>/dev/null
+rm ~/Library/LaunchAgents/com.tokenjuice.visibility.plist
+rm -r ~/Library/Application\ Support/TokenJuice
 ```
 The login item `install.sh` adds is **SwiftBar**, not tokenjuice. It also installs
 `~/Library/LaunchAgents/com.tokenjuice.swiftbar.plist` as a fallback. Leave both

@@ -3,7 +3,8 @@
 set -e
 SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_DIR="${SWIFTBAR_PLUGIN_DIR:-$HOME/.swiftbar-plugins}"
-PLUGIN="claude-codex-battery.5s.js"
+SOURCE_PLUGIN="claude-codex-battery.5s.js"
+PLUGIN="tokenjuice-battery.5s.js"
 
 bold() { printf "\033[1m%s\033[0m\n" "$1"; }
 dim()  { printf "\033[2m%s\033[0m\n" "$1"; }
@@ -81,8 +82,11 @@ echo "③ Installing plugin..."
 mkdir -p "$PLUGIN_DIR"
 BUN_PATH="$(command -v bun)"
 # Rewrite shebang to bun's absolute path — SwiftBar is a GUI app with a limited PATH.
-sed "1s|.*|#!$BUN_PATH|" "$SELF_DIR/$PLUGIN" > "$PLUGIN_DIR/$PLUGIN"
+sed "1s|.*|#!$BUN_PATH|" "$SELF_DIR/$SOURCE_PLUGIN" > "$PLUGIN_DIR/$PLUGIN"
 chmod +x "$PLUGIN_DIR/$PLUGIN"
+# Installs before the rename used the source filename. Leaving it would draw
+# two batteries side by side.
+rm -f "$PLUGIN_DIR/$SOURCE_PLUGIN"
 dim "   ✓ $PLUGIN_DIR/$PLUGIN"
 
 # ── 4. Point SwiftBar at the folder + launch ────────────
@@ -121,6 +125,41 @@ else
   dim "   ⓘ login item permission unavailable; LaunchAgent fallback installed"
 fi
 dim "   ✓ fallback agent: $LOGIN_AGENT"
+
+# SwiftBar can keep showing a stale (or hidden) battery after sleep/wake. A small
+# helper re-launches it if needed, keeps its status items visible, and forces a
+# re-run of every plugin via the supported swiftbar://refreshallplugins URL.
+HELPER_DIR="$HOME/Library/Application Support/TokenJuice"
+HELPER="$HELPER_DIR/ensure-swiftbar-visible.sh"
+VIS_AGENT="$HOME/Library/LaunchAgents/com.tokenjuice.visibility.plist"
+mkdir -p "$HELPER_DIR"
+cat > "$HELPER" <<EOF
+#!/bin/sh
+if ! pgrep -x SwiftBar >/dev/null 2>&1; then
+  /usr/bin/open -a /Applications/SwiftBar.app
+fi
+for key in 'NSStatusItem Visible Item-0' 'NSStatusItem Visible Item-1' 'NSStatusItem Visible Item-2' 'NSStatusItem Visible Item-3'; do
+  /usr/bin/defaults write "$BID" "\$key" -bool true
+done
+/usr/bin/open -g 'swiftbar://refreshallplugins' >/dev/null 2>&1 || true
+EOF
+chmod +x "$HELPER"
+cat > "$VIS_AGENT" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.tokenjuice.visibility</string>
+  <key>ProgramArguments</key><array><string>$HELPER</string></array>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>15</integer>
+</dict>
+</plist>
+EOF
+chmod 644 "$VIS_AGENT"
+launchctl bootout "gui/$(id -u)/com.tokenjuice.visibility" >/dev/null 2>&1 || true
+launchctl bootstrap "gui/$(id -u)" "$VIS_AGENT" >/dev/null 2>&1 || true
+dim "   ✓ wake refresh agent: $VIS_AGENT"
 
 # ── Done ────────────────────────────────────────────────
 echo

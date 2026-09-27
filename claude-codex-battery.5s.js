@@ -3,6 +3,7 @@
 // <bitbar.desc>Claude Code / Codex 남은 사용량을 배터리로 표시</bitbar.desc>
 // <bitbar.author>easymilli</bitbar.author>
 // <bitbar.dependencies>bun</bitbar.dependencies>
+// <swiftbar.refreshOnOpen>true</swiftbar.refreshOnOpen>
 //
 // 메뉴바에 C [88][17] X [0][76] 형태의 픽셀 배터리를 그린다.
 // 배터리 숫자 = 남은 %. 초록 ≥50, 노랑 ≥20, 빨강 <20.
@@ -372,6 +373,82 @@ function readLocalUsageCache(acc = {}) {
   return null;
 }
 
+// Claude desktop app records the plan meter separately from Claude Code.
+// `fh` is the rolling five-hour usage percentage and `sd` is the seven-day
+// usage percentage. Prefer a recent app sample so the battery matches what
+// the desktop app shows; API/local Claude Code data remains the fallback.
+function readClaudeAppUsage() {
+  const f = path.join(HOME, "Library", "Application Support", "Claude", "plan-usage-history.json");
+  try {
+    const j = JSON.parse(readFileSync(f, "utf8"));
+    const samples = Array.isArray(j.samples) ? j.samples : [];
+    const valid = samples.filter((x) => {
+      const age = Date.now() - Number(x?.t);
+      return age >= 0 && age < 2 * 60 * 60 * 1000 && x?.u &&
+        Number.isFinite(Number(x.u.fh)) && Number.isFinite(Number(x.u.sd));
+    });
+    const s = [...valid].reverse()[0];
+    if (!s) return null;
+    const clamp = (n) => Math.max(0, Math.min(100, Number(n)));
+    const fh = clamp(s.u.fh), sd = clamp(s.u.sd);
+
+    // A zero meter is valid immediately after a real reset, but it is not
+    // trustworthy when it has stayed at zero while a Claude Code session is
+    // actively consuming context. Do not turn that broken source into a fake
+    // 100% value or fall through to an old API cache.
+    if (fh === 0 && sd === 0 && hasRecentClaudeSession()) {
+      let zeroSince = Number(s.t);
+      for (let i = samples.length - 1; i >= 0; i--) {
+        const x = samples[i];
+        const xfh = Number(x?.u?.fh), xsd = Number(x?.u?.sd);
+        if (!Number.isFinite(xfh) || !Number.isFinite(xsd)) continue;
+        if (xfh !== 0 || xsd !== 0) break;
+        zeroSince = Number(x.t);
+      }
+      // The usage API is the authoritative second opinion: if it also reported
+      // 0% after the zero streak began, the zero is real, not a stuck meter.
+      let apiConfirmedZero = false;
+      try {
+        const c = JSON.parse(readFileSync(path.join(CACHE_DIR, "claude-0.json"), "utf8"));
+        apiConfirmedZero = c.ok && c.source === "api" && Number(c.at) >= zeroSince &&
+          c.items.length > 0 && c.items.every((i) => Number(i.used) === 0);
+      } catch {}
+      if (!apiConfirmedZero && Number.isFinite(zeroSince) && Number(s.t) - zeroSince >= 30 * 60 * 1000) {
+        return {
+          ok: false, items: [], at: Number(s.t), source: "claude-app",
+          stale: true, reason: "stale-app",
+          error: "Claude plan meter has remained at 0% during an active Claude session",
+        };
+      }
+    }
+    // The app sample has no reset times; borrow them from the last API answer,
+    // but only while they are still in the future (a past reset is meaningless).
+    const apiReset = (name) => {
+      try {
+        const c = JSON.parse(readFileSync(path.join(CACHE_DIR, "claude-0.json"), "utf8"));
+        const r = c.items?.find((i) => i.name === name)?.resets;
+        return r && Date.parse(r) > Date.now() ? r : null;
+      } catch { return null; }
+    };
+    return {
+      ok: true,
+      items: [
+        { name: "5-hour", used: fh, resets: apiReset("5-hour") },
+        { name: "Weekly", used: sd, resets: apiReset("Weekly") },
+      ],
+      at: Number(s.t),
+      source: "claude-app",
+    };
+  } catch {}
+  return null;
+}
+
+function hasRecentClaudeSession() {
+  try {
+    return getSessions().some((s) => Date.now() - s.mtime < 30 * 60 * 1000);
+  } catch { return false; }
+}
+
 // API 모드(키체인 접근)는 명시적 옵트인. 기본은 키체인을 절대 건드리지 않음.
 //   켜는 법: 환경변수 CCB_API=1  또는  ~/.config/claude-codex-battery/config.json {"api": true}
 function apiModeEnabled() {
@@ -397,14 +474,22 @@ function topicsEnabled() {
 }
 
 const CLAUDE_TTL_MS = 60 * 1000; // API는 최대 60초마다만 호출 (레이트리밋 보호). 세션 컨텍스트는 매 실행 실시간.
+const CLAUDE_CACHE_MAX_STALE_MS = 2 * 60 * 60 * 1000;
 async function getClaude(acc = {}, idx = 0) {
+  let appIssue = null;
+  // When Claude desktop is running, use its own plan meter first.
+  if (IS_MAC && idx === 0) {
+    const app = readClaudeAppUsage();
+    if (app?.ok) return app;
+    appIssue = app;
+  }
   // 1순위: Claude Code 로컬 사용량 캐시 (원본 dennykim123 방식) — 실시간·무네트워크·키체인 X
   const local = readLocalUsageCache(acc);
   if (local) return local;
 
   // 로컬 캐시가 없고 API 모드도 꺼져 있으면 → 키체인을 건드리지 않고 안내만 반환
   if (!apiModeEnabled()) {
-    return { ok: false, items: [], reason: "needs-api" };
+    return appIssue || { ok: false, items: [], reason: "needs-api" };
   }
 
   // 2순위: 우리 API 캐시가 신선하면 API 스킵
@@ -416,32 +501,50 @@ async function getClaude(acc = {}, idx = 0) {
     } catch {}
   }
   // 3순위: usage API 직접 호출 (여기서만 키체인 토큰을 읽음 — 옵트인 상태에서만 도달)
+  // 실패하면 대기시간을 기록해 둔다. 안 그러면 5초 실행마다 API를 두드려 429가 풀리지 않는다.
+  const failFile = path.join(CACHE_DIR, `claude-${idx}.fail.json`);
   try {
+    let fail = null;
+    try { fail = JSON.parse(readFileSync(failFile, "utf8")); } catch {}
+    if (fail && Date.now() < Number(fail.until)) throw new Error(`usage api ${fail.status} (waiting)`);
     const token = readClaudeToken(acc);
     const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
       headers: { Authorization: `Bearer ${token}`, "anthropic-beta": "oauth-2025-04-20" },
       signal: AbortSignal.timeout(15000),
     });
-    if (!res.ok) throw new Error(`usage api ${res.status}`);
+    if (!res.ok) {
+      const retryS = Number(res.headers.get("retry-after"));
+      const minMs = res.status === 401 || res.status === 403 ? 10 * 60 * 1000 : 5 * 60 * 1000;
+      const waitMs = Math.max(minMs, Number.isFinite(retryS) ? retryS * 1000 : 0);
+      try { writeFileSync(failFile, JSON.stringify({ status: res.status, at: Date.now(), until: Date.now() + waitMs })); } catch {}
+      throw new Error(`usage api ${res.status}`);
+    }
     const d = await res.json();
     const items = parseUsageItems(d);
     const out = { ok: true, items, at: Date.now(), source: "api" };
     writeFileSync(cacheFile, JSON.stringify(out));
+    try { writeFileSync(failFile, JSON.stringify({ until: 0 })); } catch {}
     return out;
   } catch (e) {
     if (existsSync(cacheFile)) {
       try {
         const cached = JSON.parse(readFileSync(cacheFile, "utf8"));
-        cached.stale = true; cached.error = String(e.message || e);
-        return cached;
+        if (cached.at && Date.now() - cached.at <= CLAUDE_CACHE_MAX_STALE_MS) {
+          cached.stale = true; cached.error = String(e.message || e);
+          return cached;
+        }
       } catch {}
     }
     // 클린 환경(첫 설치·미로그인·키체인 거부) → raw 에러 대신 원인 분류
     const msg = String(e.message || e);
-    const reason = /find-generic-password|keychain|SecKeychain/i.test(msg)
+    const reason = /401|403|unauthorized|invalid.*token/i.test(msg)
+      ? "auth"
+      : /find-generic-password|keychain|SecKeychain/i.test(msg)
       ? "login"      // 로그인 안 됨 / 키체인 접근 불가
       : /ENOENT|no such file/i.test(msg) ? "login" : "error";
-    return { ok: false, items: [], error: msg, reason };
+    // If the desktop meter is also stale, retain that explanation and never
+    // show an unrelated old number. Include the API failure for diagnosis.
+    return appIssue || { ok: false, items: [], error: msg, reason };
   }
 }
 
@@ -602,7 +705,7 @@ function getSessions() {
     const win = (model && model.includes("[1m]")) || usage > CTX_WINDOW ? 1000000 : CTX_WINDOW;
     sessions.push({
       platform: "claude",
-      name: path.basename(cwd),
+      name: safeDecode(path.basename(cwd)).normalize("NFC"),
       id: path.basename(f.p, ".jsonl").slice(0, 4),
       branch,
       topic,
@@ -653,10 +756,14 @@ function getCodexSessions() {
     if (!snap) continue;
     const { used, win } = snap;
     const cwdMatch = tail.match(/"cwd":"([^"]+)"/);
-    const mMatch = tail.match(/"model":"([^"]+)"/);
+    // model is only written on turn_context lines; a long tool-heavy turn can
+    // push the last one out of the tail, so fall back to the file head.
+    const mAll = [...tail.matchAll(/"model":"([^"]+)"/g)];
+    let mMatch = mAll.length ? mAll[mAll.length - 1] : null;
+    if (!mMatch) { try { mMatch = readHead(f.p).match(/"model":"([^"]+)"/); } catch {} }
     sessions.push({
       platform: "codex",
-      name: cwdMatch ? path.basename(cwdMatch[1]) : "?",
+      name: cwdMatch ? safeDecode(path.basename(cwdMatch[1])).normalize("NFC") : "?",
       id: path.basename(f.p, ".jsonl").split("-").pop().slice(0, 4),
       branch: null,
       topic: extractCodexTopic(tail),
@@ -843,7 +950,8 @@ if (asJson) {
     // `reason` matters to consumers: without it a tray cannot tell "not logged
     // in" from "API mode is off" and ends up printing the wrong fix.
     claude: claudes.map((c, i) => ({
-      account: accounts[i]?.name, items: c.items, reason: c.reason ?? null, source: c.source ?? null,
+      account: accounts[i]?.name, items: c.items, reason: c.reason ?? null,
+      source: c.source ?? null, error: c.error ?? null,
     })),
     sessions: safeSessions, codex: codex.items, letsur,
     topicsIncluded: SHOW_TOPICS,
@@ -863,6 +971,9 @@ if (asText) {
 }
 
 const out = [];
+// Pixel-battery header. Sleep/wake staleness is handled outside the plugin:
+// ensure-swiftbar-visible.sh forces swiftbar://refreshallplugins, so the image
+// is re-issued right after wake. A Claude value we can't trust shows as "?".
 out.push(`| image=${renderImage(groups, dark)}`);
 out.push("---");
 
@@ -885,6 +996,13 @@ for (let ai = 0; ai < accounts.length; ai++) {
     out.push("--Enable it (reads a keychain token, read-only): | size=11 color=#8b949e");
     out.push('--  export CCB_API=1   — or  ~/.config/claude-codex-battery/config.json {"api":true} | font=Menlo size=11 color=#8b949e');
     out.push("--Sessions & Codex work without this. | size=11 color=#8b949e");
+  } else if (cl.reason === "stale-app") {
+    out.push("⚠️ Claude usage stale — not showing 100% | size=12 color=#ff453a");
+    out.push(`--${(cl.error || "Plan meter is stuck at zero").slice(0, 100)} | size=11 color=#8b949e`);
+    out.push("--Open Claude Code and sign in again, then refresh this menu. | size=11 color=#ffcc00");
+  } else if (cl.reason === "auth") {
+    out.push("🔐 Claude usage authentication failed | size=12 color=#ff453a");
+    out.push("--Run Claude Code and sign in again; no old cache is being displayed. | size=11 color=#ffcc00");
   } else if (cl.reason === "login") {
     out.push("🔑 Log in to Claude Code first | size=12 color=#ffcc00");
     out.push("--Run  claude  in a terminal and sign in — it shows up automatically | size=11 color=#8b949e");

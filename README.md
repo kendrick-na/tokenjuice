@@ -92,11 +92,11 @@ cd tokenjuice && git pull && cd windows && .\install.ps1   # Windows (PowerShell
 Check whether you're running stale code (skip line 1 — the installer rewrites the
 shebang to bun's absolute path, so a plain `diff` always reports a difference):
 ```bash
-diff <(tail -n +2 ~/.swiftbar-plugins/claude-codex-battery.5s.js) \
+diff <(tail -n +2 ~/.swiftbar-plugins/tokenjuice-battery.5s.js) \
      <(tail -n +2 ./claude-codex-battery.5s.js) && echo "up to date"
 ```
 
-To remove it: delete `~/.swiftbar-plugins/claude-codex-battery.5s.js` and
+To remove it: delete `~/.swiftbar-plugins/tokenjuice-battery.5s.js`, `~/Library/LaunchAgents/com.tokenjuice.visibility.plist`, `~/Library/Application Support/TokenJuice/` and
 `~/Library/LaunchAgents/com.tokenjuice.swiftbar.plist` (macOS), or
 `tokenjuice.lnk` from your Startup folder (`shell:startup`, Windows). Nothing else
 is left behind — the only other traces are `~/.cache/claude-codex-battery` and
