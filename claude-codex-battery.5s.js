@@ -392,35 +392,10 @@ function readClaudeAppUsage() {
     const clamp = (n) => Math.max(0, Math.min(100, Number(n)));
     const fh = clamp(s.u.fh), sd = clamp(s.u.sd);
 
-    // A zero meter is valid immediately after a real reset, but it is not
-    // trustworthy when it has stayed at zero while a Claude Code session is
-    // actively consuming context. Do not turn that broken source into a fake
-    // 100% value or fall through to an old API cache.
-    if (fh === 0 && sd === 0 && hasRecentClaudeSession()) {
-      let zeroSince = Number(s.t);
-      for (let i = samples.length - 1; i >= 0; i--) {
-        const x = samples[i];
-        const xfh = Number(x?.u?.fh), xsd = Number(x?.u?.sd);
-        if (!Number.isFinite(xfh) || !Number.isFinite(xsd)) continue;
-        if (xfh !== 0 || xsd !== 0) break;
-        zeroSince = Number(x.t);
-      }
-      // The usage API is the authoritative second opinion: if it also reported
-      // 0% after the zero streak began, the zero is real, not a stuck meter.
-      let apiConfirmedZero = false;
-      try {
-        const c = JSON.parse(readFileSync(path.join(CACHE_DIR, "claude-0.json"), "utf8"));
-        apiConfirmedZero = c.ok && c.source === "api" && Number(c.at) >= zeroSince &&
-          c.items.length > 0 && c.items.every((i) => Number(i.used) === 0);
-      } catch {}
-      if (!apiConfirmedZero && Number.isFinite(zeroSince) && Number(s.t) - zeroSince >= 30 * 60 * 1000) {
-        return {
-          ok: false, items: [], at: Number(s.t), source: "claude-app",
-          stale: true, reason: "stale-app",
-          error: "Claude plan meter has remained at 0% during an active Claude session",
-        };
-      }
-    }
+    // A 0% sample is taken at face value. On large plans (e.g. Team) real use
+    // rounds to 0-2% for hours, so "stuck at zero" cannot be told apart from
+    // light use; freshness (the 2h window above) is the only staleness check.
+
     // The app sample has no reset times; borrow them from the last API answer,
     // but only while they are still in the future (a past reset is meaningless).
     const apiReset = (name) => {
@@ -441,12 +416,6 @@ function readClaudeAppUsage() {
     };
   } catch {}
   return null;
-}
-
-function hasRecentClaudeSession() {
-  try {
-    return getSessions().some((s) => Date.now() - s.mtime < 30 * 60 * 1000);
-  } catch { return false; }
 }
 
 // API 모드(키체인 접근)는 명시적 옵트인. 기본은 키체인을 절대 건드리지 않음.
@@ -695,7 +664,7 @@ function getSessions() {
       } catch {}
     }
     if (usage == null) continue;
-    const cwdMatch = tail.match(/"cwd":"([^"]+)"/);
+    const cwdMatch = [...tail.matchAll(/"cwd":"([^"]+)"/g)].pop(); // latest cwd: sessions can change folders
     const cwd = cwdMatch ? cwdMatch[1] : "?";
     const branchMatch = tail.match(/"gitBranch":"([^"]+)"/);
     const branch = branchMatch && branchMatch[1] !== "HEAD" ? branchMatch[1] : null;
@@ -755,7 +724,8 @@ function getCodexSessions() {
     const snap = readLatestCodexTokenSnapshot(lines);
     if (!snap) continue;
     const { used, win } = snap;
-    const cwdMatch = tail.match(/"cwd":"([^"]+)"/);
+    let cwdMatch = [...tail.matchAll(/"cwd":"([^"]+)"/g)].pop(); // latest cwd: sessions can change folders
+    if (!cwdMatch) { try { cwdMatch = readHead(f.p).match(/"cwd":"([^"]+)"/); } catch {} }
     // model is only written on turn_context lines; a long tool-heavy turn can
     // push the last one out of the tail, so fall back to the file head.
     const mAll = [...tail.matchAll(/"model":"([^"]+)"/g)];
@@ -996,10 +966,6 @@ for (let ai = 0; ai < accounts.length; ai++) {
     out.push("--Enable it (reads a keychain token, read-only): | size=11 color=#8b949e");
     out.push('--  export CCB_API=1   — or  ~/.config/claude-codex-battery/config.json {"api":true} | font=Menlo size=11 color=#8b949e');
     out.push("--Sessions & Codex work without this. | size=11 color=#8b949e");
-  } else if (cl.reason === "stale-app") {
-    out.push("⚠️ Claude usage stale — not showing 100% | size=12 color=#ff453a");
-    out.push(`--${(cl.error || "Plan meter is stuck at zero").slice(0, 100)} | size=11 color=#8b949e`);
-    out.push("--Open Claude Code and sign in again, then refresh this menu. | size=11 color=#ffcc00");
   } else if (cl.reason === "auth") {
     out.push("🔐 Claude usage authentication failed | size=12 color=#ff453a");
     out.push("--Run Claude Code and sign in again; no old cache is being displayed. | size=11 color=#ffcc00");
