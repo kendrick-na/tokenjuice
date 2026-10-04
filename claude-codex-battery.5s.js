@@ -388,7 +388,13 @@ function readClaudeAppUsage() {
         Number.isFinite(Number(x.u.fh)) && Number.isFinite(Number(x.u.sd));
     });
     const s = [...valid].reverse()[0];
-    if (!s) return null;
+    if (!s) {
+      // Claude desktop only polls while its tray usage view was opened in the
+      // last 24h; otherwise samples just stop. Report that instead of nothing,
+      // with the last sample for context (never used as a live value).
+      const last = [...samples].reverse().find((x) => x?.u && Number.isFinite(Number(x.u.fh)));
+      return last ? { ok: false, items: [], reason: "app-stale", appLast: { at: Number(last.t), fh: Number(last.u.fh), sd: Number(last.u.sd) } } : null;
+    }
     const clamp = (n) => Math.max(0, Math.min(100, Number(n)));
     const fh = clamp(s.u.fh), sd = clamp(s.u.sd);
 
@@ -511,9 +517,9 @@ async function getClaude(acc = {}, idx = 0) {
       : /find-generic-password|keychain|SecKeychain/i.test(msg)
       ? "login"      // 로그인 안 됨 / 키체인 접근 불가
       : /ENOENT|no such file/i.test(msg) ? "login" : "error";
-    // If the desktop meter is also stale, retain that explanation and never
-    // show an unrelated old number. Include the API failure for diagnosis.
-    return appIssue || { ok: false, items: [], error: msg, reason };
+    // Both sources are down: report the API cause and keep the app's last
+    // sample for the dropdown note. Never show an old number as live.
+    return { ok: false, items: [], error: msg, reason, appLast: appIssue?.appLast ?? null };
   }
 }
 
@@ -966,9 +972,17 @@ for (let ai = 0; ai < accounts.length; ai++) {
     out.push("--Enable it (reads a keychain token, read-only): | size=11 color=#8b949e");
     out.push('--  export CCB_API=1   — or  ~/.config/claude-codex-battery/config.json {"api":true} | font=Menlo size=11 color=#8b949e');
     out.push("--Sessions & Codex work without this. | size=11 color=#8b949e");
+  } else if (cl.reason === "app-stale") {
+    out.push("⏸ Claude app paused usage sampling | size=12 color=#ffcc00");
+    out.push("--Fix: open the usage view from Claude's menu bar icon — it only polls if opened in the last 24h | size=11 color=#ffcc00");
   } else if (cl.reason === "auth") {
-    out.push("🔐 Claude usage authentication failed | size=12 color=#ff453a");
-    out.push("--Run Claude Code and sign in again; no old cache is being displayed. | size=11 color=#ffcc00");
+    out.push("🔐 Claude usage unavailable — no live source | size=12 color=#ff453a");
+    if (cl.appLast) {
+      const ago = fmtAgo(cl.appLast.at);
+      out.push(`--Claude app stopped sampling (last ${ago}: 5-hour ${100 - cl.appLast.fh}% · weekly ${100 - cl.appLast.sd}% left) | size=11 color=#8b949e`);
+      out.push("--Fix: open the usage view from Claude's menu bar icon — it only polls if opened in the last 24h | size=11 color=#ffcc00");
+    }
+    out.push("--Usage API token expired (only terminal  claude  refreshes it) — run  claude  once | size=11 color=#ffcc00");
   } else if (cl.reason === "login") {
     out.push("🔑 Log in to Claude Code first | size=12 color=#ffcc00");
     out.push("--Run  claude  in a terminal and sign in — it shows up automatically | size=11 color=#8b949e");
