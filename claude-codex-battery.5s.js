@@ -8,7 +8,7 @@
 // 메뉴바에 C [88][17] X [0][76] 형태의 픽셀 배터리를 그린다.
 // 배터리 숫자 = 남은 %. 초록 ≥50, 노랑 ≥20, 빨강 <20.
 
-import { execSync } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import zlib from "node:zlib";
 import os from "node:os";
@@ -448,23 +448,49 @@ function topicsEnabled() {
   } catch { return false; }
 }
 
+// The keychain OAuth token expires every ~8h and only the Claude CLI renews it.
+// Desktop-app users never run the CLI, so the token dies and the battery
+// freezes. `claude -p /usage` renews it without calling a model (zero usage):
+// run it in the background on 401, at most once per 10 minutes.
+const CLAUDE_REFRESH_FILE = path.join(CACHE_DIR, "claude-refresh.json");
+function triggerClaudeTokenRefresh() {
+  if (!IS_MAC) return false;
+  try {
+    const r = JSON.parse(readFileSync(CLAUDE_REFRESH_FILE, "utf8"));
+    if (Date.now() - Number(r.at) < 10 * 60 * 1000) return false;
+  } catch {}
+  const bin = [
+    process.env.CCB_CLAUDE_BIN,
+    path.join(HOME, ".npm-global", "bin", "claude"),
+    path.join(HOME, ".local", "bin", "claude"),
+    "/opt/homebrew/bin/claude",
+    "/usr/local/bin/claude",
+  ].find((p) => p && existsSync(p));
+  if (!bin) return false;
+  try {
+    writeFileSync(CLAUDE_REFRESH_FILE, JSON.stringify({ at: Date.now(), bin }));
+    spawn(bin, ["-p", "/usage", "--max-turns", "1", "--tools", "", "--no-session-persistence"], {
+      cwd: CACHE_DIR, detached: true, stdio: "ignore",
+    }).unref();
+    return true;
+  } catch { return false; }
+}
+
 const CLAUDE_TTL_MS = 60 * 1000; // API는 최대 60초마다만 호출 (레이트리밋 보호). 세션 컨텍스트는 매 실행 실시간.
 const CLAUDE_CACHE_MAX_STALE_MS = 2 * 60 * 60 * 1000;
+const CLAUDE_APP_LIVE_MS = 30 * 60 * 1000; // app samples every ~15 min while it polls
 async function getClaude(acc = {}, idx = 0) {
-  let appIssue = null;
-  // When Claude desktop is running, use its own plan meter first.
-  if (IS_MAC && idx === 0) {
-    const app = readClaudeAppUsage();
-    if (app?.ok) return app;
-    appIssue = app;
-  }
+  // Claude desktop's meter is a fallback only: it samples irregularly and stops
+  // entirely unless its tray usage view was opened in the last 24h, so
+  // preferring it froze the battery on one old sample. The API answer is live.
+  const app = IS_MAC && idx === 0 ? readClaudeAppUsage() : null;
   // 1순위: Claude Code 로컬 사용량 캐시 (원본 dennykim123 방식) — 실시간·무네트워크·키체인 X
   const local = readLocalUsageCache(acc);
   if (local) return local;
 
-  // 로컬 캐시가 없고 API 모드도 꺼져 있으면 → 키체인을 건드리지 않고 안내만 반환
+  // API 모드가 꺼져 있으면 → 키체인을 건드리지 않고 앱 값 또는 안내만 반환
   if (!apiModeEnabled()) {
-    return appIssue || { ok: false, items: [], reason: "needs-api" };
+    return app || { ok: false, items: [], reason: "needs-api" };
   }
 
   // 2순위: 우리 API 캐시가 신선하면 API 스킵
@@ -478,20 +504,28 @@ async function getClaude(acc = {}, idx = 0) {
   // 3순위: usage API 직접 호출 (여기서만 키체인 토큰을 읽음 — 옵트인 상태에서만 도달)
   // 실패하면 대기시간을 기록해 둔다. 안 그러면 5초 실행마다 API를 두드려 429가 풀리지 않는다.
   const failFile = path.join(CACHE_DIR, `claude-${idx}.fail.json`);
+  let refreshing = false;
   try {
     let fail = null;
     try { fail = JSON.parse(readFileSync(failFile, "utf8")); } catch {}
-    if (fail && Date.now() < Number(fail.until)) throw new Error(`usage api ${fail.status} (waiting)`);
+    if (fail && Date.now() < Number(fail.until)) {
+      refreshing = !!fail.refreshing;
+      throw new Error(`usage api ${fail.status} (waiting)`);
+    }
     const token = readClaudeToken(acc);
     const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
       headers: { Authorization: `Bearer ${token}`, "anthropic-beta": "oauth-2025-04-20" },
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) {
+      const authFail = res.status === 401 || res.status === 403;
+      // Expired login: renew in the background and retry soon instead of
+      // waiting out the full back-off.
+      if (authFail && idx === 0) refreshing = triggerClaudeTokenRefresh();
       const retryS = Number(res.headers.get("retry-after"));
-      const minMs = res.status === 401 || res.status === 403 ? 10 * 60 * 1000 : 5 * 60 * 1000;
+      const minMs = refreshing ? 20 * 1000 : authFail ? 10 * 60 * 1000 : 5 * 60 * 1000;
       const waitMs = Math.max(minMs, Number.isFinite(retryS) ? retryS * 1000 : 0);
-      try { writeFileSync(failFile, JSON.stringify({ status: res.status, at: Date.now(), until: Date.now() + waitMs })); } catch {}
+      try { writeFileSync(failFile, JSON.stringify({ status: res.status, at: Date.now(), until: Date.now() + waitMs, refreshing })); } catch {}
       throw new Error(`usage api ${res.status}`);
     }
     const d = await res.json();
@@ -501,17 +535,17 @@ async function getClaude(acc = {}, idx = 0) {
     try { writeFileSync(failFile, JSON.stringify({ until: 0 })); } catch {}
     return out;
   } catch (e) {
-    if (existsSync(cacheFile)) {
-      try {
-        const cached = JSON.parse(readFileSync(cacheFile, "utf8"));
-        if (cached.at && Date.now() - cached.at <= CLAUDE_CACHE_MAX_STALE_MS) {
-          cached.stale = true; cached.error = String(e.message || e);
-          return cached;
-        }
-      } catch {}
+    const msg = String(e.message || e);
+    // A recent desktop sample is the next-best live value.
+    if (app?.ok && Date.now() - app.at < CLAUDE_APP_LIVE_MS) return app;
+    // Otherwise show the last good number, flagged stale: the menu bar shows
+    // "?" for it and the dropdown says how old it is.
+    for (const c of [app?.ok ? app : null, (() => { try { return JSON.parse(readFileSync(cacheFile, "utf8")); } catch { return null; } })()]
+      .filter((c) => c?.ok && c.at && Date.now() - c.at <= CLAUDE_CACHE_MAX_STALE_MS)
+      .sort((a, b) => b.at - a.at)) {
+      return { ...c, stale: true, error: msg, refreshing };
     }
     // 클린 환경(첫 설치·미로그인·키체인 거부) → raw 에러 대신 원인 분류
-    const msg = String(e.message || e);
     const reason = /401|403|unauthorized|invalid.*token/i.test(msg)
       ? "auth"
       : /find-generic-password|keychain|SecKeychain/i.test(msg)
@@ -519,7 +553,7 @@ async function getClaude(acc = {}, idx = 0) {
       : /ENOENT|no such file/i.test(msg) ? "login" : "error";
     // Both sources are down: report the API cause and keep the app's last
     // sample for the dropdown note. Never show an old number as live.
-    return { ok: false, items: [], error: msg, reason, appLast: appIssue?.appLast ?? null };
+    return { ok: false, items: [], error: msg, reason, refreshing, appLast: app?.appLast ?? null };
   }
 }
 
@@ -885,7 +919,7 @@ const groups = [];
 for (let ai = 0; ai < accounts.length; ai++) {
   const label = accounts.length > 1 ? (accounts[ai].name || "C")[0].toUpperCase() : "C";
   const cl = claudes[ai];
-  if (cl.items.length) {
+  if (cl.items.length && !cl.stale) { // stale = last good number, not live → "?"
     const items = (COMPACT ? cl.items.slice(0, 1) : cl.items).map((i) => ({ remain: 100 - i.used }));
     groups.push({ label, color: CLAUDE_ORANGE, items });
   } else groups.push({ label, color: CLAUDE_ORANGE, items: [{ remain: null }] });
@@ -927,7 +961,7 @@ if (asJson) {
     // in" from "API mode is off" and ends up printing the wrong fix.
     claude: claudes.map((c, i) => ({
       account: accounts[i]?.name, items: c.items, reason: c.reason ?? null,
-      source: c.source ?? null, error: c.error ?? null,
+      source: c.source ?? null, error: c.error ?? null, stale: !!c.stale,
     })),
     sessions: safeSessions, codex: codex.items, letsur,
     topicsIncluded: SHOW_TOPICS,
@@ -937,7 +971,7 @@ if (asJson) {
 if (asText) {
   const line = (label, r) => `${label} ${textBar(Math.round(r), 10)} ${Math.round(r)}%`;
   const parts = [];
-  for (const c of claudes) for (const i of c.items) parts.push(line("C", 100 - i.used));
+  for (const c of claudes) for (const i of c.items) parts.push(line(c.stale ? "C(stale)" : "C", 100 - i.used));
   for (const s of activeClaudeSessions.slice(0, 3)) parts.push(line("s·C", 100 - s.pct));
   for (const i of codex.items) parts.push(line("X", 100 - i.used));
   for (const s of activeCodexSessions.slice(0, 3)) parts.push(line("s·X", 100 - s.pct));
@@ -956,7 +990,7 @@ out.push("---");
 for (let ai = 0; ai < accounts.length; ai++) {
   const cl = claudes[ai];
   const title = accounts.length > 1 ? `Claude Code — ${accounts[ai].name}` : "Claude Code";
-  const src = cl.source === "local" ? "🟢 live (local)" : cl.source === "api" ? "🌐 API · up to 60s" : "";
+  const src = cl.stale ? "" : cl.source === "local" ? "🟢 live (local)" : cl.source === "api" ? "🌐 API · up to 60s" : "";
   if (ai > 0) out.push("---");
   out.push(`${title}  ${src} | size=13 color=#8b949e`);
   if (cl.items.length) {
@@ -964,7 +998,7 @@ for (let ai = 0; ai < accounts.length; ai++) {
       const r = Math.round(100 - i.used);
       out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${fmtReset(i.resets)} | font=Menlo size=12 color=${heatHex(r)}`);
     }
-    if (cl.stale) out.push(`⚠️ refresh failed — showing cache | size=11 color=#8b949e`);
+    if (cl.stale) out.push(`⚠️ not live — last value from ${fmtAgo(cl.at)}${cl.refreshing ? " · ↻ renewing login (no usage cost)" : ""} | size=11 color=#ffcc00`);
   } else if (cl.reason === "needs-api") {
     // 로컬 캐시 없음 + API 옵트인 꺼짐 → 키체인 안 건드리고 켜는 법만 안내
     out.push("ⓘ Claude limits need API mode | size=12 color=#8b949e");
@@ -982,10 +1016,16 @@ for (let ai = 0; ai < accounts.length; ai++) {
       out.push(`--Claude app stopped sampling (last ${ago}: 5-hour ${100 - cl.appLast.fh}% · weekly ${100 - cl.appLast.sd}% left) | size=11 color=#8b949e`);
       out.push("--Fix: open the usage view from Claude's menu bar icon — it only polls if opened in the last 24h | size=11 color=#ffcc00");
     }
-    out.push("--Usage API token expired (only terminal  claude  refreshes it) — run  claude  once | size=11 color=#ffcc00");
+    out.push(cl.refreshing ? "--↻ Login expired — renewing automatically (claude -p /usage, no usage cost) | size=11 color=#ffcc00" : "--Usage API login expired and auto-renew failed — run  claude  once in a terminal | size=11 color=#ffcc00");
   } else if (cl.reason === "login") {
     out.push("🔑 Log in to Claude Code first | size=12 color=#ffcc00");
     out.push("--Run  claude  in a terminal and sign in — it shows up automatically | size=11 color=#8b949e");
+  } else if (/\b429\b/.test(cl.error || "")) {
+    // The usage endpoint asked us to back off (Retry-After); we obey it.
+    let until = "";
+    try { const f = JSON.parse(readFileSync(path.join(CACHE_DIR, "claude-0.fail.json"), "utf8")); if (f.until) { const d = new Date(f.until); until = ` until ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; } } catch {}
+    out.push(`⏳ Usage server asked to wait${until} (rate limit) | size=12 color=#ffcc00`);
+    out.push("--Retries automatically — nothing to do | size=11 color=#8b949e");
   } else {
     out.push("⚠️ Couldn't load usage | size=12 color=#ff453a");
     out.push(`--${(cl.error || "").slice(0, 60)} | size=11 color=#8b949e`);
