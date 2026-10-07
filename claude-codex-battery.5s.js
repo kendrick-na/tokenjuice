@@ -334,11 +334,21 @@ function readClaudeToken(acc = {}) {
   }
   // macOS: 키체인
   const svc = acc.keychainService || "Claude Code-credentials";
-  const acct = acc.keychainAccount ? ` -a "${acc.keychainAccount}"` : "";
-  const raw = execSync(`security find-generic-password -s "${svc}"${acct} -w`, {
-    encoding: "utf8", timeout: 10000,
-  });
-  return JSON.parse(raw).claudeAiOauth.accessToken;
+  // Claude Code stores the item under the macOS user name. Without -a,
+  // `security` returns whichever item matches first, and a stray item (e.g.
+  // account "unknown", written by a CLI run without $USER) shadows the real
+  // login with empty tokens. Try the exact account first, then any match.
+  const accounts = acc.keychainAccount ? [acc.keychainAccount] : [os.userInfo().username, null];
+  for (const a of accounts) {
+    try {
+      const raw = execSync(`security find-generic-password -s "${svc}"${a ? ` -a "${a}"` : ""} -w`, {
+        encoding: "utf8", timeout: 10000, stdio: ["ignore", "pipe", "ignore"],
+      });
+      const token = JSON.parse(raw)?.claudeAiOauth?.accessToken;
+      if (token) return token;
+    } catch {}
+  }
+  throw new Error("keychain: no Claude Code login with a token (find-generic-password)");
 }
 
 // 사용량 JSON → items 배열 (로컬 캐시 파일과 API 응답이 같은 스키마라 공용)
@@ -471,6 +481,9 @@ function triggerClaudeTokenRefresh() {
     writeFileSync(CLAUDE_REFRESH_FILE, JSON.stringify({ at: Date.now(), bin }));
     spawn(bin, ["-p", "/usage", "--max-turns", "1", "--tools", "", "--no-session-persistence"], {
       cwd: CACHE_DIR, detached: true, stdio: "ignore",
+      // Without $USER the CLI saves the renewed login under account "unknown",
+      // a separate keychain item, instead of updating the real one.
+      env: { ...process.env, HOME, USER: os.userInfo().username, LOGNAME: os.userInfo().username },
     }).unref();
     return true;
   } catch { return false; }
