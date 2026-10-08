@@ -1311,12 +1311,12 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 구현 완료 | `5617b9a`: Engine `37811131425`, Windows `37811131623` 성공; 실기기 렌더는 별도 장비 게이트 |
 | P0 UX1~UX5 | 구현 완료 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test; `37809341999` Pages 성공 |
 | P0 context checkpoint | 구현 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트 |
-| UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `12efce2`: 375px·1280px overflow, 200% large text, keyboard focus order/outline, ARIA name/landmark, 44px target, reduced-motion emulation, dark token contrast와 light preference 회귀를 browser test로 검증; 스크린리더 수동 점검·실사용자 5명은 pending |
+| UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `12efce2`: 375px·1280px overflow, 200% large text, keyboard focus order/outline, ARIA name/landmark, 44px target, reduced-motion emulation, dark token contrast와 light preference 회귀를 browser test로 검증; `docs/VALIDATION_KIT.md` §1의 5명 script/기록표 준비; 스크린리더 수동 점검·실사용자 5명은 pending |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
 | UX8 알림 센터/설정 UX | 코드 기준 구현 완료 / OS presentation·실사용자 검증 대기 | 계정별 opt-in `reconnect`, auth_expired transition 단일 알림, 계정·이유·다음 행동·last success·retry 시각을 `5617b9a`에 추가; stale/unavailable/429·반복 렌더에는 발화하지 않음. OS 알림 표시와 실사용자 선호 검증은 pending |
-| UX9 메뉴바 상세 패널/compact | 구현 완료 | compact/notch 출력과 SwiftBar 설치본 비교 통과; 실제 notch 기기 시각 검증은 남음 |
-| UX10 랜딩/설치 경로 | 코드 산출물 완료 / 사용자 검증 대기 | `279a260`: `companion/guide.html`의 가치·macOS/Windows/Pocket 설치·개인정보·FAQ·릴리스 링크; `37809141664` Pages 성공; 신규 사용자 5명 검증은 pending |
-| P1 7-day history/Usage Coach | 부분 구현/검증 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; 시각적 trend·Usage Coach 우선순위는 2주 diary와 실제 행동 전환 데이터 필요 |
+| UX9 메뉴바 상세 패널/compact | 구현 완료 / 실기기 검증 대기 | compact/notch 출력과 SwiftBar 설치본 비교 통과; `docs/VALIDATION_KIT.md` §3에 v1.2.2 notch·notification checklist 준비; 실제 notch 기기 시각 검증은 남음 |
+| UX10 랜딩/설치 경로 | 코드 산출물 완료 / 사용자 검증 대기 | `279a260`: `companion/guide.html`의 가치·macOS/Windows/Pocket 설치·개인정보·FAQ·릴리스 링크; `37812922149` Pages 성공; `docs/VALIDATION_KIT.md` §1에 5명 신규 사용자 script 준비; 신규 사용자 5명 검증은 pending |
+| P1 7-day history/Usage Coach | 부분 구현/검증 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 최소 diary schema 준비; 시각적 trend·Usage Coach 우선순위는 실제 행동 전환 데이터 필요 |
 | P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture와 최신 38개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자·provider 안전 adapter 검증 필요 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
