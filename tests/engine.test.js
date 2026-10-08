@@ -366,6 +366,12 @@ test("widget snapshot is an explicit local-only export with no prompt content", 
   const stored = JSON.parse(readFileSync(path.join(home, ".cache/claude-codex-battery/widget-snapshot.json"), "utf8"));
   expect(stored.transport).toBe("local_export_only");
   expect(JSON.stringify(stored)).not.toContain(SECRET_PROMPT);
+  const pocket = spawnSync(process.execPath, [ENGINE, "--open-pocket"], {
+    encoding: "utf8", timeout: 30000,
+    env: engineEnv({ CCB_COMPACT: "0", CCB_TEST_USAGE_FIXTURE: fx, CCB_TEST_NO_OPEN: "1" }),
+  });
+  expect(pocket.status).toBe(0);
+  expect(pocket.stdout).toContain("widget snapshot exported locally");
 });
 
 test("encrypted sync bundle needs a one-shot passphrase and contains no plaintext snapshot", () => {

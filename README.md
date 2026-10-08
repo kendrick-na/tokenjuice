@@ -451,8 +451,10 @@ Claude API 모드의 로그인 갱신은 **기본 수동**이다. 로그인 만�
 ## 휴대폰 companion — TokenJuice Pocket
 
 [`companion/`](companion/)은 iPhone·Android 브라우저에 홈 화면으로 추가할 수 있는 정적 PWA다.
-모바일에 계정·토큰·프롬프트를 보관하지 않는다. Mac에서 다음 명령으로 안전한 스냅샷을 만든 뒤,
-파일을 직접 휴대폰으로 옮겨 Pocket에서 가져온다.
+모바일에 계정·토큰·프롬프트를 보관하지 않는다. Mac 메뉴의 **Pocket으로 내보내고 열기**를 누르면
+안전한 스냅샷을 만들고 Pocket을 연다. 파일을 직접 휴대폰으로 옮겨 Pocket에서 가져온다. 이 과정은
+터미널·로그인·계정 생성을 요구하지 않으며 스냅샷을 서버로 업로드하지 않는다. CLI가 더 편한 경우에는
+다음 명령으로 같은 스냅샷을 만들 수 있다.
 
 ```bash
 bun claude-codex-battery.5s.js --export-widget-snapshot

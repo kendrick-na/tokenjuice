@@ -1834,7 +1834,7 @@ if (argv.includes("--diagnostics") || argv.includes("--copy-diagnostics")) {
   process.exit(0);
 }
 
-if (argv.includes("--widget-snapshot") || argv.includes("--export-widget-snapshot") || argv.includes("--export-sync-bundle")) {
+if (argv.includes("--widget-snapshot") || argv.includes("--export-widget-snapshot") || argv.includes("--open-pocket") || argv.includes("--export-sync-bundle")) {
   const snapshot = buildWidgetSnapshot();
   if (argv.includes("--export-sync-bundle")) {
     try {
@@ -1845,10 +1845,16 @@ if (argv.includes("--widget-snapshot") || argv.includes("--export-widget-snapsho
       console.error(`could not export encrypted sync bundle: ${String(e.message || e)}`);
       process.exit(1);
     }
-  } else if (argv.includes("--export-widget-snapshot")) {
+  } else if (argv.includes("--export-widget-snapshot") || argv.includes("--open-pocket")) {
     try {
       writeFileSync(WIDGET_SNAPSHOT_FILE, `${JSON.stringify(snapshot, null, 2)}\n`);
       console.log(`widget snapshot exported locally: ${WIDGET_SNAPSHOT_FILE}`);
+      // 메뉴에서 명시적으로 누른 경우에만 Pocket을 연다. 스냅샷은 로컬 파일로만
+      // 남고 URL·클립보드·네트워크 요청에 포함하지 않는다.
+      if (argv.includes("--open-pocket") && IS_MAC && process.env.CCB_TEST_NO_OPEN !== "1") {
+        execFileSync("open", ["https://kendrick-na.github.io/tokenjuice/"]);
+        console.log("TokenJuice Pocket opened; choose the exported local snapshot to import it.");
+      }
     } catch (e) {
       console.error(`could not export widget snapshot: ${String(e.message || e)}`);
       process.exit(1);
@@ -2156,6 +2162,9 @@ out.push("---");
 out.push("Data diagnostics  (no secrets) | size=13 color=#8b949e");
 for (const line of buildDiagnostics().slice(2)) out.push(`--${line} | font=Menlo size=11 color=#6b7280`);
 out.push(`--Copy diagnostics to clipboard | bash='${SELF}' param1=--copy-diagnostics terminal=false`);
+if (IS_MAC) {
+  out.push(`--Pocket으로 내보내고 열기 (로컬 파일만 생성) | bash='${SELF}' param1=--open-pocket terminal=false`);
+}
 if (!existsSync(CONFIG_FILE)) {
   // v1.2 first-run disclosure. It is deliberately visible in the product,
   // rather than being only a README promise. Creating the config below does
