@@ -1622,6 +1622,32 @@ const asJson = argv.includes("--json");
 const asText = argv.includes("--text");
 const SHOW_TOPICS = topicsEnabled();
 
+// Developer mode is explicit and read-only. It exposes evidence behind local
+// estimates without exposing prompt/topic text, transcript lines, credentials,
+// or changing the normal menu/JSON contract.
+if (argv.includes("--developer")) {
+  const line = (label, value) => `${label}: ${String(value ?? "unavailable")}`;
+  const out = [
+    "TokenJuice developer mode · local read-only evidence",
+    line("platform", process.platform),
+    line("engine", "local files only; no prompt/topic output"),
+    line("forecast", forecastEnabled() ? "enabled · local pace estimate" : "disabled"),
+  ];
+  claudes.forEach((account, index) => {
+    out.push(`Claude[${index}] state=${account.state ?? "unavailable"} source=${sourceLabel(account.source)} lastSuccess=${account.lastSuccessAt ? new Date(account.lastSuccessAt).toISOString() : "never"}`);
+    for (const item of account.items || []) {
+      const f = item.forecast;
+      out.push(`  ${item.name}: used=${item.used}% reset=${item.resets ?? "unknown"} forecast=${f ? `samples=${f.samples}, pace=${f.usedPerHour}%/h, exhaustion=${f.exhaustionAt ? new Date(f.exhaustionAt).toISOString() : "unknown"}, beforeReset=${f.beforeReset}` : "unavailable"}`);
+    }
+  });
+  out.push(`Codex state=${codex.state ?? "unavailable"} source=${sourceLabel(codex.source || "codex-jsonl")} lastSuccess=${codex.lastSuccessAt ? new Date(codex.lastSuccessAt).toISOString() : "never"}`);
+  for (const session of sessions) {
+    out.push(`session ${session.platform}/${session.name}/${session.id}: status=${session.status || "unknown"} model=${session.model || "unknown"} context=${Math.round(session.pct || 0)}% (${session.used}/${session.win}) mtime=${session.mtime ? new Date(session.mtime).toISOString() : "unknown"}`);
+  }
+  console.log(out.join("\n"));
+  process.exit(0);
+}
+
 // 노치 맥북(COMPACT): 메뉴바 아이콘이 노치에 가려 안 보이므로 폭을 최소화.
 //   한도는 첫 항목(5시간)만, 세션은 위험순 1개만. 드롭다운은 그대로 전부 표시.
 const groups = [];

@@ -444,6 +444,10 @@ Claude API 모드의 로그인 갱신은 **기본 수동**이다. 로그인 만�
 직접 바꿀 수 있다. 설정은 로컬 config.json에만 저장되고 서버로 전송되지 않는다.
 pace forecast를 켠 경우 메뉴에서 최근 7일의 로컬 관측값을 JSON으로 내보낼 수도 있다.
 원문 prompt·코드·credential은 포함하지 않는다.
+
+개발자는 필요할 때만 `bun claude-codex-battery.5s.js --developer`를 실행해 source,
+last success, forecast samples/pace, session context 근거를 확인할 수 있다. 이 모드는
+읽기 전용이며 prompt/topic 원문과 credential을 출력하지 않고 기본 메뉴 동작에도 영향을 주지 않는다.
 `forecast`는 최근의 **로컬 사용률 관측값**으로 소진 예상 시각을 계산한다. 제공자 공식 예측이 아니며,
 관측이 두 개 이상 쌓인 뒤에만 표시된다.
 `sessionStatus`는 Claude/Codex의 마지막 로컬 로그를 읽어 작업 중·입력 대기·완료 같은

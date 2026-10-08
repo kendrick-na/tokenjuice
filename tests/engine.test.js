@@ -235,6 +235,18 @@ test("forecast history export is local, bounded to seven days, and prompt-free",
   expect(JSON.stringify(history)).not.toContain(SECRET_PROMPT);
 });
 
+test("developer mode is explicit, read-only, and excludes prompt topics", () => {
+  config({ api: true, forecast: { enabled: true }, sessionStatus: { enabled: true } });
+  usage(200, okUsage());
+  claudeSession();
+  const details = run("--developer");
+  expect(details).toContain("developer mode");
+  expect(details).toContain("local pace estimate");
+  expect(details).toContain("session claude");
+  expect(details).not.toContain(SECRET_PROMPT);
+  expect(details).not.toContain("implement the secret prompt");
+});
+
 // ── R4 · 429 back-off ────────────────────────────────────────────────────
 test("429 honours Retry-After: no request until then, human countdown shown", () => {
   usage(429, {}, { "retry-after": "3600" });
