@@ -52,6 +52,9 @@ def main() -> None:
             page.get_by_text("예시 화면 보기").click()
             assert page.get_by_text("제공자 제한 중", exact=True).is_visible()
             assert page.get_by_text("새 스냅샷 가져오기").is_visible()
+            assert page.get_by_text("NOW", exact=True).is_visible()
+            assert page.get_by_text("WHY", exact=True).is_visible()
+            assert page.get_by_text("NEXT", exact=True).is_visible()
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") is None
             page.reload(wait_until="networkidle")
             assert page.get_by_text("내 스냅샷 가져오기").is_visible()

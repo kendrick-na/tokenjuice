@@ -9,3 +9,12 @@ footer { display:flex; align-items:center; gap:1rem; margin-top:auto; border-top
 @keyframes rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
 @media (min-width:48rem) { .app-shell { padding-left:2.5rem; padding-right:2.5rem; }.accounts { grid-template-columns:repeat(2,1fr); }.account.codex { grid-column:span 2; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; } }
+
+/* P0 decision hierarchy: NOW → WHY → NEXT. Keep the existing dense provider
+   cards below as detail, while the first card answers the immediate question. */
+.decision-grid { position:relative; display:grid; gap:.5rem; }
+.decision-block { display:grid; grid-template-columns:3.4rem 1fr; gap:.7rem; border-top:1px solid #ffffff18; padding:.7rem 0 0; color:var(--muted); font-size:.78rem; line-height:1.45; }
+.decision-block b { color:var(--teal); font:800 .63rem/1.4 var(--mono); letter-spacing:.08em; }
+.priority-card.caution .decision-block b { color:var(--amber); }
+.priority-card.danger .decision-block b { color:var(--coral); }
+.decision-block.next span { color:var(--ink); }

@@ -77,20 +77,44 @@ function priority(snapshot) {
   const issue = payloads.find((payload) => !["fresh", "fallback"].includes(payload.state));
   if (issue) {
     const state = copyFor(issue);
-    return { eyebrow: "지금 확인할 일", title: `${issue.account || issue.label || "한도"} · ${state.label}`, copy: state.action, tone: state.tone, cta: "새 스냅샷 가져오기" };
+    return {
+      eyebrow: "지금 확인할 일",
+      title: `${issue.account || issue.label || "한도"} · ${state.label}`,
+      copy: state.action,
+      tone: state.tone,
+      cta: issue.state === "auth_expired" ? "연결 상태 확인" : "새 스냅샷 가져오기",
+      why: `${issue.sourceLabel || issue.source || "데이터 경로 정보 없음"} · ${issue.lastSuccessAt ? timeText(issue.lastSuccessAt, "마지막 성공") : "성공한 확인 없음"}`,
+      next: issue.state === "auth_expired" ? "Mac에서 제공자 로그인을 갱신하세요." : state.action,
+    };
   }
   const entries = payloads.flatMap((payload) => (payload.items || []).map((item) => ({ payload, item, remaining: remaining(item) })));
   const lowest = entries.sort((a, b) => a.remaining - b.remaining)[0];
   if (lowest) {
     const urgency = lowest.remaining < 20 ? "한도 관리가 필요합니다." : "현재 작업 흐름은 안정적입니다.";
-    return { eyebrow: "지금 가장 좁은 창", title: `${lowest.payload.account || lowest.payload.label || "계정"} · ${lowest.item.name} ${Math.round(lowest.remaining)}% 남음`, copy: `${urgency} ${timeText(lowest.item.resets)}.`, tone: lowest.remaining < 20 ? "danger" : lowest.remaining < 50 ? "caution" : "good", cta: "세부 한도 보기" };
+    return {
+      eyebrow: "지금 가장 좁은 창",
+      title: `${lowest.payload.account || lowest.payload.label || "계정"} · ${lowest.item.name} ${Math.round(lowest.remaining)}% 남음`,
+      copy: `${urgency} ${timeText(lowest.item.resets)}.`,
+      tone: lowest.remaining < 20 ? "danger" : lowest.remaining < 50 ? "caution" : "good",
+      cta: lowest.remaining < 20 ? "스냅샷 저장 준비" : "세부 한도 보기",
+      why: `${lowest.payload.sourceLabel || lowest.payload.source || "데이터 경로 정보 없음"} · ${lowest.payload.lastSuccessAt ? timeText(lowest.payload.lastSuccessAt, "마지막 성공") : "성공한 확인 없음"}`,
+      next: lowest.remaining < 20 ? "작업을 이어갈 수 있도록 현재 상태를 먼저 저장하세요." : "현재 상태를 확인하고 작업을 계속하세요.",
+    };
   }
-  return { eyebrow: "현재 상태", title: "표시할 수 있는 한도가 없습니다", copy: "숫자를 추정하지 않았습니다. 새 스냅샷에서 상태를 확인하세요.", tone: "danger", cta: "새 스냅샷 가져오기" };
+  return {
+    eyebrow: "현재 상태",
+    title: "표시할 수 있는 한도가 없습니다",
+    copy: "숫자를 추정하지 않았습니다. 새 스냅샷에서 상태를 확인하세요.",
+    tone: "danger",
+    cta: "새 스냅샷 가져오기",
+    why: "확인 가능한 provider 데이터가 없습니다.",
+    next: "Mac에서 로컬 스냅샷을 내보낸 뒤 다시 가져오세요.",
+  };
 }
 function renderPriority(snapshot) {
   const item = priority(snapshot);
   $("#priority-card").className = `priority-card ${item.tone}`;
-  $("#priority-card").innerHTML = `<p>${item.eyebrow}</p><h1>${escapeHtml(item.title)}</h1><span>${escapeHtml(item.copy)}</span><button id="priority-action" type="button">${item.cta} <b aria-hidden="true">→</b></button>`;
+  $("#priority-card").innerHTML = `<p>${item.eyebrow}</p><h1>${escapeHtml(item.title)}</h1><div class="decision-grid"><div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div><button id="priority-action" type="button">${item.cta} <b aria-hidden="true">→</b></button>`;
   $("#priority-action").addEventListener("click", () => {
     if (item.cta.includes("가져오기")) fileInput.click();
     else $("#accounts").scrollIntoView({ behavior: "smooth", block: "start" });

@@ -1211,3 +1211,92 @@ VibeUsage의 JSON·history와 유사한 export, shell/statusline, webhook은 pow
 - [Limits 공식 사이트 — iPhone glance, widgets, reset notifications, privacy](https://getlimits.app/)
 - [Limits Support — OAuth 연결, background refresh, Keychain/on-device storage](https://getlimits.app/support)
 - [Limits App Store — 기능 업데이트, multi-account, widgets, reset credits, pricing](https://apps.apple.com/ca/app/limits-ai-usage-tracker/id6783130074)
+
+## 16. 2026-10-09 타겟 유저·페인포인트 객관 검증과 착수 기준
+
+### 16.1 먼저 결론
+
+TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니다. 현재 가장 설득력 있는 타겟은 다음 조건을 동시에 만족하는 사용자다.
+
+1. Claude Code·Codex·Cursor 등 2개 이상의 AI coding tool을 실제로 병행한다.
+2. 한도·reset·인증 문제로 작업을 중단하거나 새 대화로 맥락을 잃어본 적이 있다.
+3. 작업 중단 비용이 크고, 다시 시작할 때 무엇을 했는지 복구하는 데 시간이 든다.
+4. 로컬 데이터·credential 프라이버시를 중요하게 여기며, 수동 import 또는 초기 설정을 감수할 수 있다.
+
+이 타겟에는 명확한 pain이 있지만, 단일 provider를 가끔 쓰는 일반 사용자는 native usage 화면과 기본 알림만으로 충분할 가능성이 높다. 따라서 초기 제품의 목표는 대중적 “AI usage super app”이 아니라 **provider를 넘나들며 계속 만드는 사람의 작업 중단 보험**이다.
+
+### 16.2 문제의 강도 평가
+
+| 타겟 | 문제 빈도 | 중단 비용 | 현재 대안 | 결제 가능성 | 판단 |
+|---|---:|---:|---|---:|---|
+| 단일 provider 일반 사용자 | 낮음 | 낮음 | provider 기본 화면 | 낮음 | 초기 타겟에서 제외 |
+| 여러 provider를 쓰는 취미 바이브코더 | 중간 | 중간 | 각 provider 앱/CLI를 수동 확인 | 낮음~중간 | 무료/저가로 테스트 |
+| 매일 쓰는 solo builder/founder | 높음 | 높음 | 여러 창·CLI·메모·새 세션 | 중간~높음 | 핵심 초기 타겟 |
+| 전문 개발자/consultant | 높음 | 높음 | CLI·IDE extension·팀 관행 | 중간 | workflow 통합이 되면 유효 |
+| 팀/조직 | 중간~높음 | 매우 높음 | 관리자 대시보드·정책 | 높음 | 보안·관리 기능 후속 |
+
+현재 근거만으로 시장 규모나 유료 전환을 확정할 수는 없다. 특히 경쟁 앱의 App Store 리뷰 수가 충분히 많지 않고, VibeUsage류는 오픈소스/CLI라서 “관심”과 “지불”을 구분해야 한다. 그러므로 다음 단계는 기능 확장이 아니라 실제 interruption diary와 concierge test다.
+
+### 16.3 우리가 해결할 수 있는 pain과 해결하지 못하는 pain
+
+**해결 가능성이 높은 pain**
+
+- 여러 provider의 reset/잔여량을 매번 찾아보는 번거로움
+- 오래된 값·fallback·auth 오류를 현재 값으로 오인하는 문제
+- 한도 초과 직전에 작업을 저장하지 못해 새 세션에서 맥락을 복구하는 시간
+- provider를 바꿔야 할 시점을 감으로 판단하는 문제
+
+**아직 해결하지 못하는 pain**
+
+- provider의 실제 quota endpoint가 바뀌거나 공식 접근이 막히는 문제
+- 자동 checkpoint가 프로젝트의 의미를 완전히 이해하는 문제
+- 단일 provider 사용자의 사용량 자체를 줄여주는 문제
+- 사용자가 원래 중단을 거의 경험하지 않는 경우의 지속적인 가치
+
+### 16.4 객관적 제품 가설
+
+> **매주 2회 이상 AI coding 작업이 quota/auth/context 문제로 중단되는 multi-provider 사용자는, 현재 상태·신뢰도·다음 행동·resume brief를 한 화면에서 제공하면 주 3회 이상 재방문하고 저가 결제를 고려할 것이다.**
+
+반증 조건도 사전에 둔다.
+
+- 인터뷰 10명 중 3명 미만이 최근 30일 내 실제 중단 사례를 말한다.
+- 중단 경험자도 “provider 화면을 직접 보면 충분하다”고 한다.
+- 경고 후 checkpoint/resume 행동률이 20% 미만이다.
+- 2주 diary에서 주간 재방문이 2회 미만이다.
+- 데이터 신뢰성 문제로 false alert 또는 stale 오인이 반복된다.
+
+위 조건 중 2개 이상이면 mobile widget·provider 추가·결제를 보류하고, 단순 로컬 진단 도구 또는 다른 문제로 재포지셔닝한다.
+
+### 16.5 착수 범위: P0 Work Continuity Slice
+
+이번 구현에서 바로 만드는 것은 다음 한 조각이다.
+
+- Pocket 첫 화면의 `NOW → WHY → NEXT` 의사결정 카드
+- source·last successful fetch·fresh/fallback/stale 상태를 함께 보여주는 신뢰 표현
+- 위험한 상태에서 새 snapshot·연결 확인·상세 보기로 이어지는 하나의 primary action
+- 375px 모바일 화면에서의 가독성 및 색상 외 상태 표현
+- demo snapshot과 실제 local snapshot 양쪽에서 동작하는 회귀 테스트
+
+이번 착수에서 보류하는 것:
+
+- 자동 provider 전환
+- prompt/code를 읽는 AI checkpoint 생성
+- 서버 계정·원격 동기화
+- widget/Watch/다수 provider 확장
+- 사용량을 근거로 한 생산성 점수
+
+### 16.6 현재 착수 결과와 다음 검증
+
+현재 companion에 P0 `NOW → WHY → NEXT` 카드와 상태별 next action을 구현했고, demo/import/offline 회귀 테스트를 통과시켰다. 다음은 실제 타겟 10명에게 다음 과정을 수행하는 것이다.
+
+1. 최근 quota/auth/context 중단 사례를 10분 인터뷰로 수집한다.
+2. 각 사용자에게 기존 방식으로 작업을 재개하게 한 뒤 시간을 기록한다.
+3. TokenJuice 카드로 checkpoint/resume 판단을 하게 하고 시간을 다시 기록한다.
+4. 2주 diary에서 alert→action, 재방문, false alert를 측정한다.
+5. 행동이 확인된 뒤에야 Usage Coach·widget·provider 확장을 우선순위에 올린다.
+
+성공 기준은 “예쁜 화면”이 아니라 다음 세 가지다.
+
+- 사용자가 10초 안에 가장 위험한 상태를 찾는다.
+- 30초 안에 그 상태의 신뢰도와 원인을 설명한다.
+- 경고 후 실제로 checkpoint 또는 안전한 provider 전환을 수행한다.
