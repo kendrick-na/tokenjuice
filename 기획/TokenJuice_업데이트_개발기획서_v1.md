@@ -936,3 +936,133 @@ AI Limits Tracker까지 모두 결합한 “AI 사용량 슈퍼앱”은 기능�
 - [OpenUsage Claude provider 문서](https://github.com/robinebers/openusage/blob/main/docs/providers/claude.md)
 - [ClaudeCodeUsage GitHub](https://github.com/ClaudeCodeUsage/ClaudeCodeUsage)
 - [VibeUsage](https://vibeusage.com/)
+
+## 14. 2026-10-09 UI/UX·비주얼 경쟁 감사 및 TokenJuice 디자인 업데이트
+
+앞선 기능·사업성 비교에 더해, 공개 App Store/Google Play 설명, 공식 랜딩 페이지, GitHub/마켓플레이스 화면, 공개 사용 스크린샷을 기준으로 경쟁 서비스의 “어떻게 보이고 어떻게 쓰게 만드는가”를 감사했다. 로그인 후 내부 화면이나 비공개 사용자 여정까지 확인한 것은 아니므로, 아래 판단은 공개적으로 검증 가능한 UI/UX에 한정한다.
+
+### 14.1 경쟁 제품의 시각적 포지션
+
+| 제품군 | 화면 인상 | 핵심 UI 패턴 | 강점 | 한계 | TokenJuice의 해석 |
+|---|---|---|---|---|---|
+| AI Limits Tracker | 소비자용 glance UI. 밝고 정돈된 카드·링·큰 숫자, iPhone/Watch/widget 중심 | provider별 잔여량, reset 시간, 상태 탭, 로컬 알림 | 3초 안에 “얼마나 남았나”를 이해 | 프로젝트·세션·작업 재개 맥락이 얕음 | 큰 숫자와 즉시성은 채택하되 단순 quota 복제는 하지 않음 |
+| Limits: AI Usage Tracker | 개인 생산성 앱에 가까운 깔끔한 추적 UI | 서비스별 사용량, 기간, 리셋·위젯 | 일반 사용자가 진입하기 쉬움 | 여러 작업의 원인·다음 행동까지는 약함 | 온보딩과 기본 상태 표현의 참고 대상으로만 사용 |
+| OpenUsage / CodexBar 계열 | 개발자용 dark observability console. compact chip, monospace, 높은 정보 밀도 | 터미널/statusline/menu bar, burn rate, provider·모델·비용·export | 여러 provider를 한 화면에서 깊게 관찰 | 처음 보는 사용자는 의미를 해석해야 하고 “그래서 뭘 하지?”가 약함 | 진단 정보와 local-first 신뢰 모델은 채택, 조밀함은 detail 화면에 격리 |
+| ClaudeCodeUsage 계열 | VS Code 안의 dark analytics dashboard | Overview/Graphs/Tables, 프로젝트·모델·날짜 필터, 비용·차트·heatmap | 사후 분석과 프로젝트별 패턴 파악에 강함 | glance alert가 아니며 quota·비용·추정치가 섞일 위험 | History/Insights 화면의 참고, 홈 화면에는 가져오지 않음 |
+| VibeUsage/UsageDeck/OpenQuota 계열 | 여러 coding agent를 모니터링하는 전문 도구 | multi-provider dashboard, usage/cost/session 집계 | 파워유저의 통합 관찰 니즈를 포착 | 일반 사용자에게는 설정·용어·정보량이 과함 | “개발자 전체”가 아니라 반복적으로 막히는 사용자부터 공략 |
+
+경쟁 제품은 세 가지 시각 언어로 나뉜다. (1) Consumer glance: 큰 숫자·링·카드, (2) Developer observability: 작은 텍스트·상태칩·로그, (3) IDE analytics: 탭·필터·그래프. TokenJuice가 이를 한 화면에 섞으면 “기능은 많지만 판단은 느린” 제품이 되므로 홈은 glance와 action에, 상세는 observability와 analytics에 분리한다.
+
+### 14.2 TokenJuice의 디자인 포지셔닝: Calm Operations Console
+
+TokenJuice의 시각적 방향은 **Calm Operations Console**로 확정한다.
+
+- AI Limits Tracker처럼 첫눈에 읽히지만 단순 잔여량 앱보다 작업 맥락이 깊다.
+- OpenUsage처럼 데이터 신뢰성을 보여주되 터미널 사용자만 이해하는 화면은 아니다.
+- ClaudeCodeUsage처럼 분석 기능을 제공하되 분석 화면 때문에 현재 위험 신호가 묻히지 않는다.
+- deep navy/slate 기반의 차분한 운영 콘솔로 하고, 정상 green·주의 amber·stale/fallback violet 또는 muted gray·장애 red를 사용한다.
+- 색상만으로 상태를 전달하지 않고 아이콘·텍스트·시간·행동 라벨을 항상 병기한다.
+- AI 서비스에서 흔한 보라/핑크 그라데이션, 장식용 glassmorphism, 의미 없는 animated ring은 사용하지 않는다.
+
+권장 시각 토큰 초안: `#1E293B` primary, `#334155` secondary, `#0F172A` dark background, `#F8FAFC` foreground, `#22C55E` success, `#F59E0B` warning, `#8B5CF6`/`#94A3B8` stale, `#EF4444` destructive. 최종 출시 전 WCAG 대비·색각 이상·dark/light 모드 QA를 별도 수행한다.
+
+### 14.3 정보 위계: NOW → WHY → NEXT → DETAIL
+
+TokenJuice가 차별화해야 할 핵심은 데이터의 양이 아니라 **판단 순서**다.
+
+```text
+NOW     지금 가장 위험한 provider/session은 무엇인가?
+WHY     왜 그렇게 판단했나? 데이터 출처·마지막 성공·신선도는?
+NEXT    그래서 지금 사용자가 할 한 가지 행동은 무엇인가?
+DETAIL  세션·프로젝트·히스토리·비용·진단은 어디서 보는가?
+```
+
+예시: `● C 72% · fresh   ● S 81% · 24m left   ◐ X 44% · reset 2h`
+
+C/S/X는 기존 배터리 메타포를 유지하되 신규 사용자에게 암호처럼 보일 수 있으므로 첫 실행과 설정에 legend를 제공한다. `C=Claude`, `S=Codex`, `X=기타 provider/agent`이며 상태 점과 텍스트는 fresh/fallback/stale/error를 함께 표시한다.
+
+### 14.4 상태 디자인과 신뢰 UX
+
+AI Limits Tracker의 강점은 현재 값을 빠르게 보여주는 것이고, TokenJuice의 기회는 그 값이 얼마나 믿을 만한가를 함께 보여주는 것이다.
+
+| 상태 | 시각 표현 | 사용자 문구 | 기본 행동 |
+|---|---|---|---|
+| Fresh | green check | 방금 확인됨 | 없음. 안심 상태 |
+| Fallback | amber layered icon | 최근 표본 | 출처 보기 / 재조회 |
+| Stale | violet/gray clock | 42분 전 | 새로고침 / connector 확인 |
+| Rate limited | amber pause | 18분 후 재시도 | 기다리기 / manual retry |
+| Auth expired | red key | 연결 필요 | 다시 연결 |
+| Context risk | amber gauge | checkpoint 권장 | checkpoint 생성 |
+| Work blocked | red stop | 작업 재개 필요 | switch / resume brief |
+
+상태 카드에는 반드시 `source`, `last successful fetch`, `reason`, `next action`을 노출한다. “72% 남음”만 표시하는 것은 숫자는 맞아도 신뢰 UX가 부족하다.
+
+### 14.5 화면별 개발 방향
+
+#### A. Menu bar / tray
+
+현재는 모든 provider 상세를 나열하지 않고 가장 위험한 1~3개만 우선 표시한다. 평상시에는 `● 3 healthy`처럼 조용하게 유지하고 행동이 필요한 순간에만 `! checkpoint` 또는 `↻ reconnect`를 올린다. 클릭하면 popover의 NOW로 바로 진입한다.
+
+#### B. Popover
+
+첫 화면을 `NOW`(가장 급한 상태), `WHY`(source·freshness·마지막 성공), `NEXT`(checkpoint·전환·reconnect 중 하나의 primary action) 세 블록으로 고정한다. 그 아래 provider card와 최근 session을 둔다.
+
+#### C. Pocket / 모바일
+
+desktop dashboard 축소판으로 만들지 않는다. 모바일은 `Can I continue?`, `What changed?`, `Resume` 세 질문에 답한다. 차트·heatmap·전체 provider 표는 History/desktop detail로 보낸다.
+
+#### D. Onboarding
+
+`사용 도구 선택 → 알림 위치 선택 → 첫 성공 snapshot → fresh/fallback/stale 설명 → alert opt-in` 순서로 한다. 첫 가치 경험은 모든 계정 연결이 아니라 하나의 provider와 하나의 session만으로 완성한다.
+
+### 14.6 경쟁사에서 채택할 것과 버릴 것
+
+| 경쟁 패턴 | 결정 | 이유 |
+|---|---|---|
+| 큰 숫자·provider별 카드 | 채택 | 3초 인지에 유리 |
+| iOS/Watch/widget | 후순위 채택 | 반복 확인 니즈 검증 뒤 확장 |
+| 7일 trend·예상 소진 | 상세에 채택 | 원인 분석에는 유용하지만 홈을 무겁게 함 |
+| terminal/statusline | developer mode에 채택 | 파워유저용 opt-in |
+| VS Code tab/filter/chart | History/Insights에 채택 | 사후 분석용 |
+| 모든 provider를 한 번에 연결 | 배제 | 초기 activation·신뢰를 해침 |
+| quota·cost·context를 같은 ring에 중첩 | 배제 | 단위와 의미 혼동 |
+| 색상만으로 상태 구분 | 배제 | 접근성과 오판 위험 |
+| AI 보라색 gradient / 장식 애니메이션 | 배제 | 운영 도구 신뢰감 약화 |
+
+### 14.7 P0 UI/UX backlog 및 성공 지표
+
+| 우선순위 | 항목 | 완료 기준 |
+|---|---|---|
+| P0 | NOW/WHY/NEXT popover | 신규 사용자가 30초 안에 위험 상태·근거·다음 행동 설명 |
+| P0 | C/S/X legend + trust badge | 약어와 freshness를 혼동하지 않음 |
+| P0 | source/last success/reason | fallback·stale를 fresh로 오인하지 않음 |
+| P0 | 상태별 primary action | warning=checkpoint, auth=reconnect 일관성 |
+| P0 | 색상 외 상태 표현 | 흑백·색각 이상 조건에서도 구분 |
+| P0 | 375px Pocket flow | horizontal scroll 없이 Can I continue? → Resume |
+| P1 | 7-day trend / estimated exhaustion | quota와 추정치 분리 |
+| P1 | developer mode | terminal/statusline·고밀도 테이블 opt-in |
+| P1 | widget/Watch/complication | retention 검증 후 개발 |
+| P2 | multi-provider analytics | 2개 이상 provider 사용자 비율 확인 후 확장 |
+
+검증 지표는 다음과 같다: 가장 위험한 상태를 10초 안에 찾는 비율 90% 이상, source와 fresh/stale 의미 설명 80% 이상, 잘못된 provider 전환 5% 미만, 경고 후 checkpoint/resume 완료 30% 이상, 375px horizontal scroll 0건, 색상을 끈 상태의 상태 식별 90% 이상, 홈에서 상세 원인까지 2클릭 이내.
+
+### 14.8 리서치 근거
+
+- [AI Limits Tracker App Store — 위젯·상태 탭·7일 추세·red Runs out·가격](https://apps.apple.com/us/app/ai-limits-tracker/id6801493876)
+- [AI Limits Tracker 공식 사이트](https://ailimits.app/)
+- [AI Limits Tracker Google Play — Android·local snapshot·보안/데이터 안전](https://play.google.com/store/apps/details?id=com.jocoding.aiLimitsTracker)
+- [OpenUsage 공식 사이트 — multi-provider·local history·terminal/statusline](https://openusage.sh/)
+- [OpenUsage GitHub](https://github.com/janekbaraniewski/openusage)
+- [OpenUsage Claude provider 문서](https://github.com/robinebers/openusage/blob/main/docs/providers/claude.md)
+- [ClaudeCodeUsage GitHub — VS Code 내 local usage dashboard](https://github.com/ClaudeCodeUsage/ClaudeCodeUsage)
+- [Claude Code Usage 공개 화면 사례](https://discuss.pytorch.kr/t/claude-usage-claude-code/11174)
+- [VS Code Marketplace 공개 화면 사례](https://marketplace.visualstudio.com/items?itemName=max-riabov.claude-glm-usage)
+- [WCAG 2.2 Quick Reference](https://www.w3.org/WAI/WCAG22/quickref/)
+
+### 14.9 디자인 결론
+
+TokenJuice는 AI Limits Tracker의 잔여량 카드를 복제하는 서비스가 아니라 그 카드가 놓치는 작업 연속성의 순간을 해결해야 한다.
+
+> **경쟁 제품이 “얼마나 남았는가”를 보여준다면, TokenJuice는 “계속해도 되는가, 왜 그런가, 막히면 어디서 이어갈 것인가”를 보여준다.**
+
+따라서 다음 디자인 스프린트의 산출물은 예쁜 dashboard가 아니라 `Calm Operations Console`의 동작 가능한 prototype이다. P0는 `NOW → WHY → NEXT` popover, 신뢰 상태 표현, checkpoint/resume action이며 차트·위젯·Watch·provider 추가는 그 흐름이 검증된 이후로 미룬다.
