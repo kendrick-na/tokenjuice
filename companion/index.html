@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#111315">
-    <meta name="description" content="TokenJuice의 자격증명 없는 로컬 사용량 스냅샷 뷰어">
+    <meta name="theme-color" content="#10181b">
+    <meta name="description" content="TokenJuice의 로컬 우선 AI 코딩 한도 상태 화면">
     <link rel="icon" href="./icons/tokenjuice-192.png" type="image/png">
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="apple-touch-icon" href="./icons/tokenjuice-192.png">
@@ -12,32 +12,45 @@
     <title>TokenJuice Pocket</title>
   </head>
   <body>
-    <main class="console-shell">
+    <main class="app-shell">
       <header class="masthead">
-        <div class="brand"><span class="bolt">▰</span><span>TOKENJUICE</span><em>POCKET</em></div>
-        <span id="transport" class="transport">LOCAL SNAPSHOT</span>
+        <a class="brand" href="./" aria-label="TokenJuice Pocket 홈"><span class="brand-mark" aria-hidden="true">▰</span><span>TOKENJUICE</span><em>POCKET</em></a>
+        <span id="transport" class="transport">로컬 전용</span>
       </header>
 
-      <section id="empty-state" class="empty-state">
-        <p class="eyebrow">NO CREDENTIALS · NO CLOUD SYNC</p>
-        <h1>주머니 속<br><i>한도 계기판.</i></h1>
-        <p class="explain">Mac에서 내보낸 스냅샷 또는 암호화 번들만 이 기기에 저장합니다. 토큰·프롬프트·코드는 가져오지 않습니다.</p>
-        <label class="import-button" for="snapshot-file">스냅샷 가져오기 <span>↗</span></label>
+      <section id="empty-state" class="empty-state" aria-labelledby="welcome-title">
+        <p class="eyebrow">AI CODING WORKFLOW MONITOR</p>
+        <h1 id="welcome-title">다음 막힘을<br><i>먼저</i> 보세요.</h1>
+        <p class="explain">한도·리셋·데이터 최신성을 한곳에서 확인합니다. 로그인, 토큰, 프롬프트, 코드를 이 기기 밖으로 보내지 않습니다.</p>
+        <div class="entry-actions">
+          <label class="primary-action" for="snapshot-file">내 스냅샷 가져오기 <span aria-hidden="true">→</span></label>
+          <button id="preview-demo" class="secondary-action" type="button">예시 화면 보기</button>
+        </div>
+        <ol class="onboarding-steps" aria-label="시작 방법">
+          <li><b>1</b><span>Mac 메뉴에서 <strong>스냅샷 내보내기</strong>를 선택합니다.</span></li>
+          <li><b>2</b><span>이 화면에서 파일을 가져옵니다.</span></li>
+          <li><b>3</b><span>가장 먼저 확인할 한도와 다음 행동을 봅니다.</span></li>
+        </ol>
+        <details class="advanced-help">
+          <summary>터미널로 내보내나요?</summary>
+          <p><code>--export-widget-snapshot</code> 또는 암호화 전달용 <code>--export-sync-bundle</code>을 사용할 수 있습니다.</p>
+        </details>
         <input id="snapshot-file" type="file" accept="application/json,.json,.tokenjuice" hidden>
-        <code>--export-widget-snapshot 또는 --export-sync-bundle</code>
       </section>
 
-      <section id="dashboard" class="dashboard" hidden>
-        <div class="status-line"><span id="status-dot"></span><span id="snapshot-time">읽는 중</span><button id="replace" type="button">교체</button></div>
+      <section id="dashboard" class="dashboard" hidden aria-live="polite">
+        <section id="priority-card" class="priority-card" aria-labelledby="priority-label"></section>
+        <div class="snapshot-toolbar">
+          <div><span id="status-dot" aria-hidden="true"></span><span id="snapshot-time">읽는 중</span></div>
+          <button id="replace" type="button">새 스냅샷</button>
+        </div>
         <div id="accounts" class="accounts"></div>
-        <section class="rules">
-          <span>⊘ 로컬 파일만 표시</span>
-          <span>⊘ 자동 업로드 없음</span>
-          <span>⊘ 상태 시각 우선</span>
+        <section class="trust-notes" aria-label="개인정보와 데이터 원칙">
+          <span>자격증명 없음</span><span>자동 업로드 없음</span><span>마지막 성공 시각 표시</span>
         </section>
       </section>
 
-      <footer><span>SNAPSHOT VIEWER · V1</span><a class="privacy-link" href="./privacy.html">개인정보</a><button id="clear" type="button" hidden>이 기기에서 삭제</button></footer>
+      <footer><span>LOCAL-FIRST · V1</span><a class="privacy-link" href="./privacy.html">개인정보</a><button id="clear" type="button" hidden>이 기기에서 삭제</button></footer>
     </main>
     <script type="module" src="./app.js"></script>
   </body>

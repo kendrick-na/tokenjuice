@@ -23,7 +23,7 @@ SNAPSHOT = {
         "retryAt": None,
         "items": [{"name": "5-hour", "used": 35, "resets": "2026-10-08T19:00:00.000Z"}],
     }],
-    "codex": {"state": "rate_limited", "source": "codex-jsonl", "lastSuccessAt": None, "items": []},
+    "codex": {"state": "rate_limited", "source": "codex-jsonl", "lastSuccessAt": None, "retryAt": 1791393600000, "items": []},
     "providers": [{"id": "cursor", "label": "Cursor", "state": "fresh", "source": "external-local-file", "items": [{"name": "Monthly", "used": 10, "resets": None}]}],
 }
 
@@ -45,7 +45,16 @@ def main() -> None:
                 dialog.accept(passphrase["value"] or "")
             page.on("dialog", handle_dialog)
             page.goto("http://127.0.0.1:4173", wait_until="networkidle")
-            assert page.get_by_text("스냅샷 가져오기").is_visible()
+            assert page.get_by_text("내 스냅샷 가져오기").is_visible()
+            assert page.get_by_text("예시 화면 보기").is_visible()
+            # 첫 방문자는 자신의 파일 없이도 제품이 해결하는 문제를
+            # 이해할 수 있어야 한다. 예시는 localStorage에 남지 않는다.
+            page.get_by_text("예시 화면 보기").click()
+            assert page.get_by_text("제공자 제한 중", exact=True).is_visible()
+            assert page.get_by_text("새 스냅샷 가져오기").is_visible()
+            assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") is None
+            page.reload(wait_until="networkidle")
+            assert page.get_by_text("내 스냅샷 가져오기").is_visible()
             assert page.locator('link[rel="icon"]').get_attribute("href") == "./icons/tokenjuice-192.png"
             page.get_by_text("개인정보").click()
             assert page.get_by_text("기기 밖으로", exact=False).is_visible()
@@ -55,7 +64,11 @@ def main() -> None:
             page.locator("#snapshot-file").set_input_files(str(snapshot))
             page.get_by_text("Personal").wait_for()
             assert page.get_by_text("65%").is_visible()
-            assert page.get_by_text("rate limited").is_visible()
+            assert page.get_by_text("제공자 제한 중", exact=True).is_visible()
+            assert page.get_by_text("다음 행동").count() >= 2
+            # retryAt은 snapshot 계약에서 Unix ms다. 초처럼 다시 곱하지 않는다.
+            retry_copy = page.locator(".account.codex .recovery").inner_text()
+            assert "다음 확인" in retry_copy and "1970" not in retry_copy
             assert page.get_by_text("Cursor").is_visible()
             assert page.get_by_text("90%").is_visible()
             assert page.locator("#empty-state").is_hidden()
@@ -124,7 +137,7 @@ def main() -> None:
             page.get_by_text("이 기기에서 삭제").click()
             page.wait_for_timeout(100)
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") is None
-            assert page.get_by_text("스냅샷 가져오기").is_visible()
+            assert page.get_by_text("내 스냅샷 가져오기").is_visible()
             assert not errors, errors
             browser.close()
 

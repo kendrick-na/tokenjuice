@@ -57,6 +57,14 @@ const json = () => JSON.parse(run("--json"));
 const notifications = () => existsSync(path.join(home, "notify.log")) ? readFileSync(path.join(home, "notify.log"), "utf8").trim().split("\n").filter(Boolean) : [];
 const renewCalls = () => existsSync(path.join(home, "fake-claude.log")) ? readFileSync(path.join(home, "fake-claude.log"), "utf8").trim().split("\n").filter(Boolean) : [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function waitFor(condition, description, timeoutMs = 3000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if (condition()) return;
+    await sleep(25);
+  }
+  throw new Error(`timed out waiting for ${description}`);
+}
 
 const okUsage = (fiveUsed = 20, weekUsed = 40) => ({
   five_hour: { utilization: fiveUsed, resets_at: new Date(Date.now() + 3 * 3600e3).toISOString() },
@@ -244,7 +252,9 @@ test("401 with autoRenew on: renews once in the background, never in a loop", as
   usage(401);
   const j = json();
   expect(j.claude[0].state).toBe("auth_expired");
-  await sleep(500);
+  // spawn() is intentionally detached. Wait for its observable result instead
+  // of assuming the test runner has scheduled the child within 500ms.
+  await waitFor(() => renewCalls().length === 1, "the background login renewal");
   expect(renewCalls().length).toBe(1);
   expect(renewCalls()[0]).toContain("-p /usage");
   expect(renewCalls()[0]).toContain("--no-session-persistence");

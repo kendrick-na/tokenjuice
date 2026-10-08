@@ -1,4 +1,4 @@
-const CACHE = "tokenjuice-pocket-v6";
+const CACHE = "tokenjuice-pocket-v7";
 const ASSETS = ["./", "./index.html", "./privacy.html", "./app.css", "./app.js", "./manifest.webmanifest", "./icons/tokenjuice-192.png", "./icons/tokenjuice-512.png"];
 self.addEventListener("install", (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS))));
 self.addEventListener("activate", (event) => event.waitUntil(
