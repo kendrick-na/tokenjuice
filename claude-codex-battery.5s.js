@@ -702,6 +702,14 @@ function updateNotifyConfig(patch) {
   writeFileSync(CONFIG_FILE, `${JSON.stringify(next, null, 2)}\n`);
   return next.notify;
 }
+function updateNotifyTarget(key, patch) {
+  const current = readConfig();
+  const notify = current.notify || {};
+  const next = { ...current, notify: { ...notify, overrides: { ...(notify.overrides || {}), [key]: { ...(notify.overrides?.[key] || {}), ...patch } } } };
+  mkdirSync(CONFIG_DIR, { recursive: true });
+  writeFileSync(CONFIG_FILE, `${JSON.stringify(next, null, 2)}\n`);
+  return next.notify.overrides[key];
+}
 
 // The usage call. CCB_TEST_USAGE_FIXTURE=<file> (tests only) replaces the
 // keychain read and the network with a canned {status, headers, body} and logs
@@ -1563,6 +1571,23 @@ if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off"].i
     process.exit(1);
   }
 }
+if (argv[0]?.startsWith("--notify-target-threshold=") || argv[0]?.startsWith("--notify-target-reset=")) {
+  try {
+    const prefix = argv[0].startsWith("--notify-target-threshold=") ? "--notify-target-threshold=" : "--notify-target-reset=";
+    const payload = argv[0].slice(prefix.length);
+    const split = payload.lastIndexOf("=");
+    if (split < 1) throw new Error("target and value are required");
+    const key = payload.slice(0, split), value = payload.slice(split + 1);
+    const patch = prefix.includes("threshold") ? { threshold: Number(value) } : { reset: value === "on" };
+    if (patch.threshold != null && (!Number.isFinite(patch.threshold) || patch.threshold <= 0 || patch.threshold >= 100)) throw new Error("threshold must be between 1 and 99");
+    const override = updateNotifyTarget(key, patch);
+    console.log(`notification target updated: ${key} threshold=${override.threshold ?? "global"} reset=${override.reset == null ? "global" : override.reset}`);
+    process.exit(0);
+  } catch (e) {
+    console.error(`could not update notification target: ${String(e.message || e)}`);
+    process.exit(1);
+  }
+}
 // --renew-login: the dropdown's "Renew Claude login now" (user-initiated, so it
 // ignores autoRenew:false but still refuses to run twice within a minute).
 if (argv[0] === "--renew-login") {
@@ -1670,6 +1695,17 @@ function notifyConfig() {
     enabled: n.enabled === true,
     threshold: Number.isFinite(threshold) && threshold > 0 && threshold < 100 ? threshold : 20,
     reset: n.reset !== false,
+    overrides: n.overrides && typeof n.overrides === "object" ? n.overrides : {},
+  };
+}
+function notificationPolicyFor(entry) {
+  const global = notifyConfig();
+  const override = global.overrides[entry.key] || {};
+  const threshold = Number(override.threshold);
+  return {
+    enabled: override.enabled == null ? global.enabled : override.enabled === true,
+    threshold: Number.isFinite(threshold) && threshold > 0 && threshold < 100 ? threshold : global.threshold,
+    reset: override.reset == null ? global.reset : override.reset !== false,
   };
 }
 const NOTIFY_STATE_FILE = path.join(CACHE_DIR, "notify-state.json");
@@ -1689,13 +1725,12 @@ function sendNotification(title, body) {
   try { execFileSync("/usr/bin/osascript", ["-e", script], { stdio: "ignore", timeout: 5000 }); } catch {}
 }
 function runNotifications(entries) {
-  const cfg = notifyConfig();
-  if (!cfg.enabled) return;
   let st = {};
   try { st = JSON.parse(readFileSync(NOTIFY_STATE_FILE, "utf8")) || {}; } catch {}
   let changed = false;
   for (const e of entries) {
-    if (e.state !== "fresh" || !Number.isFinite(e.remain)) continue;
+    const cfg = notificationPolicyFor(e);
+    if (!cfg.enabled || e.state !== "fresh" || !Number.isFinite(e.remain)) continue;
     const prev = st[e.key] || { low: false };
     if (!prev.low && e.remain <= cfg.threshold) {
       sendNotification("TokenJuice", `${e.label}: ${Math.round(e.remain)}% left${e.resets ? ` · ${fmtReset(e.resets)}` : ""}`);
@@ -2217,6 +2252,17 @@ out.push(`--Set alert threshold: 10% | bash='${SELF}' param1=--notify-threshold=
 out.push(`--Set alert threshold: 20% | bash='${SELF}' param1=--notify-threshold=20 terminal=false refresh=true`);
 out.push(`--Set alert threshold: 30% | bash='${SELF}' param1=--notify-threshold=30 terminal=false refresh=true`);
 out.push(`--Reset alerts: ${notificationPolicy.reset ? "off" : "on"} | bash='${SELF}' param1=--notify-reset-${notificationPolicy.reset ? "off" : "on"} terminal=false refresh=true`);
+const notificationTargets = notificationEntries().slice(0, 8);
+if (notificationTargets.length) {
+  out.push("--Per quota window overrides (otherwise global policy applies) | size=11 color=#6b7280");
+  for (const target of notificationTargets) {
+    const targetPolicy = notificationPolicyFor(target);
+    out.push(`--${target.label}: ${targetPolicy.threshold}% · reset ${targetPolicy.reset ? "on" : "off"} | size=11 color=#8b949e`);
+    out.push(`----${target.label} threshold 10% | bash='${SELF}' param1='--notify-target-threshold=${target.key}=10' terminal=false refresh=true`);
+    out.push(`----${target.label} threshold 30% | bash='${SELF}' param1='--notify-target-threshold=${target.key}=30' terminal=false refresh=true`);
+    out.push(`----${target.label} reset ${targetPolicy.reset ? "off" : "on"} | bash='${SELF}' param1='--notify-target-reset=${target.key}=${targetPolicy.reset ? "off" : "on"}' terminal=false refresh=true`);
+  }
+}
 if (!existsSync(CONFIG_FILE)) {
   // v1.2 first-run disclosure. It is deliberately visible in the product,
   // rather than being only a README promise. Creating the config below does
