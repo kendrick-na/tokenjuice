@@ -3,6 +3,15 @@
 형식은 Keep a Changelog의 범주를 참고한다. 날짜와 배포 태그는 실제 공개 릴리스가
 생성된 뒤에만 확정한다.
 
+## [1.2.1] - 2026-10-09
+
+### 출시 범위
+
+- `--statusline` 로컬 opt-in export
+- quota-window별 알림 on/off·threshold·reset·다음 reset 시각
+- 계정별 opt-in `reconnect` 알림과 auth_expired transition 중복 방지
+- Pocket 접근성 대비 보정과 최신 설치·CI 검증
+
 ## [1.1.0] - 출시 후보
 
 ### 추가
