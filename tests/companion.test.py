@@ -25,6 +25,7 @@ SNAPSHOT = {
     }],
     "codex": {"state": "rate_limited", "source": "codex-jsonl", "lastSuccessAt": None, "retryAt": 1791393600000, "items": []},
     "providers": [{"id": "cursor", "label": "Cursor", "state": "fresh", "source": "external-local-file", "items": [{"name": "Monthly", "used": 10, "resets": None}]}],
+    "sessions": [{"platform": "claude", "name": "tokenjuice", "id": "abcd", "branch": "main", "status": "waiting_for_input", "model": "sonnet-4", "used": 168000, "pct": 84, "mtime": 1791390000000, "win": 200000, "kind": "context"}],
 }
 
 
@@ -74,6 +75,9 @@ def main() -> None:
             assert "다음 확인" in retry_copy and "1970" not in retry_copy
             assert page.get_by_text("Cursor").is_visible()
             assert page.get_by_text("90%").is_visible()
+            assert page.get_by_text("작업 컨텍스트").is_visible()
+            assert page.get_by_text("checkpoint 권장").count() >= 1
+            assert page.get_by_text("84% 사용").is_visible()
             assert page.locator("#empty-state").is_hidden()
             page.reload(wait_until="networkidle")
             assert page.get_by_text("Personal").is_visible()

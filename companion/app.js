@@ -72,9 +72,43 @@ function card(name, payload, kind) {
   return `<article class="account ${kind}"><header class="account-head"><div><span class="account-name">${escapeHtml(name)}</span><span class="source">${escapeHtml(source)}</span></div><span class="state ${status.tone}">${status.label}</span></header>${itemMarkup}<p class="recovery"><b>다음 행동</b>${status.action}${payload.retryAt ? ` ${timeText(payload.retryAt, "다음 확인")}.` : ""}</p><p class="last-success">${observedAt ? timeText(observedAt, "마지막 성공") : "마지막 성공 시각 없음"}</p></article>`;
 }
 function allPayloads(snapshot) { return [...snapshot.claude, snapshot.codex, ...(snapshot.providers || [])]; }
+function contextSessions(snapshot) {
+  return Array.isArray(snapshot.sessions) ? snapshot.sessions.filter((session) => session && session.kind === "context" && Number.isFinite(Number(session.pct))) : [];
+}
+function contextRisk(snapshot) {
+  const session = contextSessions(snapshot).sort((a, b) => Number(b.pct) - Number(a.pct))[0];
+  if (!session) return null;
+  const pct = Number(session.pct);
+  const tone = pct >= 90 ? "danger" : pct >= 80 ? "caution" : "good";
+  const label = pct >= 90 ? "컨텍스트 임박" : pct >= 80 ? "checkpoint 권장" : "여유 있음";
+  const next = pct >= 90 ? "현재 작업을 정리하고 새 세션으로 전환할 준비를 하세요." : pct >= 80 ? "다음 큰 작업 전에 checkpoint를 남길 시점입니다." : "현재 세션을 계속 사용해도 좋습니다.";
+  return { session, pct, tone, label, next };
+}
+function renderContext(snapshot) {
+  const card = $("#context-card");
+  const risk = contextRisk(snapshot);
+  if (!risk) { card.hidden = true; card.innerHTML = ""; return; }
+  const session = risk.session;
+  const identity = [session.platform === "claude" ? "Claude" : "Codex", session.name, session.branch].filter(Boolean).join(" · ");
+  card.hidden = false;
+  card.className = `context-card ${risk.tone}`;
+  card.innerHTML = `<div class="context-head"><div><p>작업 컨텍스트</p><h2 id="context-title">${escapeHtml(risk.label)}</h2></div><strong>${Math.round(risk.pct)}<small>% 사용</small></strong></div><div class="context-bar" role="progressbar" aria-label="${escapeHtml(identity)} 컨텍스트 ${Math.round(risk.pct)}% 사용" aria-valuenow="${Math.round(risk.pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, risk.pct)}%"></i></div><p class="context-meta">${escapeHtml(identity)} · ${escapeHtml(session.model || "모델 정보 없음")}</p><p class="context-next"><b>NEXT</b>${escapeHtml(risk.next)}</p>`;
+}
 function priority(snapshot) {
   const payloads = allPayloads(snapshot);
   const issue = payloads.find((payload) => !["fresh", "fallback"].includes(payload.state));
+  const context = contextRisk(snapshot);
+  if (!issue && context && context.pct >= 80) {
+    return {
+      eyebrow: "지금 확인할 일",
+      title: `${context.session.platform === "claude" ? "Claude" : "Codex"} · ${context.label}`,
+      copy: `${context.session.name || "현재 세션"}의 컨텍스트가 ${Math.round(context.pct)}% 사용되었습니다.`,
+      tone: context.tone,
+      cta: "컨텍스트 상태 보기",
+      why: `로컬 세션 로그 추정 · ${context.session.model || "모델 정보 없음"} · ${context.session.win ? `${Math.round(context.session.win / 1000)}k 창` : "창 크기 없음"}`,
+      next: context.next,
+    };
+  }
   if (issue) {
     const state = copyFor(issue);
     return {
@@ -127,6 +161,7 @@ function render(snapshot, { demo = false } = {}) {
   const stale = allPayloads(snapshot).some((source) => source.state !== "fresh");
   $("#status-dot").className = stale ? "caution" : "good";
   renderPriority(snapshot);
+  renderContext(snapshot);
   const providers = (snapshot.providers || []).map((provider) => card(provider.label || "Local provider", provider, "provider"));
   $("#accounts").innerHTML = [...snapshot.claude.map((account) => card(account.account || "Claude", account, "claude")), card("Codex", snapshot.codex, "codex"), ...providers].join("");
 }

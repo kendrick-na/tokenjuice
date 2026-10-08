@@ -1729,6 +1729,20 @@ function buildWidgetSnapshot() {
       source: provider.source ?? "external-local-file", lastSuccessAt: provider.lastSuccessAt ?? null,
       items: (provider.items || []).map(quota),
     })),
+    // Context is metadata-only: never export topic/prompt text or transcripts.
+    sessions: sessions.map((session) => ({
+      platform: session.platform,
+      name: session.name,
+      id: session.id,
+      branch: session.branch ?? null,
+      status: session.status ?? null,
+      model: session.model ?? null,
+      used: Number(session.used) || 0,
+      pct: Number(Number(session.pct || 0).toFixed(1)),
+      mtime: session.mtime ?? null,
+      win: Number(session.win) || null,
+      kind: "context",
+    })),
   };
 }
 

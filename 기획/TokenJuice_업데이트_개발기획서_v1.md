@@ -1272,6 +1272,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 이번 구현에서 바로 만드는 것은 다음 한 조각이다.
 
 - Pocket 첫 화면의 `NOW → WHY → NEXT` 의사결정 카드
+- quota와 분리된 로컬 세션 context 사용률 카드; 80% 이상 `checkpoint 권장`, 90% 이상 `컨텍스트 임박`
 - source·last successful fetch·fresh/fallback/stale 상태를 함께 보여주는 신뢰 표현
 - 위험한 상태에서 새 snapshot·연결 확인·상세 보기로 이어지는 하나의 primary action
 - 375px 모바일 화면에서의 가독성 및 색상 외 상태 표현
@@ -1287,7 +1288,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 ### 16.6 현재 착수 결과와 다음 검증
 
-현재 companion에 P0 `NOW → WHY → NEXT` 카드와 상태별 next action을 구현했고, demo/import/offline 회귀 테스트를 통과시켰다. 다음은 실제 타겟 10명에게 다음 과정을 수행하는 것이다.
+현재 companion에 P0 `NOW → WHY → NEXT` 카드와 상태별 next action을 구현했고, 엔진의 local snapshot에 프롬프트 원문 없이 세션 context 메타데이터를 연결했다. Pocket은 quota와 context를 별도 카드·별도 상태로 표시하며, 80% 이상인 세션을 최우선 상태로 올린다. demo/import/offline 회귀 테스트와 export 시 prompt/topic 비노출 테스트를 통과시켰다. 다음은 실제 타겟 10명에게 다음 과정을 수행하는 것이다.
 
 1. 최근 quota/auth/context 중단 사례를 10분 인터뷰로 수집한다.
 2. 각 사용자에게 기존 방식으로 작업을 재개하게 한 뒤 시간을 기록한다.

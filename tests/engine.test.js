@@ -361,6 +361,8 @@ test("widget snapshot is an explicit local-only export with no prompt content", 
   expect(snapshot.contractVersion).toBe(1);
   expect(snapshot.transport).toBe("local_export_only");
   expect(snapshot.claude[0].items.length).toBeGreaterThan(0);
+  expect(snapshot.sessions.every((session) => session.kind === "context")).toBe(true);
+  expect(JSON.stringify(snapshot)).not.toContain('"topic"');
   expect(JSON.stringify(snapshot)).not.toContain(SECRET_PROMPT);
   expect(run("--export-widget-snapshot")).toContain("widget snapshot exported locally");
   const stored = JSON.parse(readFileSync(path.join(home, ".cache/claude-codex-battery/widget-snapshot.json"), "utf8"));
