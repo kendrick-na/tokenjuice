@@ -106,7 +106,7 @@ jobs:
           if ($p.ExitCode -notin 0,1) { throw "exe exited $($p.ExitCode)" }
           Write-Host "exe starts and runs (exit $($p.ExitCode))"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: tokenjuice-windows
           path: |
