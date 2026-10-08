@@ -129,6 +129,10 @@ test("value older than 2h is not shown at all", () => {
 });
 
 test("recent Claude Desktop sample is a labelled fallback", () => {
+  // Claude Desktop writes this history under macOS Library/Application
+  // Support. Linux/Windows intentionally do not treat a fixture at that path
+  // as a provider source, so the fallback contract is macOS-only.
+  if (process.platform !== "darwin") return;
   write("Library/Application Support/Claude/plan-usage-history.json", { version: 2, samples: [{ t: Date.now() - 5 * 60000, u: { fh: 12, sd: 30 } }] });
   usage(500);
   const c = json().claude[0];
