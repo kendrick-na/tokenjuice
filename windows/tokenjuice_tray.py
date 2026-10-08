@@ -141,7 +141,8 @@ def build_groups(data: dict) -> list[dict]:
     for acc in accounts:
         items = acc.get("items") or []
         label = (acc.get("account") or "C")[0].upper() if len(accounts) > 1 else "C"
-        bars = [100 - i.get("used", 0) for i in items] or [None]
+        state = acc.get("state") or ("stale" if acc.get("stale") else ("fresh" if items else "unavailable"))
+        bars = [100 - i.get("used", 0) for i in items] if state in ("fresh", "fallback") else [None]
         groups.append({"label": label, "color": CLAUDE_ORANGE, "bars": bars})
 
     # Only sessions touched in the last 15 min are "live" — same rule as macOS.
@@ -161,7 +162,8 @@ def build_groups(data: dict) -> list[dict]:
         })
 
     codex = data.get("codex") or []
-    if codex:
+    codex_status = data.get("codexStatus") or {}
+    if codex and codex_status.get("state", "fresh") in ("fresh", "fallback"):
         groups.append({
             "label": "X",
             "color": CODEX_VIOLET,
@@ -298,8 +300,20 @@ def render_icon(groups: list[dict], error: bool = False) -> Image.Image:
     return base
 
 
-def explain_no_limits(reason: str | None) -> list[str]:
+def explain_no_limits(reason: str | None, state: str | None = None) -> list[str]:
     """Why the Claude limit batteries are blank, and what to do about it."""
+    if state == "auth_expired" or reason == "auth":
+        return [
+            "usage API login expired",
+            "renewing automatically when Claude CLI is available",
+            "last successful value is never shown as live",
+        ]
+    if state == "rate_limited" or reason == "rate-limit":
+        return [
+            "usage API rate limited",
+            "retry-after is respected automatically",
+            "last successful value is marked stale",
+        ]
     if reason == "needs-api":
         return [
             "limits need API mode",
@@ -381,14 +395,31 @@ class TrayApp:
             name = acc.get("account") or "Claude"
             yield MenuItem(f"Claude Code — {name}", None, enabled=False)
             items = acc.get("items") or []
+            state = acc.get("state") or ("stale" if acc.get("stale") else ("fresh" if items else "unavailable"))
+            if state != "fresh":
+                last = acc.get("lastSuccessAt") or acc.get("observedAt")
+                when = f"last success {fmt_ago(last)}" if last else "no successful reading"
+                source = acc.get("sourceLabel") or acc.get("source") or "unknown source"
+                retry = acc.get("retryAt")
+                retry_text = f" · retry {time.strftime('%H:%M', time.localtime(retry / 1000))}" if retry else ""
+                yield MenuItem(f"   {state.replace('_', ' ')} · {source} · {when}{retry_text}", None, enabled=False)
             if not items:
                 # Say the actual cause. "log in" is wrong when you *are* logged in
                 # and the limits simply need API mode turned on.
-                for line in explain_no_limits(acc.get("reason")):
+                for line in explain_no_limits(acc.get("reason"), state):
                     yield MenuItem(f"   {line}", None, enabled=False)
+            elif state != "fresh":
+                yield MenuItem("   last value shown above is not live", None, enabled=False)
             for i in items:
                 r = round(100 - i.get("used", 0))
                 yield MenuItem(f"   {i.get('name')}  {bar_text(r)}  {r}% left", None, enabled=False)
+                forecast = i.get("forecast") or {}
+                if forecast:
+                    verdict = "may run out before reset" if forecast.get("beforeReset") else "reset is expected first"
+                    yield MenuItem(
+                        f"      local pace estimate · {verdict} · +{forecast.get('usedPerHour', '?')}%/h",
+                        None, enabled=False,
+                    )
 
         sessions = self.data.get("sessions") or []
         if sessions:
@@ -410,16 +441,35 @@ class TrayApp:
                     ) if x
                 )
                 yield MenuItem(f"      {meta}", None, enabled=False)
+                if s.get("status"):
+                    yield MenuItem(f"      status: {s['status'].replace('_', ' ')} · local heuristic", None, enabled=False)
                 if self.show_topics and s.get("topic"):
                     yield MenuItem(f"      “{s['topic'][:60]}”", None, enabled=False)
 
         codex = self.data.get("codex") or []
+        codex_status = self.data.get("codexStatus") or {}
         if codex:
             yield Menu.SEPARATOR
             yield MenuItem("Codex", None, enabled=False)
+            if codex_status.get("state") and codex_status.get("state") != "fresh":
+                last = codex_status.get("lastSuccessAt") or codex_status.get("observedAt")
+                when = f"last success {fmt_ago(last)}" if last else "no successful reading"
+                yield MenuItem(f"   {codex_status.get('state')} · {when}", None, enabled=False)
             for i in codex:
                 r = round(100 - i.get("used", 0))
                 yield MenuItem(f"   {i.get('name')}  {bar_text(r)}  {r}% left", None, enabled=False)
+
+        for provider in self.data.get("providers") or []:
+            yield Menu.SEPARATOR
+            label = provider.get("label") or provider.get("id") or "Local provider"
+            state = provider.get("state") or "unavailable"
+            yield MenuItem(f"{label} — local quota file", None, enabled=False)
+            if state != "fresh":
+                yield MenuItem(f"   {state.replace('_', ' ')} · no live number", None, enabled=False)
+            for item in provider.get("items") or []:
+                r = round(100 - item.get("used", 0))
+                yield MenuItem(f"   {item.get('name')}  {bar_text(r)}  {r}% left", None, enabled=False)
+            yield MenuItem("   no token, cookie, command, or network access", None, enabled=False)
 
         letsur = self.data.get("letsur")
         if letsur:
@@ -427,7 +477,34 @@ class TrayApp:
             r = round(100 - letsur.get("pct", 0))
             yield MenuItem(f"{letsur.get('label', 'Letsur')}  {bar_text(r)}  {r}% left", None, enabled=False)
 
+        # GitHub's API reports Copilot Premium-request *spend*. It must not be
+        # rendered as a provider quota or folded into the battery icon.
+        copilot = self.data.get("copilot") or {}
+        if copilot.get("enabled"):
+            yield Menu.SEPARATOR
+            yield MenuItem("GitHub Copilot — monthly spend, not quota", None, enabled=False)
+            if copilot.get("state") == "fresh":
+                amount = float(copilot.get("amountUsd", 0))
+                budget = copilot.get("budgetUsd")
+                if budget:
+                    remain = max(0, round(100 - float(copilot.get("usedPct", 0))))
+                    yield MenuItem(f"   ${amount:.2f} / ${float(budget):.2f} voluntary budget · {remain}% left", None, enabled=False)
+                else:
+                    yield MenuItem(f"   ${amount:.2f} this month · no local budget set", None, enabled=False)
+                yield MenuItem("   official GitHub API · explicit environment token only", None, enabled=False)
+            else:
+                yield MenuItem("   usage unavailable · no prior number shown", None, enabled=False)
+
         yield Menu.SEPARATOR
+        config_file = Path.home() / ".config" / "claude-codex-battery" / "config.json"
+        if not config_file.exists():
+            # Keep the first-run privacy disclosure visible in the product,
+            # not only in README. The starter config leaves every sensitive
+            # optional capability disabled.
+            yield MenuItem("First setup — local data, safe defaults", None, enabled=False)
+            yield MenuItem("   reads ~/.claude and ~/.codex; API, alerts, auto-renew and topics are off", None, enabled=False)
+            yield MenuItem("   optional API calls Anthropic directly; TokenJuice stores no token, prompt or code", None, enabled=False)
+            yield MenuItem("Create safe starter config", self._init_config)
         yield MenuItem(
             "Show prompt topics",
             self._toggle_topics,
@@ -445,6 +522,28 @@ class TrayApp:
 
     def _refresh_now(self, _icon=None, _item=None):
         self._poll_once()
+
+    def _init_config(self, _icon=None, _item=None):
+        """Create only the engine's opt-out defaults; never overwrite a config."""
+        bun = find_bun()
+        engine = find_engine()
+        if not bun or not engine:
+            self.error = "Could not find bun or the TokenJuice engine."
+            return
+        try:
+            subprocess.run(
+                [bun, str(engine), "--init-config"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=ENGINE_TIMEOUT,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                check=True,
+            )
+            self._poll_once()
+        except (OSError, subprocess.SubprocessError) as exc:
+            self.error = f"Could not create starter config: {exc}"[:200]
 
     def _open_usage(self, _icon=None, _item=None):
         webbrowser.open("https://claude.ai/settings/usage")

@@ -11,11 +11,17 @@ on:
     paths:
       - 'windows/**'
       - 'claude-codex-battery.5s.js'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'docs/DATA_CONTRACT.md'
       - '.github/workflows/windows-build.yml'
   pull_request:
     paths:
       - 'windows/**'
       - 'claude-codex-battery.5s.js'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'docs/DATA_CONTRACT.md'
   workflow_dispatch:
 
 permissions:
@@ -50,6 +56,12 @@ jobs:
           if ($out.topicsIncluded -ne $false) { throw 'prompt topics must default to off' }
           if ($out.PSObject.Properties.Name -notcontains 'sessions') { throw 'missing sessions key' }
           Write-Host "OK - topicsIncluded=$($out.topicsIncluded)"
+
+      # 계약/백오프/개인정보 회귀 테스트. 임시 HOME과 fixture만 쓰므로
+      # 실제 계정, 키체인, 네트워크에 접근하지 않는다.
+      - name: Engine regression suite
+        shell: pwsh
+        run: bun test tests/engine.test.js
 
       - name: Tray self-test
         shell: pwsh

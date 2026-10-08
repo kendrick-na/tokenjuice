@@ -9,6 +9,7 @@ scripts/frames/
 # Windows build artifacts
 windows/build/
 windows/dist/
-windows/__pycache__/
+__pycache__/
+*.pyc
 windows/*.spec
 _백업/

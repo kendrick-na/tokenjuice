@@ -8,9 +8,10 @@
 // 메뉴바에 C [88][17] X [0][76] 형태의 픽셀 배터리를 그린다.
 // 배터리 숫자 = 남은 %. 초록 ≥50, 노랑 ≥20, 빨강 <20.
 
-import { execSync, spawn } from "node:child_process";
-import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { execFileSync, execSync, spawn } from "node:child_process";
+import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, existsSync, appendFileSync } from "node:fs";
 import zlib from "node:zlib";
+import { createCipheriv, pbkdf2Sync, randomBytes } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 
@@ -28,6 +29,8 @@ function claudeHome() {
 }
 
 const CACHE_DIR = path.join(HOME, ".cache", "claude-codex-battery");
+const CONFIG_DIR = path.join(HOME, ".config", "claude-codex-battery");
+const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 try { mkdirSync(CACHE_DIR, { recursive: true }); } catch {}
 
 // 컴팩트 모드: 메뉴바가 실제로 뜨는 "주 디스플레이"가 노치 내장 화면이면 폭을 줄인다.
@@ -305,8 +308,13 @@ function accountLabel(configDir) {
   } catch {}
   return null;
 }
+function expandHomePath(value) {
+  if (typeof value !== "string") return value;
+  if (value === "~") return HOME;
+  return value.startsWith("~/") ? path.join(HOME, value.slice(2)) : value;
+}
 function loadAccounts() {
-  const f = path.join(HOME, ".config", "claude-codex-battery", "accounts.json");
+  const f = path.join(CONFIG_DIR, "accounts.json");
   try {
     const list = JSON.parse(readFileSync(f, "utf8"));
     if (Array.isArray(list) && list.length) return list;
@@ -317,7 +325,11 @@ function loadAccounts() {
       if (!e.startsWith(".claude") || e === ".claude" || e.endsWith(".json") || e.endsWith(".backup")) continue;
       const dir = path.join(HOME, e);
       const cred = path.join(dir, ".credentials.json");
-      if (existsSync(cred)) accounts.push({ name: accountLabel(dir) || e.replace(/^\.claude-?/, "") || e, credFile: cred });
+      if (existsSync(cred)) accounts.push({
+        name: accountLabel(dir) || e.replace(/^\.claude-?/, "") || e,
+        configDir: dir,
+        credFile: cred,
+      });
     }
   } catch {}
   return accounts;
@@ -325,11 +337,11 @@ function loadAccounts() {
 
 function readClaudeToken(acc = {}) {
   // 명시적 credFile > 플랫폼 기본
-  const explicit = acc.credFile ? acc.credFile.replace(/^~/, HOME) : null;
+  const explicit = expandHomePath(acc.credFile);
   if (explicit) return JSON.parse(readFileSync(explicit, "utf8")).claudeAiOauth.accessToken;
   // Windows / Linux: 자격증명은 평문 파일(~/.claude/.credentials.json)
   if (!IS_MAC) {
-    const p = path.join(acc.configDir || claudeHome(), ".credentials.json");
+    const p = path.join(expandHomePath(acc.configDir) || claudeHome(), ".credentials.json");
     return JSON.parse(readFileSync(p, "utf8")).claudeAiOauth.accessToken;
   }
   // macOS: 키체인
@@ -341,7 +353,13 @@ function readClaudeToken(acc = {}) {
   const accounts = acc.keychainAccount ? [acc.keychainAccount] : [os.userInfo().username, null];
   for (const a of accounts) {
     try {
-      const raw = execSync(`security find-generic-password -s "${svc}"${a ? ` -a "${a}"` : ""} -w`, {
+      // Never interpolate config values into a shell command. `keychainService`
+      // and `keychainAccount` are user-editable fields in accounts.json, so
+      // invoke the macOS binary with an argument vector instead.
+      const args = ["find-generic-password", "-s", String(svc)];
+      if (a) args.push("-a", String(a));
+      args.push("-w");
+      const raw = execFileSync("/usr/bin/security", args, {
         encoding: "utf8", timeout: 10000, stdio: ["ignore", "pipe", "ignore"],
       });
       const token = JSON.parse(raw)?.claudeAiOauth?.accessToken;
@@ -365,7 +383,7 @@ function parseUsageItems(d) {
 // Claude Code가 스스로 갱신하는 로컬 사용량 캐시 (버전에 따라 경로가 다르거나 없을 수 있음)
 // → 있으면 네트워크 없이 진짜 실시간. 없으면 null 반환하고 API로 폴백.
 function readLocalUsageCache(acc = {}) {
-  const base = acc.configDir || claudeHome();
+  const base = expandHomePath(acc.configDir) || claudeHome();
   const candidates = [
     path.join(base, "MEMORY", "STATE", "usage-cache.json"),
     path.join(base, "usage-cache.json"),
@@ -377,7 +395,15 @@ function readLocalUsageCache(acc = {}) {
       if (!existsSync(f)) continue;
       const d = JSON.parse(readFileSync(f, "utf8"));
       const items = parseUsageItems(d);
-      if (items.length) return { ok: true, items, at: Date.now(), source: "local" };
+      if (items.length) {
+        let at = Date.now();
+        try { at = statSync(f).mtimeMs; } catch {}
+        const stale = Date.now() - at > 30 * 60 * 1000;
+        return {
+          ok: true, items, at, observedAt: at, lastSuccessAt: at,
+          source: "local", state: stale ? "stale" : "fresh", stale,
+        };
+      }
     } catch {}
   }
   return null;
@@ -403,7 +429,20 @@ function readClaudeAppUsage() {
       // last 24h; otherwise samples just stop. Report that instead of nothing,
       // with the last sample for context (never used as a live value).
       const last = [...samples].reverse().find((x) => x?.u && Number.isFinite(Number(x.u.fh)));
-      return last ? { ok: false, items: [], reason: "app-stale", appLast: { at: Number(last.t), fh: Number(last.u.fh), sd: Number(last.u.sd) } } : null;
+      return last ? {
+        ok: false,
+        items: [],
+        reason: "app-stale",
+        appLast: { at: Number(last.t), fh: Number(last.u.fh), sd: Number(last.u.sd) },
+        ...usageState({
+          state: "stale",
+          source: "claude-app",
+          at: Number(last.t),
+          observedAt: Number(last.t),
+          lastSuccessAt: Number(last.t),
+          stale: true,
+        }),
+      } : null;
     }
     const clamp = (n) => Math.max(0, Math.min(100, Number(n)));
     const fh = clamp(s.u.fh), sd = clamp(s.u.sd);
@@ -421,14 +460,20 @@ function readClaudeAppUsage() {
         return r && Date.parse(r) > Date.now() ? r : null;
       } catch { return null; }
     };
+    const at = Number(s.t);
     return {
       ok: true,
       items: [
         { name: "5-hour", used: fh, resets: apiReset("5-hour") },
         { name: "Weekly", used: sd, resets: apiReset("Weekly") },
       ],
-      at: Number(s.t),
-      source: "claude-app",
+      ...usageState({
+        state: "fallback",
+        source: "claude-app",
+        at,
+        observedAt: at,
+        lastSuccessAt: at,
+      }),
     };
   } catch {}
   return null;
@@ -439,9 +484,88 @@ function readClaudeAppUsage() {
 function apiModeEnabled() {
   if (process.env.CCB_API === "1") return true;
   try {
-    const c = JSON.parse(readFileSync(path.join(HOME, ".config", "claude-codex-battery", "config.json"), "utf8"));
+    const c = JSON.parse(readFileSync(CONFIG_FILE, "utf8"));
     return c.api === true;
   } catch { return false; }
+}
+
+// v1.1 신뢰성 계층: 숫자와 함께 "얼마나 믿을 수 있는가"를 전달한다.
+// state는 UI/트레이가 공통으로 소비하고, source는 실제 데이터 경로를 뜻한다.
+function usageState({ state, source, at, observedAt, lastSuccessAt, retryAt, errorCode, error, stale, refreshing } = {}) {
+  const successAt = lastSuccessAt ?? observedAt ?? at ?? null;
+  return {
+    state: state || (stale ? "stale" : "fresh"),
+    source: source ?? null,
+    at: at ?? observedAt ?? successAt ?? null,
+    observedAt: observedAt ?? at ?? null,
+    lastSuccessAt: successAt,
+    retryAt: retryAt ?? null,
+    errorCode: errorCode ?? null,
+    error: error ?? null,
+    stale: !!stale,
+    refreshing: !!refreshing,
+  };
+}
+
+function usageStateForHttp(status) {
+  if (status === 401 || status === 403) return "auth_expired";
+  if (status === 429) return "rate_limited";
+  return "unavailable";
+}
+
+function sourceLabel(source) {
+  return source === "api" ? "Anthropic usage API"
+    : source === "local" ? "Claude local cache"
+    : source === "claude-app" ? "Claude Desktop history"
+    : source === "codex-jsonl" ? "Codex session JSONL"
+    : source === "external-local-file" ? "user-selected local usage file"
+    : source || "unknown";
+}
+
+// R16 trust badge: one place that says how far a number can be trusted.
+// "provider-reported" = the provider's own quota numbers (Anthropic usage
+// endpoint, Claude Code cache, Claude Desktop history, Codex's logged
+// rate_limits). "local estimate" = our arithmetic on transcripts (session
+// context), never a quota. Endpoints behind these are undocumented; see
+// docs/DATA_CONTRACT.md.
+function trustBadge({ state, source, kind } = {}) {
+  if (kind === "context") return { level: "estimate", icon: "📐", text: "local estimate · transcript tokens, not quota" };
+  const via = sourceLabel(source);
+  if (state === "fresh") return { level: "live", icon: "✅", text: `provider-reported · live · ${via}` };
+  if (state === "fallback") return { level: "fallback", icon: "🟡", text: `provider-reported · fallback · ${via} (sampled, may lag)` };
+  if (state === "stale") return { level: "stale", icon: "⚠️", text: `stale · not live · ${via}` };
+  if (state === "auth_expired") return { level: "blocked", icon: "🔐", text: "login expired · not live" };
+  if (state === "rate_limited") return { level: "blocked", icon: "⏳", text: "rate limited · not live" };
+  return { level: "unavailable", icon: "⛔", text: "unavailable" };
+}
+
+function stateLabel(state) {
+  return state === "fresh" ? "fresh"
+    : state === "fallback" ? "fallback"
+    : state === "stale" ? "stale"
+    : state === "auth_expired" ? "auth expired"
+    : state === "rate_limited" ? "rate limited"
+    : state === "unavailable" ? "unavailable"
+    : state || "unknown";
+}
+
+function fmtRetryAt(retryAt) {
+  if (!retryAt || !Number.isFinite(Number(retryAt))) return "";
+  const t = new Date(Number(retryAt));
+  if (isNaN(t)) return "";
+  const now = new Date();
+  const hm = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+  const at = t.toDateString() === now.toDateString() ? hm : `${t.getMonth() + 1}/${t.getDate()} ${hm}`;
+  return `retry ${fmtCountdown(Number(retryAt) - Date.now())} (${at})`;
+}
+
+// R4: a human countdown for back-off windows ("in 42m", "in 1h 05m", "now").
+function fmtCountdown(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return "now";
+  const totalMin = Math.ceil(ms / 60000);
+  if (totalMin < 60) return `in ${totalMin}m`;
+  const h = Math.floor(totalMin / 60), m = totalMin % 60;
+  return `in ${h}h ${String(m).padStart(2, "0")}m`;
 }
 
 // 세션 "주제"는 프롬프트 원문이다 → 화면공유·스크린샷으로 새면 곤란하므로 기본 숨김.
@@ -453,40 +577,191 @@ function topicsEnabled() {
   if (process.env.CCB_TOPICS === "1") return true;
   if (process.env.CCB_TOPICS === "0") return false;
   try {
-    const c = JSON.parse(readFileSync(path.join(HOME, ".config", "claude-codex-battery", "config.json"), "utf8"));
+    const c = JSON.parse(readFileSync(CONFIG_FILE, "utf8"));
     return c.topics === true;
   } catch { return false; }
 }
 
-// The keychain OAuth token expires every ~8h and only the Claude CLI renews it.
-// Desktop-app users never run the CLI, so the token dies and the battery
-// freezes. `claude -p /usage` renews it without calling a model (zero usage):
-// run it in the background on 401, at most once per 10 minutes.
-const CLAUDE_REFRESH_FILE = path.join(CACHE_DIR, "claude-refresh.json");
-function triggerClaudeTokenRefresh() {
-  if (!IS_MAC) return false;
+// ───────────────────────── 설정 · 테스트 연결점 ─────────────────────────
+// ~/.config/claude-codex-battery/config.json — the only user-facing settings file.
+//   api        (bool)  read Claude limits via the usage endpoint (keychain token)
+//   topics     (bool)  show prompt topics in the dropdown
+//   autoRenew  (bool)  opt in to background renewal after an expired login (default false)
+//   notify     (obj)   opt-in alerts: { "enabled": true, "threshold": 20, "reset": true }
+//   forecast   (obj)   opt-in local pace estimate: { "enabled": true }
+//   sessionStatus (obj) opt-in local session-state hints: { "enabled": true }
+//   copilot    (obj)   opt-in GitHub Copilot Premium-request spend reader.
+//                       token is named by tokenEnv and is never written here.
+//   providers  (arr)   opt-in local quota-file adapters. No command, cookie,
+//                       token, browser session, or network request is used.
+function readConfig() {
   try {
-    const r = JSON.parse(readFileSync(CLAUDE_REFRESH_FILE, "utf8"));
-    if (Date.now() - Number(r.at) < 10 * 60 * 1000) return false;
-  } catch {}
-  const bin = [
+    return JSON.parse(readFileSync(CONFIG_FILE, "utf8")) || {};
+  } catch { return {}; }
+}
+
+// R18: pace is deliberately opt-in. We keep a compact, local-only series of
+// percentages; no prompt, token, account name, or credential is recorded.
+const FORECAST_HISTORY_FILE = path.join(CACHE_DIR, "quota-history.json");
+const FORECAST_MIN_INTERVAL_MS = 10 * 60 * 1000;
+const FORECAST_MAX_AGE_MS = 8 * 24 * 60 * 60 * 1000;
+const FORECAST_MAX_OBSERVATIONS = 320;
+function forecastEnabled() { return readConfig().forecast?.enabled === true; }
+function sessionStatusEnabled() { return readConfig().sessionStatus?.enabled === true; }
+function readForecastHistory() {
+  try {
+    const rows = JSON.parse(readFileSync(FORECAST_HISTORY_FILE, "utf8"))?.observations;
+    return Array.isArray(rows) ? rows.filter((r) => Number.isFinite(r?.at) && Number.isFinite(r?.used)) : [];
+  } catch { return []; }
+}
+function recordForecastObservations(claudeAccounts) {
+  if (!forecastEnabled()) return;
+  const now = Date.now();
+  const rows = readForecastHistory().filter((r) => now - r.at <= FORECAST_MAX_AGE_MS);
+  for (let accountIndex = 0; accountIndex < claudeAccounts.length; accountIndex++) {
+    const account = claudeAccounts[accountIndex];
+    if (account.state !== "fresh") continue;
+    for (const item of account.items || []) {
+      const key = `${accountIndex}:${item.name}`;
+      const last = [...rows].reverse().find((r) => r.key === key);
+      if (!last || now - last.at >= FORECAST_MIN_INTERVAL_MS || Math.abs(last.used - Number(item.used)) >= 1) {
+        rows.push({ key, at: now, used: Number(item.used) });
+      }
+    }
+  }
+  try { writeFileSync(FORECAST_HISTORY_FILE, JSON.stringify({ version: 1, observations: rows.slice(-FORECAST_MAX_OBSERVATIONS) })); } catch {}
+}
+function forecastForItem(accountIndex, item, state) {
+  if (!forecastEnabled() || state !== "fresh") return null;
+  const now = Date.now();
+  const key = `${accountIndex}:${item.name}`;
+  const observations = readForecastHistory()
+    .filter((r) => r.key === key && now - r.at <= FORECAST_MAX_AGE_MS)
+    .sort((a, b) => a.at - b.at);
+  // A decreasing used percentage means the provider reset the window. Only use
+  // the monotonic segment after the newest reset, not a previous quota period.
+  let start = 0;
+  for (let i = 1; i < observations.length; i++) if (observations[i].used + 0.1 < observations[i - 1].used) start = i;
+  const segment = observations.slice(start);
+  if (segment.length < 2) return null;
+  const first = segment[0], last = segment[segment.length - 1];
+  const elapsedHours = (last.at - first.at) / 3600000;
+  const usedPerHour = (last.used - first.used) / elapsedHours;
+  if (!Number.isFinite(usedPerHour) || usedPerHour <= 0 || elapsedHours < 1 / 6) return null;
+  const exhaustionAt = last.at + ((100 - Number(item.used)) / usedPerHour) * 3600000;
+  const resetAt = typeof item.resets === "number" ? item.resets * 1000 : Date.parse(item.resets);
+  return {
+    kind: "local_pace_estimate",
+    observedAt: last.at,
+    samples: segment.length,
+    usedPerHour: Number(usedPerHour.toFixed(2)),
+    exhaustionAt: Number.isFinite(exhaustionAt) ? Math.round(exhaustionAt) : null,
+    beforeReset: !Number.isFinite(resetAt) || exhaustionAt < resetAt,
+  };
+}
+
+// v1.2 온보딩: 메뉴에서 사용자가 직접 실행할 때만 안전한 기본 설정을 만든다.
+// API·알림·자동 갱신·프롬프트 주제는 모두 꺼진 채로 시작하며 기존 파일은 절대 덮어쓰지 않는다.
+function createStarterConfig() {
+  if (existsSync(CONFIG_FILE)) return { created: false, path: CONFIG_FILE };
+  mkdirSync(CONFIG_DIR, { recursive: true });
+  const starter = {
+    api: false,
+    topics: false,
+    autoRenew: false,
+    notify: { enabled: false, threshold: 20, reset: true },
+  };
+  writeFileSync(CONFIG_FILE, `${JSON.stringify(starter, null, 2)}\n`, { flag: "wx" });
+  return { created: true, path: CONFIG_FILE };
+}
+
+// The usage call. CCB_TEST_USAGE_FIXTURE=<file> (tests only) replaces the
+// keychain read and the network with a canned {status, headers, body} and logs
+// each call to <file>.calls, so tests can prove "no request during back-off".
+async function fetchClaudeUsage(acc) {
+  const fx = process.env.CCB_TEST_USAGE_FIXTURE;
+  if (fx) {
+    appendFileSync(fx + ".calls", `${Date.now()}\n`);
+    const f = JSON.parse(readFileSync(fx, "utf8"));
+    return new Response(JSON.stringify(f.body ?? {}), { status: f.status ?? 200, headers: f.headers ?? {} });
+  }
+  const token = readClaudeToken(acc);
+  return fetch("https://api.anthropic.com/api/oauth/usage", {
+    headers: { Authorization: `Bearer ${token}`, "anthropic-beta": "oauth-2025-04-20" },
+    signal: AbortSignal.timeout(15000),
+  });
+}
+
+// ───────────────────────── R3 · Claude 로그인 갱신 정책 ─────────────────────────
+// The keychain OAuth token expires every ~8h and only the Claude CLI renews it;
+// desktop-app users never run the CLI, so the usage API starts returning 401.
+// Policy (explicit, visible, reversible):
+//   • What runs: `claude -p /usage --max-turns 1 --tools "" --no-session-persistence`.
+//     /usage reads the usage endpoint; no model call, no transcript (verified
+//     2026-10-05 on CLI 2.1.238 — re-verify when the CLI changes).
+//   • When: on 401/403 only if the user explicitly sets autoRenew:true, at most
+//     once per 10 min; otherwise only on demand from the menu item.
+//     or on demand from the "Renew Claude login now" menu item.
+//   • Never: env -i or a missing $USER (that writes a stray keychain item),
+//     keychain writes by this plugin, or retries in a loop.
+//   • Shown: the dropdown always states the policy, the last run and its result;
+//     The default is manual. autoRenew:true is an explicit opt-in.
+const CLAUDE_REFRESH_FILE = path.join(CACHE_DIR, "claude-refresh.json");
+const CLAUDE_REFRESH_RESULT = path.join(CACHE_DIR, "claude-refresh.result");
+const RENEW_MIN_GAP_MS = 10 * 60 * 1000;
+function autoRenewEnabled() { return readConfig().autoRenew === true; }
+function findClaudeBin() {
+  return [
     process.env.CCB_CLAUDE_BIN,
     path.join(HOME, ".npm-global", "bin", "claude"),
     path.join(HOME, ".local", "bin", "claude"),
     "/opt/homebrew/bin/claude",
     "/usr/local/bin/claude",
-  ].find((p) => p && existsSync(p));
+  ].find((p) => p && existsSync(p)) || null;
+}
+function readRenewStatus() {
+  let r = null;
+  try { r = JSON.parse(readFileSync(CLAUDE_REFRESH_FILE, "utf8")); } catch {}
+  if (!r) return null;
+  let exitCode = null, finishedAt = null;
+  try {
+    const st = statSync(CLAUDE_REFRESH_RESULT);
+    if (st.mtimeMs >= Number(r.at)) {
+      exitCode = Number(readFileSync(CLAUDE_REFRESH_RESULT, "utf8").trim());
+      finishedAt = st.mtimeMs;
+    }
+  } catch {}
+  return { at: Number(r.at), trigger: r.trigger || "auto", exitCode, finishedAt };
+}
+function triggerClaudeTokenRefresh({ trigger = "auto", minGapMs = RENEW_MIN_GAP_MS } = {}) {
+  if (!IS_MAC) return false;
+  if (trigger === "auto" && !autoRenewEnabled()) return false;
+  const last = readRenewStatus();
+  if (last && Date.now() - last.at < minGapMs) return false;
+  const bin = findClaudeBin();
   if (!bin) return false;
   try {
-    writeFileSync(CLAUDE_REFRESH_FILE, JSON.stringify({ at: Date.now(), bin }));
-    spawn(bin, ["-p", "/usage", "--max-turns", "1", "--tools", "", "--no-session-persistence"], {
+    const user = os.userInfo().username;
+    writeFileSync(CLAUDE_REFRESH_FILE, JSON.stringify({ at: Date.now(), trigger }));
+    // Run through sh so the exit code lands in a file the next render can show.
+    spawn("/bin/sh", ["-c", 'b="$1"; shift; "$b" "$@" >/dev/null 2>&1; echo "$?" > "$TJ_RESULT"', "sh",
+      bin, "-p", "/usage", "--max-turns", "1", "--tools", "", "--no-session-persistence"], {
       cwd: CACHE_DIR, detached: true, stdio: "ignore",
       // Without $USER the CLI saves the renewed login under account "unknown",
       // a separate keychain item, instead of updating the real one.
-      env: { ...process.env, HOME, USER: os.userInfo().username, LOGNAME: os.userInfo().username },
+      env: { ...process.env, HOME, USER: user, LOGNAME: user, TJ_RESULT: CLAUDE_REFRESH_RESULT },
     }).unref();
     return true;
   } catch { return false; }
+}
+function renewStatusLine() {
+  const r = readRenewStatus();
+  if (!r) return "never run";
+  // A run normally finishes in ~3s; no result after 2 min means it was never
+  // recorded (older plugin version) or the process was killed.
+  const res = r.exitCode != null ? (r.exitCode === 0 ? "ok" : `failed (exit ${r.exitCode})`)
+    : Date.now() - r.at < 2 * 60 * 1000 ? "running…" : "result not recorded";
+  return `${r.trigger === "manual" ? "manual" : "auto"} run ${fmtAgo(r.at)} · ${res}`;
 }
 
 const CLAUDE_TTL_MS = 60 * 1000; // API는 최대 60초마다만 호출 (레이트리밋 보호). 세션 컨텍스트는 매 실행 실시간.
@@ -499,11 +774,18 @@ async function getClaude(acc = {}, idx = 0) {
   const app = IS_MAC && idx === 0 ? readClaudeAppUsage() : null;
   // 1순위: Claude Code 로컬 사용량 캐시 (원본 dennykim123 방식) — 실시간·무네트워크·키체인 X
   const local = readLocalUsageCache(acc);
-  if (local) return local;
+  if (local?.state === "fresh") return local;
 
   // API 모드가 꺼져 있으면 → 키체인을 건드리지 않고 앱 값 또는 안내만 반환
   if (!apiModeEnabled()) {
-    return app || { ok: false, items: [], reason: "needs-api" };
+    if (app?.ok) return app;
+    if (local) return local;
+    return {
+      ok: false,
+      items: [],
+      reason: "needs-api",
+      ...usageState({ state: "unavailable", source: "local" }),
+    };
   }
 
   // 2순위: 우리 API 캐시가 신선하면 API 스킵
@@ -511,26 +793,41 @@ async function getClaude(acc = {}, idx = 0) {
   if (existsSync(cacheFile)) {
     try {
       const cached = JSON.parse(readFileSync(cacheFile, "utf8"));
-      if (cached.at && Date.now() - cached.at < CLAUDE_TTL_MS) { cached.fresh = true; return cached; }
+      if (cached.at && Date.now() - cached.at < CLAUDE_TTL_MS) {
+        return {
+          ...cached,
+          ...usageState({
+            state: "fresh",
+            source: cached.source || "api",
+            at: cached.at,
+            observedAt: cached.observedAt ?? cached.at,
+            lastSuccessAt: cached.lastSuccessAt ?? cached.at,
+          }),
+          ok: true,
+          fresh: true,
+          stale: false,
+        };
+      }
     } catch {}
   }
   // 3순위: usage API 직접 호출 (여기서만 키체인 토큰을 읽음 — 옵트인 상태에서만 도달)
   // 실패하면 대기시간을 기록해 둔다. 안 그러면 5초 실행마다 API를 두드려 429가 풀리지 않는다.
   const failFile = path.join(CACHE_DIR, `claude-${idx}.fail.json`);
   let refreshing = false;
+  let failStatus = null;
+  let retryAt = null;
   try {
     let fail = null;
     try { fail = JSON.parse(readFileSync(failFile, "utf8")); } catch {}
     if (fail && Date.now() < Number(fail.until)) {
       refreshing = !!fail.refreshing;
+      failStatus = Number(fail.status) || null;
+      retryAt = Number(fail.until) || null;
       throw new Error(`usage api ${fail.status} (waiting)`);
     }
-    const token = readClaudeToken(acc);
-    const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
-      headers: { Authorization: `Bearer ${token}`, "anthropic-beta": "oauth-2025-04-20" },
-      signal: AbortSignal.timeout(15000),
-    });
+    const res = await fetchClaudeUsage(acc);
     if (!res.ok) {
+      failStatus = res.status;
       const authFail = res.status === 401 || res.status === 403;
       // Expired login: renew in the background and retry soon instead of
       // waiting out the full back-off.
@@ -538,35 +835,94 @@ async function getClaude(acc = {}, idx = 0) {
       const retryS = Number(res.headers.get("retry-after"));
       const minMs = refreshing ? 20 * 1000 : authFail ? 10 * 60 * 1000 : 5 * 60 * 1000;
       const waitMs = Math.max(minMs, Number.isFinite(retryS) ? retryS * 1000 : 0);
-      try { writeFileSync(failFile, JSON.stringify({ status: res.status, at: Date.now(), until: Date.now() + waitMs, refreshing })); } catch {}
+      retryAt = Date.now() + waitMs;
+      try { writeFileSync(failFile, JSON.stringify({ status: res.status, at: Date.now(), until: retryAt, refreshing })); } catch {}
       throw new Error(`usage api ${res.status}`);
     }
     const d = await res.json();
     const items = parseUsageItems(d);
-    const out = { ok: true, items, at: Date.now(), source: "api" };
+    const now = Date.now();
+    const out = {
+      ok: true,
+      items,
+      ...usageState({ state: "fresh", source: "api", at: now, observedAt: now, lastSuccessAt: now }),
+    };
     writeFileSync(cacheFile, JSON.stringify(out));
     try { writeFileSync(failFile, JSON.stringify({ until: 0 })); } catch {}
     return out;
   } catch (e) {
     const msg = String(e.message || e);
+    const failureState = failStatus ? usageStateForHttp(failStatus) : null;
     // A recent desktop sample is the next-best live value.
-    if (app?.ok && Date.now() - app.at < CLAUDE_APP_LIVE_MS) return app;
+    if (app?.ok && Date.now() - app.at < CLAUDE_APP_LIVE_MS) {
+      return {
+        ...app,
+        ...usageState({
+          state: "fallback",
+          source: app.source || "claude-app",
+          at: app.at,
+          observedAt: app.observedAt ?? app.at,
+          lastSuccessAt: app.lastSuccessAt ?? app.at,
+          retryAt,
+          errorCode: failStatus,
+          error: msg,
+          refreshing,
+        }),
+      };
+    }
     // Otherwise show the last good number, flagged stale: the menu bar shows
     // "?" for it and the dropdown says how old it is.
-    for (const c of [app?.ok ? app : null, (() => { try { return JSON.parse(readFileSync(cacheFile, "utf8")); } catch { return null; } })()]
-      .filter((c) => c?.ok && c.at && Date.now() - c.at <= CLAUDE_CACHE_MAX_STALE_MS)
-      .sort((a, b) => b.at - a.at)) {
-      return { ...c, stale: true, error: msg, refreshing };
+    const cached = (() => { try { return JSON.parse(readFileSync(cacheFile, "utf8")); } catch { return null; } })();
+    for (const c of [local, app?.ok ? app : null, cached]
+      .filter((c) => c?.ok && (c.lastSuccessAt ?? c.at) && Date.now() - (c.lastSuccessAt ?? c.at) <= CLAUDE_CACHE_MAX_STALE_MS)
+      .sort((a, b) => (b.lastSuccessAt ?? b.at) - (a.lastSuccessAt ?? a.at))) {
+      const at = c.lastSuccessAt ?? c.at;
+      return {
+        ...c,
+        ...usageState({
+          state: failureState || "stale",
+          source: c.source || "unknown",
+          at: c.at ?? at,
+          observedAt: c.observedAt ?? c.at ?? at,
+          lastSuccessAt: at,
+          retryAt,
+          errorCode: failStatus,
+          error: msg,
+          stale: true,
+          refreshing,
+        }),
+        stale: true,
+      };
     }
     // 클린 환경(첫 설치·미로그인·키체인 거부) → raw 에러 대신 원인 분류
-    const reason = /401|403|unauthorized|invalid.*token/i.test(msg)
+    const reason = failStatus === 401 || failStatus === 403 || /401|403|unauthorized|invalid.*token/i.test(msg)
       ? "auth"
+      : failStatus === 429 || /429|rate limit/i.test(msg)
+      ? "rate-limit"
       : /find-generic-password|keychain|SecKeychain/i.test(msg)
       ? "login"      // 로그인 안 됨 / 키체인 접근 불가
       : /ENOENT|no such file/i.test(msg) ? "login" : "error";
     // Both sources are down: report the API cause and keep the app's last
     // sample for the dropdown note. Never show an old number as live.
-    return { ok: false, items: [], error: msg, reason, refreshing, appLast: app?.appLast ?? null };
+    return {
+      ok: false,
+      items: [],
+      error: msg,
+      reason,
+      refreshing,
+      appLast: app?.appLast ?? null,
+      ...usageState({
+        state: failureState || "unavailable",
+        source: app?.source || local?.source || "api",
+        at: app?.at ?? local?.at ?? null,
+        observedAt: app?.observedAt ?? local?.observedAt ?? null,
+        lastSuccessAt: app?.lastSuccessAt ?? local?.lastSuccessAt ?? null,
+        retryAt,
+        errorCode: failStatus,
+        error: msg,
+        refreshing,
+      }),
+    };
   }
 }
 
@@ -618,10 +974,27 @@ function getCodex() {
         const t = typeof it.resets === "number" ? it.resets * 1000 : Date.parse(it.resets);
         if (t && t < Date.now()) { it.used = 0; it.resets = null; it.wasReset = true; }
       }
-      return { ok: true, items, plan: rl.plan_type, at: f.mtime };
+      const stale = Date.now() - f.mtime > 60 * 60 * 1000;
+      return {
+        ok: true,
+        items,
+        plan: rl.plan_type,
+        ...usageState({
+          state: stale ? "stale" : "fresh",
+          source: "codex-jsonl",
+          at: f.mtime,
+          observedAt: f.mtime,
+          lastSuccessAt: f.mtime,
+          stale,
+        }),
+      };
     }
   }
-  return { ok: false, items: [] };
+  return {
+    ok: false,
+    items: [],
+    ...usageState({ state: "unavailable", source: "codex-jsonl" }),
+  };
 }
 
 // ───────────────────────── 데이터: 세션 컨텍스트 ─────────────────────────
@@ -679,6 +1052,95 @@ function extractTopic(file, tail) {
   }
   return null;
 }
+function sessionStatusLabel(status) {
+  return status === "working" ? "working"
+    : status === "waiting_for_input" ? "waiting for input"
+    : status === "completed" ? "completed"
+    : status === "needs_attention" ? "needs attention"
+    : "unknown";
+}
+function claudeSessionStatus(lines) {
+  if (!sessionStatusEnabled()) return null;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const entry = JSON.parse(lines[i]);
+      // Claude Code assistant records do not consistently include message.role.
+      if (entry?.type === "assistant") return "waiting_for_input";
+      if (entry?.type === "user" && entry?.message?.role === "user") return "working";
+    } catch {}
+  }
+  return "unknown";
+}
+
+// R20: prices are never guessed or downloaded. A user may opt in by supplying
+// their own USD-per-million-token schedule in config.json. We then sum only
+// Claude's recorded usage objects; prompt text and raw transcript lines never
+// leave this function. Sessions with an unpriced model/token class remain
+// explicitly partial or unavailable instead of receiving a made-up total.
+const PROJECT_COST_MAX_FILE_BYTES = 12 * 1024 * 1024;
+function pricingForModel(model, all) {
+  if (!all || typeof all !== "object" || !model) return null;
+  const raw = String(model);
+  const withoutDate = raw.replace(/-\d{8}$/, "");
+  const normalized = withoutDate.replace(/^claude-/, "");
+  // Claude Code normally logs a dated model id; humans generally configure
+  // the stable, date-free id shown in provider pricing pages.
+  const rate = all[raw] ?? all[withoutDate] ?? all[normalized] ?? null;
+  if (!rate || typeof rate !== "object") return null;
+  const keys = ["inputUsdPerM", "outputUsdPerM", "cacheCreationUsdPerM", "cacheReadUsdPerM"];
+  const out = {};
+  for (const key of keys) {
+    const value = Number(rate[key]);
+    if (Number.isFinite(value) && value >= 0) out[key] = value;
+  }
+  return Object.keys(out).length ? out : null;
+}
+function costForClaudeUsage(usage, model, pricing) {
+  const rates = pricingForModel(model, pricing);
+  if (!rates) return null;
+  const classes = [
+    ["input_tokens", "inputUsdPerM"],
+    ["output_tokens", "outputUsdPerM"],
+    ["cache_creation_input_tokens", "cacheCreationUsdPerM"],
+    ["cache_read_input_tokens", "cacheReadUsdPerM"],
+  ];
+  let amount = 0;
+  for (const [tokensKey, priceKey] of classes) {
+    const tokens = Number(usage?.[tokensKey] || 0);
+    if (!Number.isFinite(tokens) || tokens < 0) return null;
+    if (tokens > 0 && !Number.isFinite(rates[priceKey])) return null;
+    amount += tokens * (rates[priceKey] || 0) / 1_000_000;
+  }
+  return amount;
+}
+function claudeSessionCost(file) {
+  // Avoid adding a periodic full-transcript scan unless pricing was explicitly
+  // configured. A cost report is optional; the live context meter stays cheap.
+  const pricing = readConfig().pricing;
+  if (!pricing || typeof pricing !== "object") return { state: "unavailable", reason: "pricing-not-configured" };
+  let text;
+  try {
+    if (statSync(file).size > PROJECT_COST_MAX_FILE_BYTES) return { state: "unavailable", reason: "session-file-too-large" };
+    text = readFileSync(file, "utf8");
+  } catch { return { state: "unavailable", reason: "session-file-unreadable" }; }
+  let amount = 0, pricedTurns = 0, unpricedTurns = 0;
+  for (const line of text.split("\n")) {
+    if (!line.includes('"usage":{') || !line.includes('"input_tokens"')) continue;
+    try {
+      const entry = JSON.parse(line);
+      const usage = entry?.message?.usage;
+      if (!usage || usage.input_tokens == null) continue;
+      const cost = costForClaudeUsage(usage, entry?.message?.model, pricing);
+      if (cost == null) unpricedTurns++;
+      else { amount += cost; pricedTurns++; }
+    } catch {}
+  }
+  if (!pricedTurns && !unpricedTurns) return { state: "unavailable", reason: "no-priced-usage" };
+  return {
+    state: unpricedTurns ? "partial" : "available", currency: "USD",
+    amountUsd: Number(amount.toFixed(8)), pricedTurns, unpricedTurns,
+  };
+}
 
 function getSessions() {
   const projDir = path.join(claudeHome(), "projects");
@@ -731,11 +1193,13 @@ function getSessions() {
       id: path.basename(f.p, ".jsonl").slice(0, 4),
       branch,
       topic,
+      status: claudeSessionStatus(lines),
       model: model ? model.replace(/^claude-/, "").replace(/-\d{8}$/, "") : null,
       used: usage,
       pct: Math.min(100, (usage / win) * 100),
       mtime: f.mtime,
       win,
+      cost: claudeSessionCost(f.p),
     });
     if (sessions.length >= 4) break;
   }
@@ -790,6 +1254,7 @@ function getCodexSessions() {
       id: path.basename(f.p, ".jsonl").split("-").pop().slice(0, 4),
       branch: null,
       topic: extractCodexTopic(tail),
+      status: codexSessionStatus(lines),
       model: mMatch ? mMatch[1] : null,
       used,
       pct: Math.min(100, (used / win) * 100),
@@ -799,6 +1264,21 @@ function getCodexSessions() {
     if (sessions.length >= 3) break;
   }
   return sessions;
+}
+function codexSessionStatus(lines) {
+  if (!sessionStatusEnabled()) return null;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const entry = JSON.parse(lines[i]);
+      const payload = entry?.payload ?? entry;
+      const type = payload?.type || "";
+      if (type === "task_complete") return "completed";
+      if (/approval|request_user_input|needs_input/i.test(type)) return "needs_attention";
+      if (entry?.type === "response_item" && type === "message" && payload?.role === "assistant") return "waiting_for_input";
+      if (type === "reasoning" || type === "custom_tool_call" || type === "item_started") return "working";
+    } catch {}
+  }
+  return "unknown";
 }
 function extractCodexTopic(tail) {
   const m = tail.match(/"type":"user"[^\n]*?"text":"([^"]{4,})"/) || tail.match(/"role":"user"[^\n]*?"text":"([^"]{4,})"/);
@@ -831,6 +1311,13 @@ function fmtAgo(mtime) {
   if (min < 1) return "just now";
   if (min < 60) return `${min}m ago`;
   return `${Math.round(min / 60)}h ago`;
+}
+function fmtUntil(timestamp) {
+  const min = Math.max(0, Math.ceil((Number(timestamp) - Date.now()) / 60000));
+  if (min < 1) return "now";
+  if (min < 60) return `in ${min}m`;
+  const hours = Math.floor(min / 60), rest = min % 60;
+  return `in ${hours}h${rest ? ` ${rest}m` : ""}`;
 }
 function fmtK(n) { return n >= 1000 ? `${Math.round(n / 1000)}k` : String(n); }
 function safeDecode(value) {
@@ -878,6 +1365,112 @@ function getLetsur() {
   return { spent, limit, pct, remain: Math.max(0, limit - spent), currency: cfg.currency || "unit", label: cfg.label || "Letsur" };
 }
 
+// R13: GitHub documents a personal Premium-request usage endpoint. This is a
+// *spend report*, not a Copilot quota API: do not turn its dollar amount into a
+// fabricated "remaining requests" percentage. It is deliberately disabled
+// until the user supplies all three explicit settings below. In particular we
+// never scan the keychain, git credential helper, or existing GH_TOKENs.
+const COPILOT_CACHE_FILE = path.join(CACHE_DIR, "copilot-premium-usage.json");
+const COPILOT_TTL_MS = 15 * 60 * 1000;
+function copilotConfig() {
+  const c = readConfig().copilot || {};
+  return {
+    enabled: c.enabled === true,
+    username: typeof c.username === "string" ? c.username.trim() : "",
+    tokenEnv: typeof c.tokenEnv === "string" ? c.tokenEnv.trim() : "",
+    monthlyBudgetUsd: Number.isFinite(Number(c.monthlyBudgetUsd)) && Number(c.monthlyBudgetUsd) > 0 ? Number(c.monthlyBudgetUsd) : null,
+  };
+}
+async function fetchCopilotPremiumUsage(cfg) {
+  const fixture = process.env.CCB_TEST_COPILOT_FIXTURE;
+  if (fixture) {
+    appendFileSync(`${fixture}.calls`, `${Date.now()}\n`);
+    const f = JSON.parse(readFileSync(fixture, "utf8"));
+    return new Response(JSON.stringify(f.body ?? {}), { status: f.status ?? 200, headers: f.headers ?? {} });
+  }
+  const token = process.env[cfg.tokenEnv];
+  if (!token) throw new Error("token environment variable is not set");
+  return fetch(`https://api.github.com/users/${encodeURIComponent(cfg.username)}/settings/billing/premium_request/usage`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    signal: AbortSignal.timeout(15000),
+  });
+}
+function copilotAmount(body) {
+  // GitHub's report is monetary. Keep the field mapping small and explicit so
+  // an API schema change becomes unavailable, never a misleading zero.
+  for (const key of ["total_amount", "gross_amount", "amount"]) {
+    const value = Number(body?.[key]);
+    if (Number.isFinite(value) && value >= 0) return value;
+  }
+  return null;
+}
+async function getCopilotPremiumUsage() {
+  const cfg = copilotConfig();
+  const base = { kind: "cost", provider: "github-copilot", currency: "USD", budgetUsd: cfg.monthlyBudgetUsd };
+  if (!cfg.enabled) return { ...base, enabled: false, state: "unavailable", reason: "disabled" };
+  if (!cfg.username || !cfg.tokenEnv) return { ...base, enabled: true, state: "unavailable", reason: "needs-config" };
+  try {
+    const cached = JSON.parse(readFileSync(COPILOT_CACHE_FILE, "utf8"));
+    if (Date.now() - Number(cached.at) < COPILOT_TTL_MS) return { ...base, ...cached, state: "fresh", source: "github-api" };
+  } catch {}
+  try {
+    const res = await fetchCopilotPremiumUsage(cfg);
+    if (!res.ok) throw new Error(`github api ${res.status}`);
+    const amount = copilotAmount(await res.json());
+    if (amount == null) throw new Error("github usage response has no recognized monetary total");
+    const at = Date.now();
+    const out = { ...base, enabled: true, state: "fresh", source: "github-api", at, observedAt: at, lastSuccessAt: at, amountUsd: amount,
+      usedPct: cfg.monthlyBudgetUsd ? Math.min(100, amount / cfg.monthlyBudgetUsd * 100) : null };
+    writeFileSync(COPILOT_CACHE_FILE, JSON.stringify(out));
+    return out;
+  } catch (e) {
+    return { ...base, enabled: true, state: "unavailable", source: "github-api", reason: "request-failed", errorCode: String(e.message || e).match(/\b(401|403|404|429|5\d\d)\b/)?.[1] || null };
+  }
+}
+
+// R13 local-file adapter. Cursor, Antigravity, or another tool can be added
+// only when the user deliberately points at a file they own. This avoids the
+// tempting but unsafe alternatives (scraping a browser cookie, reusing an
+// unrelated access token, or executing arbitrary config text every 5 seconds).
+// File schema: { "items": [{ "name": "Weekly", "used": 42, "resets": "..." }], "observedAt": <unix-ms optional> }
+const EXTERNAL_PROVIDER_FRESH_MS = 15 * 60 * 1000;
+const EXTERNAL_PROVIDER_MAX_STALE_MS = 2 * 60 * 60 * 1000;
+function localProviderConfigs() {
+  const list = readConfig().providers;
+  if (!Array.isArray(list)) return [];
+  return list.map((p, index) => ({
+    id: typeof p?.id === "string" && /^[a-z0-9_-]{1,40}$/i.test(p.id) ? p.id : `provider-${index + 1}`,
+    label: typeof p?.label === "string" && p.label.trim() ? p.label.trim().slice(0, 48) : `Provider ${index + 1}`,
+    usageFile: typeof p?.usageFile === "string" ? expandHomePath(p.usageFile) : "",
+  })).filter((p) => p.usageFile);
+}
+function getExternalProviders() {
+  return localProviderConfigs().map((cfg) => {
+    try {
+      const stat = statSync(cfg.usageFile);
+      const payload = JSON.parse(readFileSync(cfg.usageFile, "utf8"));
+      const rawItems = Array.isArray(payload?.items) ? payload.items : [];
+      const items = rawItems
+        .filter((item) => typeof item?.name === "string" && Number.isFinite(Number(item?.used)) && Number(item.used) >= 0 && Number(item.used) <= 100)
+        .slice(0, 8)
+        .map((item) => ({ name: item.name.slice(0, 64), used: Number(item.used), resets: item.resets ?? null }));
+      const observedAt = Number.isFinite(Number(payload?.observedAt)) ? Number(payload.observedAt) : stat.mtimeMs;
+      const age = Date.now() - observedAt;
+      if (!items.length || age > EXTERNAL_PROVIDER_MAX_STALE_MS) {
+        return { ...cfg, items: [], reason: !items.length ? "invalid-file" : "too-old", ...usageState({ state: "unavailable", source: "external-local-file", observedAt, lastSuccessAt: observedAt, stale: age > EXTERNAL_PROVIDER_MAX_STALE_MS }) };
+      }
+      const state = age <= EXTERNAL_PROVIDER_FRESH_MS ? "fresh" : "stale";
+      return { ...cfg, items, ...usageState({ state, source: "external-local-file", observedAt, lastSuccessAt: observedAt, stale: state === "stale" }) };
+    } catch {
+      return { ...cfg, items: [], reason: "unreadable-file", ...usageState({ state: "unavailable", source: "external-local-file" }) };
+    }
+  });
+}
+
 // ───────────────────────── 포맷 유틸 ─────────────────────────
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function fmtReset(resets) {
@@ -916,11 +1509,36 @@ if (argv[0] === "letsur") {
   if (argv[1] === "reset") { saveLedger({ month: ymNow(), spent: 0 }); console.log("ledger reset"); process.exit(0); }
   if (argv[1] === "status") { console.log(JSON.stringify(getLetsur())); process.exit(0); }
 }
+if (argv[0] === "--init-config") {
+  try {
+    const result = createStarterConfig();
+    console.log(result.created ? `starter config created: ${result.path}` : `config already exists: ${result.path}`);
+    process.exit(0);
+  } catch (e) {
+    console.error(`could not create starter config: ${String(e.message || e)}`);
+    process.exit(1);
+  }
+}
+// --renew-login: the dropdown's "Renew Claude login now" (user-initiated, so it
+// ignores autoRenew:false but still refuses to run twice within a minute).
+if (argv[0] === "--renew-login") {
+  const started = triggerClaudeTokenRefresh({ trigger: "manual", minGapMs: 60 * 1000 });
+  // Clear the back-off so the next render retries right after the renew.
+  if (started) { try { writeFileSync(path.join(CACHE_DIR, "claude-0.fail.json"), JSON.stringify({ status: 401, at: Date.now(), until: Date.now() + 20 * 1000, refreshing: true })); } catch {} }
+  console.log(started ? "renew started" : findClaudeBin() ? "renew skipped (ran less than a minute ago)" : "claude CLI not found");
+  process.exit(started ? 0 : 1);
+}
 
 // ───────────────────────── 메인 ─────────────────────────
 const accounts = loadAccounts();
 const claudes = await Promise.all(accounts.map((a, i) => getClaude(a, i)));
-const [codex, sessions, letsur] = [getCodex(), getAllSessions(), getLetsur()];
+recordForecastObservations(claudes);
+for (let accountIndex = 0; accountIndex < claudes.length; accountIndex++) {
+  const account = claudes[accountIndex];
+  const state = account.state ?? (account.items.length ? "fresh" : "unavailable");
+  account.items = (account.items || []).map((item) => ({ ...item, forecast: forecastForItem(accountIndex, item, state) }));
+}
+const [codex, sessions, letsur, copilot, providers] = [getCodex(), getAllSessions(), getLetsur(), await getCopilotPremiumUsage(), getExternalProviders()];
 const dark = isDarkMode();
 const asJson = argv.includes("--json");
 const asText = argv.includes("--text");
@@ -951,10 +1569,10 @@ if (activeClaudeSessions.length) {
   const overflow = activeClaudeSessions.length - shown.length;
   groups.push({ label: "S", color: CLAUDE_ORANGE, items, overflow });
 }
-if (codex.items.length) {
+if (codex.items.length && codex.state === "fresh") {
   const cxItems = (COMPACT ? codex.items.slice(0, 1) : codex.items).map((i) => ({ remain: 100 - i.used }));
   groups.push({ label: "X", color: CODEX_VIOLET, items: cxItems });
-}
+} else if (codex.items.length) groups.push({ label: "X", color: CODEX_VIOLET, items: [{ remain: null }] });
 if (activeCodexSessions.length) {
   const byRisk = [...activeCodexSessions].sort((a, b) => b.pct - a.pct);
   const shown = byRisk.slice(0, MENUBAR_MAX);
@@ -965,6 +1583,266 @@ if (activeCodexSessions.length) {
 if (letsur) groups.push({ label: "L", color: LETSUR_CYAN, items: [{ remain: 100 - letsur.pct }] });
 
 // ─ CLI 출력 모드 (윈도우/리눅스/터미널용) ─
+// ───────────────────────── R8 · 진단 보고서 (비밀값 없음) ─────────────────────────
+// Plain lines a user can paste into an issue. Never includes tokens, account
+// e-mails, prompt topics, or response bodies — only states, sources, times.
+function buildDiagnostics() {
+  const lines = [];
+  lines.push(`TokenJuice diagnostics · ${new Date().toISOString()}`);
+  lines.push(`platform: ${process.platform} · bun ${process.versions?.bun || "?"} · compact ${COMPACT}`);
+  lines.push(`config: api=${apiModeEnabled()} · autoRenew=${autoRenewEnabled()} · notify=${notifyConfig().enabled ? "on" : "off"} · forecast=${forecastEnabled() ? "on" : "off"} · sessionStatus=${sessionStatusEnabled() ? "on" : "off"} · topics=${SHOW_TOPICS}`);
+  claudes.forEach((cl, i) => {
+    const state = cl.state ?? (cl.stale ? "stale" : cl.items.length ? "fresh" : "unavailable");
+    const b = trustBadge({ state, source: cl.source });
+    const last = cl.lastSuccessAt ?? cl.at;
+    const retry = fmtRetryAt(cl.retryAt);
+    lines.push(`claude[${i}]: ${stateLabel(state)} · trust ${b.level} · ${sourceLabel(cl.source)} · last success ${last ? fmtAgo(last) : "never"}${retry ? ` · ${retry}` : ""}${cl.errorCode ? ` · http ${cl.errorCode}` : ""}${cl.reason ? ` · reason ${cl.reason}` : ""}`);
+  });
+  if (IS_MAC && apiModeEnabled()) lines.push(`claude login renewal: ${autoRenewEnabled() ? "auto" : "manual"} · ${renewStatusLine()} · cli ${findClaudeBin() ? "found" : "not found"}`);
+  if (codex.items.length || existsSync(path.join(HOME, ".codex"))) {
+    const last = codex.lastSuccessAt ?? codex.at;
+    lines.push(`codex: ${stateLabel(codex.state)} · trust ${trustBadge({ state: codex.state, source: codex.source }).level} · ${sourceLabel(codex.source || "codex-jsonl")} · last success ${last ? fmtAgo(last) : "never"}`);
+  }
+  if (copilot.enabled) {
+    const last = copilot.lastSuccessAt ?? copilot.at;
+    lines.push(`copilot: ${stateLabel(copilot.state)} · ${copilot.state === "fresh" ? "GitHub Premium-request spend" : copilot.reason || "unavailable"} · last success ${last ? fmtAgo(last) : "never"}${copilot.errorCode ? ` · http ${copilot.errorCode}` : ""}`);
+  }
+  for (const provider of providers) {
+    const last = provider.lastSuccessAt ?? provider.observedAt;
+    lines.push(`provider:${provider.id}: ${stateLabel(provider.state)} · ${sourceLabel(provider.source)} · last success ${last ? fmtAgo(last) : "never"}${provider.reason ? ` · reason ${provider.reason}` : ""}`);
+  }
+  lines.push(`sessions: ${sessions.filter((s) => s.platform === "claude").length} claude · ${sessions.filter((s) => s.platform === "codex").length} codex (context estimates)`);
+  return lines;
+}
+
+// ───────────────────────── R6 · 임계치·리셋 알림 (opt-in) ─────────────────────────
+// Off unless config.json has {"notify": {"enabled": true}}. Fires a macOS
+// notification once when a fresh limit drops to the threshold, and once when it
+// comes back (reset). Stale/fallback/blocked numbers never trigger anything.
+function notifyConfig() {
+  const n = readConfig().notify || {};
+  const threshold = Number(n.threshold);
+  return {
+    enabled: n.enabled === true,
+    threshold: Number.isFinite(threshold) && threshold > 0 && threshold < 100 ? threshold : 20,
+    reset: n.reset !== false,
+  };
+}
+const NOTIFY_STATE_FILE = path.join(CACHE_DIR, "notify-state.json");
+const NOTIFY_HYSTERESIS = 5; // percent points above the threshold before "back"
+function sendNotification(title, body) {
+  const log = process.env.CCB_TEST_NOTIFY_LOG; // tests only
+  if (log) { appendFileSync(log, `${title}\t${body}\n`); return; }
+  if (!IS_MAC) return;
+  // Notification text can include provider-facing labels. Pass it as one
+  // osascript argument rather than placing it in shell double quotes, where
+  // `$()` and backticks would otherwise be interpreted before AppleScript.
+  const appleString = (s) => String(s)
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/[\r\n]/g, " ");
+  const script = `display notification "${appleString(body)}" with title "${appleString(title)}"`;
+  try { execFileSync("/usr/bin/osascript", ["-e", script], { stdio: "ignore", timeout: 5000 }); } catch {}
+}
+function runNotifications(entries) {
+  const cfg = notifyConfig();
+  if (!cfg.enabled) return;
+  let st = {};
+  try { st = JSON.parse(readFileSync(NOTIFY_STATE_FILE, "utf8")) || {}; } catch {}
+  let changed = false;
+  for (const e of entries) {
+    if (e.state !== "fresh" || !Number.isFinite(e.remain)) continue;
+    const prev = st[e.key] || { low: false };
+    if (!prev.low && e.remain <= cfg.threshold) {
+      sendNotification("TokenJuice", `${e.label}: ${Math.round(e.remain)}% left${e.resets ? ` · ${fmtReset(e.resets)}` : ""}`);
+      st[e.key] = { low: true, at: Date.now() }; changed = true;
+    } else if (prev.low && e.remain > cfg.threshold + NOTIFY_HYSTERESIS) {
+      if (cfg.reset) sendNotification("TokenJuice", `${e.label} is back: ${Math.round(e.remain)}% left`);
+      st[e.key] = { low: false, at: Date.now() }; changed = true;
+    }
+  }
+  if (changed) { try { writeFileSync(NOTIFY_STATE_FILE, JSON.stringify(st)); } catch {} }
+}
+function notificationEntries() {
+  const out = [];
+  claudes.forEach((cl, i) => {
+    const state = cl.state ?? (cl.items.length ? "fresh" : "unavailable");
+    for (const it of cl.items) out.push({ key: `claude:${i}:${it.name}`, label: `Claude ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, state });
+  });
+  for (const it of codex.items) out.push({ key: `codex:${it.name}`, label: `Codex ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, state: codex.state ?? "fresh" });
+  return out;
+}
+
+// R12/R14 foundation: a companion never receives a credential, raw transcript,
+// prompt, or diagnostics. Export is explicit and local-only; synchronization is
+// intentionally not implemented until its encryption/privacy design is approved.
+const WIDGET_SNAPSHOT_FILE = path.join(CACHE_DIR, "widget-snapshot.json");
+const ENCRYPTED_SYNC_BUNDLE_FILE = path.join(CACHE_DIR, "widget-sync.tokenjuice");
+function buildWidgetSnapshot() {
+  const quota = (item) => ({
+    name: item.name,
+    used: Number(item.used),
+    resets: item.resets ?? null,
+    state: item.state ?? null,
+  });
+  return {
+    contractVersion: 1,
+    generatedAt: Date.now(),
+    transport: "local_export_only",
+    claude: claudes.map((account, index) => ({
+      account: accounts[index]?.name || "Claude",
+      state: account.state ?? "unavailable",
+      source: account.source ?? null,
+      lastSuccessAt: account.lastSuccessAt ?? account.at ?? null,
+      retryAt: account.retryAt ?? null,
+      items: (account.items || []).map(quota),
+    })),
+    codex: {
+      state: codex.state ?? "unavailable",
+      source: codex.source ?? "codex-jsonl",
+      lastSuccessAt: codex.lastSuccessAt ?? codex.at ?? null,
+      items: (codex.items || []).map(quota),
+    },
+    providers: providers.map((provider) => ({
+      id: provider.id, label: provider.label, state: provider.state ?? "unavailable",
+      source: provider.source ?? "external-local-file", lastSuccessAt: provider.lastSuccessAt ?? null,
+      items: (provider.items || []).map(quota),
+    })),
+  };
+}
+
+// R14: an optional, encrypted hand-off for another one of the user's devices.
+// It is intentionally *not* an automatic cloud sync: no account, endpoint,
+// credential, or plaintext snapshot leaves this process. The passphrase comes
+// from a one-shot environment variable and is never written to config/cache.
+const SYNC_BUNDLE_AAD = "tokenjuice-sync-v1";
+const SYNC_BUNDLE_ITERATIONS = 310000;
+function buildEncryptedSyncBundle(snapshot, passphrase) {
+  if (!passphrase) throw new Error("TOKENJUICE_SYNC_PASSPHRASE is required for encrypted export");
+  const salt = randomBytes(16);
+  const iv = randomBytes(12);
+  const key = pbkdf2Sync(passphrase, salt, SYNC_BUNDLE_ITERATIONS, 32, "sha256");
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  cipher.setAAD(Buffer.from(SYNC_BUNDLE_AAD));
+  const ciphertext = Buffer.concat([cipher.update(JSON.stringify(snapshot), "utf8"), cipher.final()]);
+  return {
+    format: SYNC_BUNDLE_AAD,
+    contractVersion: 1,
+    transport: "encrypted_manual_transfer",
+    generatedAt: Date.now(),
+    crypto: {
+      algorithm: "AES-256-GCM",
+      kdf: "PBKDF2-SHA-256",
+      iterations: SYNC_BUNDLE_ITERATIONS,
+      salt: salt.toString("base64"),
+      iv: iv.toString("base64"),
+      tag: cipher.getAuthTag().toString("base64"),
+      ciphertext: ciphertext.toString("base64"),
+    },
+  };
+}
+
+// R20: report only facts available in local session logs. A configured Claude
+// price table can make a subset available; Codex and unpriced/partial sessions
+// remain explicit instead of receiving an inferred provider price.
+function buildProjectReport() {
+  const projects = new Map();
+  for (const session of sessions) {
+    const key = `${session.platform}:${session.name}`;
+    const current = projects.get(key) || {
+      project: session.name,
+      platform: session.platform,
+      sessions: 0,
+      newestAt: 0,
+      highestContextPct: 0,
+      contextTokens: 0,
+      contextWindow: 0,
+      models: new Set(),
+      costUsd: 0,
+      pricedTurns: 0,
+      unpricedTurns: 0,
+      costReasons: new Set(),
+    };
+    current.sessions++;
+    current.newestAt = Math.max(current.newestAt, session.mtime || 0);
+    current.highestContextPct = Math.max(current.highestContextPct, Number(session.pct) || 0);
+    current.contextTokens += Number(session.used) || 0;
+    current.contextWindow = Math.max(current.contextWindow, Number(session.win) || 0);
+    if (session.model) current.models.add(session.model);
+    if (session.cost?.state === "available" || session.cost?.state === "partial") {
+      current.costUsd += Number(session.cost.amountUsd) || 0;
+      current.pricedTurns += Number(session.cost.pricedTurns) || 0;
+      current.unpricedTurns += Number(session.cost.unpricedTurns) || 0;
+    } else {
+      current.unpricedTurns++;
+      if (session.cost?.reason) current.costReasons.add(session.cost.reason);
+      else if (session.platform === "codex") current.costReasons.add("codex-token-split-or-pricing-not-configured");
+    }
+    projects.set(key, current);
+  }
+  const projectRows = [...projects.values()].map((project) => {
+    const { models, costReasons, costUsd, pricedTurns, unpricedTurns, ...base } = project;
+    const hasKnownCost = pricedTurns > 0;
+    return {
+      ...base, highestContextPct: Number(base.highestContextPct.toFixed(1)), models: [...models],
+      cost: hasKnownCost
+        ? { state: unpricedTurns ? "partial" : "available", currency: "USD", amountUsd: Number(costUsd.toFixed(8)), pricedTurns, unpricedTurns }
+        : { state: "unavailable", reason: [...costReasons][0] || "provider-pricing-or-token-split-not-configured" },
+    };
+  });
+  const available = projectRows.filter((project) => project.cost.state === "available");
+  const partial = projectRows.filter((project) => project.cost.state === "partial");
+  const unavailable = projectRows.filter((project) => project.cost.state === "unavailable");
+  return {
+    contractVersion: 1,
+    generatedAt: Date.now(),
+    scope: "local sessions touched in the last 6 hours",
+    cost: available.length || partial.length
+      ? { state: partial.length || unavailable.length ? "partial" : "available", currency: "USD", projectCount: available.length + partial.length, unavailableProjectCount: unavailable.length }
+      : { state: "unavailable", reason: "provider pricing and complete token splits are not configured" },
+    projects: projectRows.sort((a, b) => b.newestAt - a.newestAt),
+  };
+}
+
+if (argv.includes("--diagnostics") || argv.includes("--copy-diagnostics")) {
+  const text = buildDiagnostics().join("\n");
+  if (argv.includes("--copy-diagnostics") && IS_MAC) {
+    try { execSync("pbcopy", { input: text }); } catch {}
+  }
+  console.log(text);
+  process.exit(0);
+}
+
+if (argv.includes("--widget-snapshot") || argv.includes("--export-widget-snapshot") || argv.includes("--export-sync-bundle")) {
+  const snapshot = buildWidgetSnapshot();
+  if (argv.includes("--export-sync-bundle")) {
+    try {
+      const bundle = buildEncryptedSyncBundle(snapshot, process.env.TOKENJUICE_SYNC_PASSPHRASE);
+      writeFileSync(ENCRYPTED_SYNC_BUNDLE_FILE, `${JSON.stringify(bundle, null, 2)}\n`);
+      console.log(`encrypted sync bundle exported locally: ${ENCRYPTED_SYNC_BUNDLE_FILE}`);
+    } catch (e) {
+      console.error(`could not export encrypted sync bundle: ${String(e.message || e)}`);
+      process.exit(1);
+    }
+  } else if (argv.includes("--export-widget-snapshot")) {
+    try {
+      writeFileSync(WIDGET_SNAPSHOT_FILE, `${JSON.stringify(snapshot, null, 2)}\n`);
+      console.log(`widget snapshot exported locally: ${WIDGET_SNAPSHOT_FILE}`);
+    } catch (e) {
+      console.error(`could not export widget snapshot: ${String(e.message || e)}`);
+      process.exit(1);
+    }
+  } else {
+    console.log(JSON.stringify(snapshot, null, 2));
+  }
+  process.exit(0);
+}
+
+if (argv.includes("--project-report")) {
+  console.log(JSON.stringify(buildProjectReport(), null, 2));
+  process.exit(0);
+}
+
 if (asJson) {
   // 기본은 topic(프롬프트 원문) 제거. 트레이 앱·외부 위젯이 이 출력을 그대로 렌더하므로
   // 여기서 빼는 게 유일하게 확실한 차단 지점이다.
@@ -974,9 +1852,38 @@ if (asJson) {
     // in" from "API mode is off" and ends up printing the wrong fix.
     claude: claudes.map((c, i) => ({
       account: accounts[i]?.name, items: c.items, reason: c.reason ?? null,
-      source: c.source ?? null, error: c.error ?? null, stale: !!c.stale,
+      source: c.source ?? null, sourceLabel: sourceLabel(c.source),
+      state: c.state ?? (c.stale ? "stale" : c.items.length ? "fresh" : "unavailable"),
+      observedAt: c.observedAt ?? c.at ?? null,
+      lastSuccessAt: c.lastSuccessAt ?? c.at ?? null,
+      retryAt: c.retryAt ?? null,
+      errorCode: c.errorCode ?? null,
+      error: c.error ?? null, stale: !!c.stale,
+      kind: "quota",
+      trust: trustBadge({ state: c.state ?? (c.stale ? "stale" : c.items.length ? "fresh" : "unavailable"), source: c.source }),
     })),
-    sessions: safeSessions, codex: codex.items, letsur,
+    sessions: safeSessions.map((s) => ({ ...s, kind: "context" })),
+    codex: codex.items,
+    codexStatus: {
+      source: codex.source ?? "codex-jsonl",
+      sourceLabel: sourceLabel(codex.source || "codex-jsonl"),
+      state: codex.state ?? (codex.items.length ? "fresh" : "unavailable"),
+      observedAt: codex.observedAt ?? codex.at ?? null,
+      lastSuccessAt: codex.lastSuccessAt ?? codex.at ?? null,
+      kind: "quota",
+      trust: trustBadge({ state: codex.state ?? (codex.items.length ? "fresh" : "unavailable"), source: codex.source || "codex-jsonl" }),
+    },
+    providers: providers.map((provider) => ({
+      id: provider.id, label: provider.label, items: provider.items,
+      source: provider.source, sourceLabel: sourceLabel(provider.source), reason: provider.reason ?? null,
+      state: provider.state, observedAt: provider.observedAt ?? null, lastSuccessAt: provider.lastSuccessAt ?? null,
+      kind: "quota", trust: trustBadge({ state: provider.state, source: provider.source }),
+    })),
+    renew: IS_MAC && apiModeEnabled() ? { auto: autoRenewEnabled(), last: readRenewStatus() } : null,
+    notify: notifyConfig(),
+    contractVersion: 2,
+    letsur,
+    copilot,
     topicsIncluded: SHOW_TOPICS,
   }, null, 2));
   process.exit(0);
@@ -984,11 +1891,30 @@ if (asJson) {
 if (asText) {
   const line = (label, r) => `${label} ${textBar(Math.round(r), 10)} ${Math.round(r)}%`;
   const parts = [];
-  for (const c of claudes) for (const i of c.items) parts.push(line(c.stale ? "C(stale)" : "C", 100 - i.used));
+  for (const c of claudes) {
+    const state = c.state ?? (c.items.length ? "fresh" : "unavailable");
+    // A text consumer cannot render the detailed stale/fallback note from the
+    // SwiftBar menu. Never let stale, rate-limited, or expired values look live.
+    if (state === "fresh" || state === "fallback") {
+      const label = state === "fallback" ? "C(fallback)" : "C";
+      for (const i of c.items) parts.push(line(label, 100 - i.used));
+    } else {
+      parts.push(`C(${stateLabel(state)})`);
+    }
+  }
   for (const s of activeClaudeSessions.slice(0, 3)) parts.push(line("s·C", 100 - s.pct));
-  for (const i of codex.items) parts.push(line("X", 100 - i.used));
+  const codexState = codex.state ?? (codex.items.length ? "fresh" : "unavailable");
+  if (codexState === "fresh" || codexState === "fallback") {
+    for (const i of codex.items) parts.push(line(codexState === "fallback" ? "X(fallback)" : "X", 100 - i.used));
+  } else if (codex.items.length || codexState !== "unavailable") {
+    parts.push(`X(${stateLabel(codexState)})`);
+  }
   for (const s of activeCodexSessions.slice(0, 3)) parts.push(line("s·X", 100 - s.pct));
   if (letsur) parts.push(line("L", 100 - letsur.pct));
+  for (const provider of providers) {
+    if (provider.state === "fresh") for (const item of provider.items) parts.push(line(provider.label, 100 - item.used));
+    else parts.push(`${provider.label}(${stateLabel(provider.state)})`);
+  }
   console.log(parts.join("\n"));
   process.exit(0);
 }
@@ -1000,18 +1926,33 @@ const out = [];
 out.push(`| image=${renderImage(groups, dark)}`);
 out.push("---");
 
+const SELF = path.resolve(process.argv[1] || "");
 for (let ai = 0; ai < accounts.length; ai++) {
   const cl = claudes[ai];
-  const title = accounts.length > 1 ? `Claude Code — ${accounts[ai].name}` : "Claude Code";
-  const src = cl.stale ? "" : cl.source === "local" ? "🟢 live (local)" : cl.source === "api" ? "🌐 API · up to 60s" : "";
+  // R7: this block is the account quota; session context has its own section.
+  const title = accounts.length > 1 ? `Claude plan limits — ${accounts[ai].name}` : "Claude plan limits · account quota";
+  const state = cl.state ?? (cl.stale ? "stale" : cl.items.length ? "fresh" : "unavailable");
+  const badge = trustBadge({ state, source: cl.source });
   if (ai > 0) out.push("---");
-  out.push(`${title}  ${src} | size=13 color=#8b949e`);
+  out.push(`${title}  ${badge.icon} ${badge.level} | size=13 color=#8b949e`);
+  out.push(`--${badge.icon} ${badge.text} | size=11 color=#8b949e`);
   if (cl.items.length) {
     for (const i of cl.items) {
       const r = Math.round(100 - i.used);
-      out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${fmtReset(i.resets)} | font=Menlo size=12 color=${heatHex(r)}`);
+      out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${fmtReset(i.resets)} | font=Menlo size=12 color=${state === "fresh" ? heatHex(r) : "#8b949e"}`);
+      if (i.forecast) {
+        const when = i.forecast.exhaustionAt ? fmtUntil(i.forecast.exhaustionAt) : "unknown";
+        const verdict = i.forecast.beforeReset ? `may run out ${when}` : "reset is expected first";
+        out.push(`--Pace estimate (local, ${i.forecast.samples} samples): ${verdict} · +${i.forecast.usedPerHour}%/h | size=11 color=#8b949e`);
+      }
     }
-    if (cl.stale) out.push(`⚠️ not live — last value from ${fmtAgo(cl.at)}${cl.refreshing ? " · ↻ renewing login (no usage cost)" : ""} | size=11 color=#ffcc00`);
+    if (state !== "fresh") {
+      const last = cl.lastSuccessAt ?? cl.at;
+      const when = last ? `last success ${fmtAgo(last)}` : "no successful reading";
+      const retry = fmtRetryAt(cl.retryAt);
+      const note = state === "fallback" ? "using fallback source" : `not live (${stateLabel(state)})`;
+      out.push(`${state === "fallback" ? "↪" : "⚠️"} ${note} · ${when}${retry ? ` · ${retry}` : ""} | size=11 color=#ffcc00`);
+    }
   } else if (cl.reason === "needs-api") {
     // 로컬 캐시 없음 + API 옵트인 꺼짐 → 키체인 안 건드리고 켜는 법만 안내
     out.push("ⓘ Claude limits need API mode | size=12 color=#8b949e");
@@ -1022,32 +1963,45 @@ for (let ai = 0; ai < accounts.length; ai++) {
   } else if (cl.reason === "app-stale") {
     out.push("⏸ Claude app paused usage sampling | size=12 color=#ffcc00");
     out.push("--Fix: open the usage view from Claude's menu bar icon — it only polls if opened in the last 24h | size=11 color=#ffcc00");
-  } else if (cl.reason === "auth") {
-    out.push("🔐 Claude usage unavailable — no live source | size=12 color=#ff453a");
+  } else if (cl.reason === "auth" || state === "auth_expired") {
+    out.push("🔐 Claude login expired — no live number | size=12 color=#ff453a");
     if (cl.appLast) {
-      const ago = fmtAgo(cl.appLast.at);
-      out.push(`--Claude app stopped sampling (last ${ago}: 5-hour ${100 - cl.appLast.fh}% · weekly ${100 - cl.appLast.sd}% left) | size=11 color=#8b949e`);
+      out.push(`--Claude app stopped sampling (last ${fmtAgo(cl.appLast.at)}: 5-hour ${100 - cl.appLast.fh}% · weekly ${100 - cl.appLast.sd}% left) | size=11 color=#8b949e`);
       out.push("--Fix: open the usage view from Claude's menu bar icon — it only polls if opened in the last 24h | size=11 color=#ffcc00");
     }
-    out.push(cl.refreshing ? "--↻ Login expired — renewing automatically (claude -p /usage, no usage cost) | size=11 color=#ffcc00" : "--Usage API login expired and auto-renew failed — run  claude  once in a terminal | size=11 color=#ffcc00");
+    const retry = fmtRetryAt(cl.retryAt);
+    if (retry) out.push(`--Next try ${retry.replace(/^retry /, "")} | size=11 color=#8b949e`);
   } else if (cl.reason === "login") {
     out.push("🔑 Log in to Claude Code first | size=12 color=#ffcc00");
     out.push("--Run  claude  in a terminal and sign in — it shows up automatically | size=11 color=#8b949e");
-  } else if (/\b429\b/.test(cl.error || "")) {
-    // The usage endpoint asked us to back off (Retry-After); we obey it.
-    let until = "";
-    try { const f = JSON.parse(readFileSync(path.join(CACHE_DIR, "claude-0.fail.json"), "utf8")); if (f.until) { const d = new Date(f.until); until = ` until ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; } } catch {}
-    out.push(`⏳ Usage server asked to wait${until} (rate limit) | size=12 color=#ffcc00`);
-    out.push("--Retries automatically — nothing to do | size=11 color=#8b949e");
+  } else if (state === "rate_limited" || cl.reason === "rate-limit") {
+    // R4: the usage endpoint asked us to back off (Retry-After); we obey it and
+    // make no request until then.
+    const retry = fmtRetryAt(cl.retryAt);
+    out.push(`⏳ Usage server asked us to wait${retry ? ` — ${retry}` : ""} | size=12 color=#ffcc00`);
+    out.push("--No requests are sent until then · retries automatically | size=11 color=#8b949e");
   } else {
     out.push("⚠️ Couldn't load usage | size=12 color=#ff453a");
     out.push(`--${(cl.error || "").slice(0, 60)} | size=11 color=#8b949e`);
+  }
+  // R3: the login-renewal policy is always visible while API mode is on.
+  if (ai === 0 && IS_MAC && apiModeEnabled()) {
+    const auto = autoRenewEnabled();
+    const bin = findClaudeBin();
+    out.push(`Login renewal: ${auto ? "auto" : "manual"} · ${renewStatusLine()} | size=11 color=#8b949e`);
+    out.push(`--What runs: claude -p /usage (reads usage only, no model call, no transcript) | size=11 color=#8b949e`);
+    out.push(`--${auto ? "Auto: on login expiry (401), at most once per 10 min" : "Auto is off by default — renew from here when the login expires"} | size=11 color=#8b949e`);
+    out.push(`--${auto ? 'Disable: config.json {"autoRenew": false}' : 'Optional opt-in: config.json {"autoRenew": true}'} · ~/.config/claude-codex-battery/ | size=11 color=#6b7280`);
+    if (bin) out.push(`--Renew Claude login now | bash='${SELF}' param1=--renew-login terminal=false refresh=true`);
+    else out.push("--Claude CLI not found — run  claude  in a terminal to renew | size=11 color=#ffcc00");
   }
 }
 
 if (activeClaudeSessions.length) {
   out.push("---");
-  out.push("Claude session context  (■ = menu bar battery) | size=13 color=#8b949e");
+  // R7: context window per conversation — a different quantity from plan quota.
+  out.push("Claude session context · per conversation, not quota  (■ = menu bar S) | size=13 color=#8b949e");
+  { const b = trustBadge({ kind: "context" }); out.push(`--${b.icon} ${b.text} | size=11 color=#8b949e`); }
   if (!SHOW_TOPICS && activeClaudeSessions.some((s) => s.topic)) {
     out.push('--Prompt topics hidden · show with  export CCB_TOPICS=1 | size=11 color=#6b7280');
   }
@@ -1060,6 +2014,7 @@ if (activeClaudeSessions.length) {
     out.push(`■ ${dot} 🟠 Claude · ${s.name}  ▕${textBar(r)}▏ ${r}%${warn} | font=Menlo size=13 color=${rgbHex(s.color)}`);
     // 2행: 주제 (있으면)
     if (s.topic && SHOW_TOPICS) out.push(`--${s.topic} | size=11 color=#8b949e`);
+    if (s.status) out.push(`--Status: ${sessionStatusLabel(s.status)} · local heuristic, not provider state | size=11 color=#8b949e`);
     // 3행: 브랜치 · 모델 · 토큰 · 경과
     const meta = [
       s.branch ? `⑂ ${s.branch}` : null,
@@ -1077,21 +2032,29 @@ if (activeClaudeSessions.length) {
 // of ~/.codex is the signal, since Codex creates it on first run.
 if (codex.items.length || existsSync(path.join(HOME, ".codex"))) {
   out.push("---");
-  out.push(`Codex${codex.plan ? ` (${codex.plan})` : ""} | size=13 color=#8b949e`);
+  const cxState = codex.state ?? (codex.items.length ? "fresh" : "unavailable");
+  const cxBadge = trustBadge({ state: cxState, source: codex.source || "codex-jsonl" });
+  out.push(`Codex plan limits · account quota${codex.plan ? ` (${codex.plan})` : ""}  ${cxBadge.icon} ${cxBadge.level} | size=13 color=#8b949e`);
+  out.push(`--${cxBadge.icon} ${cxBadge.text} · Codex writes these numbers into its own session log | size=11 color=#8b949e`);
   if (codex.items.length) {
     for (const i of codex.items) {
       const r = Math.round(100 - i.used);
       const tail = i.wasReset ? "reset done" : fmtReset(i.resets);
-      out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${tail} | font=Menlo size=12 color=${heatHex(r)}`);
+      out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${tail} | font=Menlo size=12 color=${cxState === "fresh" ? heatHex(r) : "#8b949e"}`);
     }
     const ageMin = Math.round((Date.now() - codex.at) / 60000);
     if (ageMin > 60) out.push(`ℹ️ from your last session (${Math.round(ageMin / 60)}h ago) | size=11 color=#8b949e`);
+    if (codex.state && codex.state !== "fresh") {
+      const last = codex.lastSuccessAt ?? codex.at;
+      out.push(`⚠️ Codex ${stateLabel(codex.state)} · last success ${last ? fmtAgo(last) : "unknown"} | size=11 color=#ffcc00`);
+    }
   } else {
     out.push("No session data yet (shows after you run Codex) | size=11 color=#8b949e");
   }
   if (activeCodexSessions.length) {
     out.push("---");
-    out.push("Codex session context  (■ = menu bar battery) | size=13 color=#8b949e");
+    out.push("Codex session context · per conversation, not quota  (■ = menu bar S) | size=13 color=#8b949e");
+    { const b = trustBadge({ kind: "context" }); out.push(`--${b.icon} ${b.text} | size=11 color=#8b949e`); }
     if (!SHOW_TOPICS && activeCodexSessions.some((s) => s.topic)) {
       out.push('--Prompt topics hidden · show with  export CCB_TOPICS=1 | size=11 color=#6b7280');
     }
@@ -1102,6 +2065,7 @@ if (codex.items.length || existsSync(path.join(HOME, ".codex"))) {
       const warn = s.pct >= 80 ? "  ⚠️compaction soon" : "";
       out.push(`■ ${dot} 🟣 Codex · ${s.name}  ▕${textBar(r)}▏ ${r}%${warn} | font=Menlo size=13 color=${rgbHex(s.color)}`);
       if (s.topic && SHOW_TOPICS) out.push(`--${s.topic} | size=11 color=#8b949e`);
+      if (s.status) out.push(`--Status: ${sessionStatusLabel(s.status)} · local heuristic, not provider state | size=11 color=#8b949e`);
       const meta = [
         s.branch ? `⑂ ${s.branch}` : null,
         s.model,
@@ -1123,8 +2087,68 @@ if (letsur) {
   out.push(`--auto-resets on the 1st  ·  ⚠️ check your Letsur dashboard for what a unit is worth | size=11 color=#6b7280`);
 }
 
+// Local-file providers intentionally live in the dropdown, not the compact
+// header: a user-selected file may be stale and is never allowed to crowd out
+// provider-reported Claude/Codex status.
+for (const provider of providers) {
+  out.push("---");
+  const badge = trustBadge({ state: provider.state, source: provider.source });
+  out.push(`${provider.label} plan limits · local adapter  ${badge.icon} ${badge.level} | size=13 color=#8b949e`);
+  out.push(`--${badge.icon} ${badge.text} · no token, cookie, browser session, command, or network access | size=11 color=#8b949e`);
+  if (provider.state === "fresh") {
+    for (const item of provider.items) {
+      const remain = Math.round(100 - item.used);
+      out.push(`${item.name}  ▕${textBar(remain)}▏ ${remain}% left · ${fmtReset(item.resets)} | font=Menlo size=12 color=${heatHex(remain)}`);
+    }
+  } else if (provider.state === "stale") {
+    out.push(`⚠️ Local file is stale · last success ${provider.lastSuccessAt ? fmtAgo(provider.lastSuccessAt) : "unknown"} · no header number | size=11 color=#ffcc00`);
+  } else {
+    out.push(`ⓘ Local usage file unavailable (${provider.reason || "unknown"}) | size=11 color=#ffcc00`);
+  }
+}
+
+// R13: this is deliberately outside the battery header because a Copilot
+// Premium-request bill is money, not a plan quota. A configured budget is a
+// user-owned guardrail, never a provider-reported limit.
+if (copilot.enabled) {
+  out.push("---");
+  out.push("GitHub Copilot Premium requests · monthly spend, not quota | size=13 color=#8b949e");
+  if (copilot.state === "fresh") {
+    const amount = Number(copilot.amountUsd).toFixed(2);
+    if (copilot.budgetUsd) {
+      const remain = Math.max(0, 100 - Number(copilot.usedPct || 0));
+      out.push(`This month  ▕${textBar(Math.round(remain))}▏ ${Math.round(remain)}% budget left | font=Menlo size=12 color=${heatHex(remain)}`);
+      out.push(`--$${amount} / $${Number(copilot.budgetUsd).toFixed(2)} voluntary budget · GitHub does not report this as a quota | size=11 color=#6b7280`);
+    } else {
+      out.push(`This month  $${amount} billed · no local budget set | font=Menlo size=12 color=#8b949e`);
+      out.push("--Set copilot.monthlyBudgetUsd only if you want a personal budget meter | size=11 color=#6b7280");
+    }
+    out.push("--Official GitHub API · explicit token environment variable only · cached 15 min | size=11 color=#6b7280");
+  } else if (copilot.reason === "needs-config") {
+    out.push("Configure copilot.username and copilot.tokenEnv; no credential is discovered automatically | size=11 color=#ffcc00");
+  } else {
+    out.push(`Usage unavailable${copilot.errorCode ? ` (HTTP ${copilot.errorCode})` : ""} · no prior number is shown | size=11 color=#ffcc00`);
+  }
+}
+
+out.push("---");
+out.push("Data diagnostics  (no secrets) | size=13 color=#8b949e");
+for (const line of buildDiagnostics().slice(2)) out.push(`--${line} | font=Menlo size=11 color=#6b7280`);
+out.push(`--Copy diagnostics to clipboard | bash='${SELF}' param1=--copy-diagnostics terminal=false`);
+if (!existsSync(CONFIG_FILE)) {
+  // v1.2 first-run disclosure. It is deliberately visible in the product,
+  // rather than being only a README promise. Creating the config below does
+  // not enable any of these optional capabilities.
+  out.push("---");
+  out.push("First setup · local data, safe defaults | size=13 color=#8b949e");
+  out.push("--Reads ~/.claude and ~/.codex local logs. Keychain API, alerts, auto-renew and prompt topics are off | size=11 color=#6b7280");
+  out.push("--API mode is optional and calls Anthropic directly; tokens, prompts and code are never stored by TokenJuice | size=11 color=#6b7280");
+  out.push(`--Create safe starter config (API, alerts, auto-renew off) | bash='${SELF}' param1=--init-config terminal=false refresh=true`);
+}
 out.push("---");
 out.push("Refresh now | refresh=true");
 out.push("Open Claude usage page | href=https://claude.ai/settings/usage");
 if (letsur) out.push("Open Letsur dashboard | href=https://platform.letsur.ai");
+// R6: alerts run only in the menu bar render (not --json/--text consumers).
+runNotifications(notificationEntries());
 console.log(out.join("\n"));

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#111315">
+    <meta name="description" content="TokenJuice의 자격증명 없는 로컬 사용량 스냅샷 뷰어">
+    <link rel="icon" href="./icons/tokenjuice-192.png" type="image/png">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="apple-touch-icon" href="./icons/tokenjuice-192.png">
+    <link rel="stylesheet" href="./app.css">
+    <title>TokenJuice Pocket</title>
+  </head>
+  <body>
+    <main class="console-shell">
+      <header class="masthead">
+        <div class="brand"><span class="bolt">▰</span><span>TOKENJUICE</span><em>POCKET</em></div>
+        <span id="transport" class="transport">LOCAL SNAPSHOT</span>
+      </header>
+
+      <section id="empty-state" class="empty-state">
+        <p class="eyebrow">NO CREDENTIALS · NO CLOUD SYNC</p>
+        <h1>주머니 속<br><i>한도 계기판.</i></h1>
+        <p class="explain">Mac에서 내보낸 스냅샷 또는 암호화 번들만 이 기기에 저장합니다. 토큰·프롬프트·코드는 가져오지 않습니다.</p>
+        <label class="import-button" for="snapshot-file">스냅샷 가져오기 <span>↗</span></label>
+        <input id="snapshot-file" type="file" accept="application/json,.json,.tokenjuice" hidden>
+        <code>--export-widget-snapshot 또는 --export-sync-bundle</code>
+      </section>
+
+      <section id="dashboard" class="dashboard" hidden>
+        <div class="status-line"><span id="status-dot"></span><span id="snapshot-time">읽는 중</span><button id="replace" type="button">교체</button></div>
+        <div id="accounts" class="accounts"></div>
+        <section class="rules">
+          <span>⊘ 로컬 파일만 표시</span>
+          <span>⊘ 자동 업로드 없음</span>
+          <span>⊘ 상태 시각 우선</span>
+        </section>
+      </section>
+
+      <footer><span>SNAPSHOT VIEWER · V1</span><a class="privacy-link" href="./privacy.html">개인정보</a><button id="clear" type="button" hidden>이 기기에서 삭제</button></footer>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

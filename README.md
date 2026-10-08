@@ -11,6 +11,8 @@ gives the matching installer. Do NOT run install.sh on Windows; it is macOS-only
 
 **See how much Claude Code & Codex you have left — right in your menu bar.**
 
+보안 취약점 신고와 자격증명 처리 원칙은 [SECURITY.md](SECURITY.md)를 참고하세요.
+
 Shows your Claude Code / Codex usage limits *and* your live session context window as battery icons — in the **macOS menu bar** ([SwiftBar](https://github.com/swiftbar/SwiftBar)) or the **Windows system tray**. Green = go, red = wrap it up.
 
 ![demo](docs/demo.gif)
@@ -164,6 +166,32 @@ Letsur has no "remaining balance" API — responses only carry `estimated_cost`.
 { "monthlyLimit": 100, "currency": "unit", "label": "Letsur" }
 ```
 Feed spend via `bun claude-codex-battery.5s.js letsur add <cost>` (from a proxy/wrapper), or point `usageFile` at a `{ "spent": <n> }` JSON. Auto-resets on the 1st of each month.
+
+## GitHub Copilot Premium requests (optional)
+
+TokenJuice can show the **monthly Premium-request spend** from GitHub's official
+usage API. It is intentionally a cost line, not a battery or a “requests left”
+claim: GitHub's report is monetary and does not provide a personal quota percent.
+It is off until you explicitly configure it, and it never searches the keychain,
+Git credential helper, or an existing `GH_TOKEN`.
+
+```json
+// ~/.config/claude-codex-battery/config.json
+{
+  "copilot": {
+    "enabled": true,
+    "username": "your-github-login",
+    "tokenEnv": "TOKENJUICE_GITHUB_TOKEN",
+    "monthlyBudgetUsd": 20
+  }
+}
+```
+
+Set `TOKENJUICE_GITHUB_TOKEN` only in the environment that launches TokenJuice.
+Use a GitHub fine-grained personal access token with the documented billing/Plan
+read permission. `monthlyBudgetUsd` is your own alerting budget, not a GitHub
+limit; omit it to display only the reported spend. The response is cached for
+15 minutes, and an error hides the number rather than showing a stale cost.
 
 ## Multiple accounts
 
@@ -385,6 +413,121 @@ bun·SwiftBar를 확인(없으면 자동 설치)하고 플러그인을 등록한
 ## 데이터 출처 · 세션 · 멀티계정 · Letsur
 
 위 영문 섹션과 동일 — 요약: Claude 한도는 **로컬 캐시 우선 → API 폴백**, 세션은 Claude+Codex 병합·위험순 3개+`+N`, 멀티계정은 config-dir 자동 감지, Letsur는 월 한도 대비 누적.
+
+## 처음 설정 · 신뢰도 · 알림
+
+처음 설치한 뒤에는 메뉴바 배터리를 한 번 눌러 **데이터 출처·마지막 성공 시각·재시도 시각**을 확인한다. 숫자는 다음 원칙으로 표시된다.
+
+| 상태 | 뜻 | 숫자 표시 |
+|---|---|---|
+| 최신 (`fresh`) | 방금 성공적으로 읽은 값 | 표시 |
+| 대체값 (`fallback`) | Claude Desktop의 최근 표본 | 표시하되 대체값으로 라벨링 |
+| 오래됨/인증 만료/요청 제한 | 현재 값이라고 보장할 수 없음 | 메뉴바·CLI에서 숫자를 숨김 |
+
+Claude API 모드의 로그인 갱신은 **기본 수동**이다. 로그인 만료가 보이면 메뉴의
+`Renew Claude login now`를 누른다. 자동 갱신을 원할 때만 아래처럼 명시적으로 켠다.
+
+```json
+// ~/.config/claude-codex-battery/config.json
+{
+  "api": true,
+  "autoRenew": true,
+  "notify": { "enabled": true, "threshold": 20, "reset": true },
+  "forecast": { "enabled": true },
+  "sessionStatus": { "enabled": true }
+}
+```
+
+`autoRenew`는 Claude CLI를 백그라운드에서 실행할 수 있으므로, 동작을 이해한 경우에만 켠다.
+`notify`도 기본 꺼짐이다. 켜면 최신(`fresh`) 한도만 기준으로 20% 이하 경고와 리셋 후 회복 알림을 한 번씩 보낸다.
+`forecast`는 최근의 **로컬 사용률 관측값**으로 소진 예상 시각을 계산한다. 제공자 공식 예측이 아니며,
+관측이 두 개 이상 쌓인 뒤에만 표시된다.
+`sessionStatus`는 Claude/Codex의 마지막 로컬 로그를 읽어 작업 중·입력 대기·완료 같은
+상태를 **휴리스틱**으로 표시한다. 제공자나 에이전트의 공식 상태가 아니므로 기본값은 꺼짐이다.
+
+출처별 상태와 호환 필드는 [데이터 계약](docs/DATA_CONTRACT.md)에 기록돼 있다. 외부 위젯이나
+트레이를 만들 때는 `used` 값만 쓰지 말고 `kind`·`state`·`trust`를 함께 해석해야 한다.
+
+## 휴대폰 companion — TokenJuice Pocket
+
+[`companion/`](companion/)은 iPhone·Android 브라우저에 홈 화면으로 추가할 수 있는 정적 PWA다.
+모바일에 계정·토큰·프롬프트를 보관하지 않는다. Mac에서 다음 명령으로 안전한 스냅샷을 만든 뒤,
+파일을 직접 휴대폰으로 옮겨 Pocket에서 가져온다.
+
+```bash
+bun claude-codex-battery.5s.js --export-widget-snapshot
+```
+
+스냅샷은 `~/.cache/claude-codex-battery/widget-snapshot.json`에 생성된다. 자동 동기화는
+의도적으로 제공하지 않는다. 파일을 다른 서비스로 전달해야 한다면, 설정·캐시에 암호를
+남기지 않는 선택적 암호화 번들을 만들 수 있다.
+
+```bash
+TOKENJUICE_SYNC_PASSPHRASE='긴 암호' \
+  bun claude-codex-battery.5s.js --export-sync-bundle
+```
+
+`widget-sync.tokenjuice`는 AES-256-GCM 암호문이며 Pocket에서 암호를 입력할 때만 복호화한다.
+CloudKit·계정·자동 업로드는 수행하지 않는다. 자세한 사용·호스팅 방법은
+[companion 안내](companion/README.md)를 본다.
+
+## Cursor·Antigravity 등 추가 provider (선택)
+
+TokenJuice는 브라우저 쿠키·기존 access token·키체인·명령 실행을 이용해 다른 AI 서비스의
+사용량을 억지로 수집하지 않는다. 대신 사용자가 신뢰하는 exporter가 만든 **로컬 JSON 파일**을
+명시적으로 지정하는 quota-file adapter를 제공한다. 예를 들어 Cursor exporter가 다음 파일을
+갱신한다고 가정한다.
+
+```json
+// ~/Exports/cursor-usage.json
+{
+  "observedAt": 1791390000000,
+  "items": [{ "name": "Monthly", "used": 42, "resets": "2026-10-31T00:00:00.000Z" }]
+}
+```
+
+그 뒤 `~/.config/claude-codex-battery/config.json`에 이 파일만 연결한다.
+
+```json
+{
+  "providers": [{
+    "id": "cursor",
+    "label": "Cursor",
+    "usageFile": "~/Exports/cursor-usage.json"
+  }]
+}
+```
+
+파일의 `observedAt`이 15분을 넘으면 stale로 표시하고, 2시간을 넘기면 숫자를 숨긴다.
+이 adapter는 네트워크·토큰·cookie·browser session·명령 실행을 전혀 사용하지 않는다. 따라서
+Antigravity 등도 같은 안전한 파일 계약을 제공할 때만 추가한다.
+
+## 프로젝트 컨텍스트·비용 리포트 (선택)
+
+`bun claude-codex-battery.5s.js --project-report`는 최근 6시간 Claude/Codex 세션의
+프로젝트별 context 상태를 JSON으로 출력한다. 비용은 기본적으로 계산하지 않는다. 제공자
+가격은 변경될 수 있고 Codex 로그에는 완전한 token split이 항상 없기 때문이다.
+
+Claude Code의 기록된 usage에 대해 비용을 보고 싶다면, 사용자가 확인한 가격을 직접
+`config.json`에 USD/백만 토큰 단위로 입력한다. 값은 네트워크에서 내려받거나 추정하지 않는다.
+
+```json
+{
+  "pricing": {
+    "claude-sonnet-4": {
+      "inputUsdPerM": 3,
+      "outputUsdPerM": 15,
+      "cacheCreationUsdPerM": 3.75,
+      "cacheReadUsdPerM": 0.3
+    }
+  }
+}
+```
+
+가격표와 token class가 모두 있는 Claude turn만 `available` 비용이 된다. 모델 또는 token
+class가 빠진 turn, Codex 등 완전한 분해가 없는 프로젝트는 `partial` 또는 `unavailable`로
+표시한다. 따라서 이 리포트의 비용은 제공자 청구서가 아니라 사용자가 입력한 가격표 기반의
+로컬 계산값이다.
 
 <a name="윈도우"></a>
 ## 윈도우

@@ -1,0 +1,66 @@
+name: Engine verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'claude-codex-battery.5s.js'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'docs/DATA_CONTRACT.md'
+      - 'companion/**'
+      - '.github/workflows/engine-verify.yml'
+  pull_request:
+    paths:
+      - 'claude-codex-battery.5s.js'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'docs/DATA_CONTRACT.md'
+      - 'companion/**'
+      - '.github/workflows/engine-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: 엔진 회귀 테스트
+        run: bun test tests/engine.test.js
+      - name: Bun 번들 확인
+        run: bun build claude-codex-battery.5s.js --target bun --outfile /tmp/tokenjuice-engine-check.js
+      - name: macOS 설치·복구 스크립트 문법
+        run: bash -n install.sh scripts/ensure-swiftbar-visible.sh scripts/release-verify.sh
+
+  companion:
+    name: Companion PWA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: 브라우저 테스트 의존성
+        run: |
+          python -m pip install --upgrade pip playwright
+          python -m playwright install --with-deps chromium
+      - name: 스냅샷 가져오기와 기기 내 보관 검증
+        run: |
+          python -m http.server 4173 --directory companion >/tmp/tokenjuice-companion.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+          python tests/companion.test.py

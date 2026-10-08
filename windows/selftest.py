@@ -68,6 +68,8 @@ def check_degenerate() -> None:
         {"claude": []},
         {"claude": [{"account": "X", "items": [], "reason": "login"}]},
         {"claude": [{"account": "X", "items": [], "reason": "needs-api"}]},
+        {"claude": [{"account": "X", "items": [{"name": "5-hour", "used": 25}], "state": "rate_limited"}]},
+        {"codex": [{"name": "Weekly", "used": 25}], "codexStatus": {"state": "stale"}},
         {"sessions": [{"pct": 99, "mtime": 0, "name": "n", "used": 1, "win": 2}]},
     ]
     for p in payloads:
@@ -75,8 +77,14 @@ def check_degenerate() -> None:
         t.render_icon(g)
         t.render_icon(g, error=True)
         t.build_tooltip(g, None)
-    for reason in ("needs-api", "login", None, "unrecognised"):
+    for reason in ("needs-api", "login", "rate-limit", None, "unrecognised"):
         assert t.explain_no_limits(reason), f"no explanation for {reason!r}"
+    assert t.explain_no_limits(None, "auth_expired"), "no explanation for auth_expired"
+    assert t.explain_no_limits(None, "rate_limited"), "no explanation for rate_limited"
+    stale = t.build_groups({"claude": [{"items": [{"used": 25}], "state": "rate_limited"}]})
+    assert stale[0]["bars"] == [None], f"stale Claude value rendered as live: {stale}"
+    stale_codex = t.build_groups({"codex": [{"used": 25}], "codexStatus": {"state": "stale"}})
+    assert not any(g["label"] == "X" for g in stale_codex), f"stale Codex value rendered as live: {stale_codex}"
     print(f"  {len(payloads)} degenerate payloads OK")
 
 
@@ -90,9 +98,42 @@ def check_tooltip() -> None:
     print(f"  tooltip {len(tip)} chars (limit 127), blank groups omitted")
 
 
+def check_cost_menu() -> None:
+    """A monetary Copilot report must never become a quota-looking battery."""
+    app = t.TrayApp()
+    app.data = {
+        "claude": [], "sessions": [], "codex": [],
+        "copilot": {"enabled": True, "state": "fresh", "amountUsd": 12.5, "budgetUsd": 20, "usedPct": 62.5},
+    }
+    labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+    assert any("monthly spend, not quota" in label for label in labels), labels
+    assert any("voluntary budget" in label for label in labels), labels
+    app.data["copilot"] = {"enabled": True, "state": "unavailable"}
+    labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+    assert any("usage unavailable" in label for label in labels), labels
+    print("  Copilot cost menu states OK")
+
+
+def check_local_provider_menu() -> None:
+    """A configured local adapter is explicit and never masquerades as live when stale."""
+    app = t.TrayApp()
+    app.data = {
+        "claude": [], "sessions": [], "codex": [],
+        "providers": [{"id": "cursor", "label": "Cursor", "state": "fresh", "items": [{"name": "Monthly", "used": 42}]}],
+    }
+    labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+    assert any("Cursor — local quota file" in label for label in labels), labels
+    assert any("58% left" in label for label in labels), labels
+    assert any("no token, cookie, command, or network access" in label for label in labels), labels
+    app.data["providers"][0]["state"] = "stale"
+    labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+    assert any("stale · no live number" in label for label in labels), labels
+    print("  local provider menu states OK")
+
+
 def main() -> int:
     print(f"tokenjuice self-test on {sys.platform}")
-    for fn in (check_icons, check_ico, check_degenerate, check_tooltip):
+    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_cost_menu, check_local_provider_menu):
         print(f"- {fn.__name__}")
         fn()
     print("all checks passed")

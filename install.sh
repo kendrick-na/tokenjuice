@@ -127,22 +127,14 @@ fi
 dim "   ✓ fallback agent: $LOGIN_AGENT"
 
 # SwiftBar can keep showing a stale (or hidden) battery after sleep/wake. A small
-# helper re-launches it if needed, keeps its status items visible, and forces a
-# re-run of every plugin via the supported swiftbar://refreshallplugins URL.
+# helper (scripts/ensure-swiftbar-visible.sh) restarts SwiftBar if needed and,
+# only after a wake or a restart, re-runs every plugin once (debounced) via the
+# supported swiftbar://refreshallplugins URL.
 HELPER_DIR="$HOME/Library/Application Support/TokenJuice"
 HELPER="$HELPER_DIR/ensure-swiftbar-visible.sh"
 VIS_AGENT="$HOME/Library/LaunchAgents/com.tokenjuice.visibility.plist"
 mkdir -p "$HELPER_DIR"
-cat > "$HELPER" <<EOF
-#!/bin/sh
-if ! pgrep -x SwiftBar >/dev/null 2>&1; then
-  /usr/bin/open -a /Applications/SwiftBar.app
-fi
-for key in 'NSStatusItem Visible Item-0' 'NSStatusItem Visible Item-1' 'NSStatusItem Visible Item-2' 'NSStatusItem Visible Item-3'; do
-  /usr/bin/defaults write "$BID" "\$key" -bool true
-done
-/usr/bin/open -g 'swiftbar://refreshallplugins' >/dev/null 2>&1 || true
-EOF
+cp "$SELF_DIR/scripts/ensure-swiftbar-visible.sh" "$HELPER"
 chmod +x "$HELPER"
 cat > "$VIS_AGENT" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
