@@ -1313,7 +1313,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | P0 context checkpoint | 구현 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트 |
 | UX6 접근성·375px·5명 사용성 | 코드 검증 완료 / 사용자 검증 대기 | `e825e03`: `--faint`/`--panel-2` 대비율 4.5:1 이상 자동 점검 추가 및 browser test 통과; 실제 대비 측정·스크린리더 수동 점검·실사용자 5명은 pending |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
-| UX8 알림 센터/설정 UX | quota-window 메뉴 제어 완료 / 설정 센터 대기 | `4e00a1f`: 메뉴에서 전역·quota-window threshold/reset override를 실제 표시·제어하고 36개 엔진 테스트 통과; 별도 계정별 설정 센터와 사용자 선호 검증은 미완료 |
+| UX8 알림 센터/설정 UX | quota-window 메뉴 제어 완료 / OS 재연결 알림 pending | 최신 구현: 전역·quota-window enabled/threshold/reset override, 다음 reset 시각, threshold/reset 사건 이유를 메뉴·알림에 표시; 4e00a1f 이후 보강분은 다음 커밋의 회귀 테스트에 포함. provider auth/outage 후 OS 재연결 알림 스케줄·사용자 선호 검증은 데이터 계약과 실기기 게이트가 필요 |
 | UX9 메뉴바 상세 패널/compact | 구현 완료 | compact/notch 출력과 SwiftBar 설치본 비교 통과; 실제 notch 기기 시각 검증은 남음 |
 | UX10 랜딩/설치 경로 | 코드 산출물 완료 / 사용자 검증 대기 | `279a260`: `companion/guide.html`의 가치·macOS/Windows/Pocket 설치·개인정보·FAQ·릴리스 링크; `37809141664` Pages 성공; 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | 부분 구현/검증 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; 시각적 trend·Usage Coach 우선순위는 2주 diary와 실제 행동 전환 데이터 필요 |

@@ -346,13 +346,17 @@ test("notification policy can be changed through explicit local menu commands", 
 test("notification overrides inherit global policy and target-specific threshold", () => {
   config({ api: true, notify: { enabled: true, threshold: 20, reset: true } });
   usage(200, okUsage());
+  expect(run("--notify-target-off=claude:0:5-hour")).toContain("enabled=false");
   expect(run("--notify-target-threshold=claude:0:5-hour=10")).toContain("threshold=10");
   expect(run("--notify-target-reset=claude:0:5-hour=off")).toContain("reset=false");
   const cfg = JSON.parse(readFileSync(path.join(home, ".config/claude-codex-battery/config.json"), "utf8"));
-  expect(cfg.notify.overrides["claude:0:5-hour"]).toEqual({ threshold: 10, reset: false });
+  expect(cfg.notify.overrides["claude:0:5-hour"]).toEqual({ enabled: false, threshold: 10, reset: false });
   const menu = run();
-  expect(menu).toContain("Claude 5-hour: 10%");
+  expect(menu).toContain("Claude 5-hour: alerts off");
   expect(menu).toContain("Claude 5-hour threshold 10%");
+  expect(menu).toContain("Claude 5-hour alerts on");
+  expect(menu).toContain("next resets");
+  expect(run("--notify-target-on=claude:0:5-hour")).toContain("enabled=true");
 });
 
 test("threshold alert fires once, reset alert fires once", () => {
@@ -360,13 +364,14 @@ test("threshold alert fires once, reset alert fires once", () => {
   usage(200, okUsage(85, 10));
   run(); run();
   expect(notifications().filter((n) => n.includes("5-hour")).length).toBe(1);
-  expect(notifications()[0]).toContain("15% left");
+  expect(notifications()[0]).toContain("threshold alert");
   // limit resets → 5-hour back to 95% left
   cache("claude-0.json", {});
   usage(200, okUsage(5, 10));
   run(); run();
   const back = notifications().filter((n) => n.includes("is back"));
   expect(back.length).toBe(1);
+  expect(back[0]).toContain("reset alert");
 });
 
 test("stale numbers never trigger an alert", () => {

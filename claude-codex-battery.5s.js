@@ -1571,17 +1571,22 @@ if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off"].i
     process.exit(1);
   }
 }
-if (argv[0]?.startsWith("--notify-target-threshold=") || argv[0]?.startsWith("--notify-target-reset=")) {
+if (argv[0]?.startsWith("--notify-target-threshold=") || argv[0]?.startsWith("--notify-target-reset=") || argv[0]?.startsWith("--notify-target-on=") || argv[0]?.startsWith("--notify-target-off=")) {
   try {
-    const prefix = argv[0].startsWith("--notify-target-threshold=") ? "--notify-target-threshold=" : "--notify-target-reset=";
+    const prefix = argv[0].startsWith("--notify-target-threshold=") ? "--notify-target-threshold="
+      : argv[0].startsWith("--notify-target-reset=") ? "--notify-target-reset="
+      : argv[0].startsWith("--notify-target-on=") ? "--notify-target-on=" : "--notify-target-off=";
     const payload = argv[0].slice(prefix.length);
     const split = payload.lastIndexOf("=");
-    if (split < 1) throw new Error("target and value are required");
-    const key = payload.slice(0, split), value = payload.slice(split + 1);
-    const patch = prefix.includes("threshold") ? { threshold: Number(value) } : { reset: value === "on" };
+    const key = split < 1 ? payload : payload.slice(0, split);
+    const value = split < 1 ? null : payload.slice(split + 1);
+    if (!key) throw new Error("target is required");
+    const patch = prefix.includes("threshold") ? { threshold: Number(value) }
+      : prefix.includes("reset") ? { reset: value === "on" }
+      : { enabled: prefix.includes("-on=") };
     if (patch.threshold != null && (!Number.isFinite(patch.threshold) || patch.threshold <= 0 || patch.threshold >= 100)) throw new Error("threshold must be between 1 and 99");
     const override = updateNotifyTarget(key, patch);
-    console.log(`notification target updated: ${key} threshold=${override.threshold ?? "global"} reset=${override.reset == null ? "global" : override.reset}`);
+    console.log(`notification target updated: ${key} enabled=${override.enabled == null ? "global" : override.enabled} threshold=${override.threshold ?? "global"} reset=${override.reset == null ? "global" : override.reset}`);
     process.exit(0);
   } catch (e) {
     console.error(`could not update notification target: ${String(e.message || e)}`);
@@ -1783,10 +1788,10 @@ function runNotifications(entries) {
     if (!cfg.enabled || e.state !== "fresh" || !Number.isFinite(e.remain)) continue;
     const prev = st[e.key] || { low: false };
     if (!prev.low && e.remain <= cfg.threshold) {
-      sendNotification("TokenJuice", `${e.label}: ${Math.round(e.remain)}% left${e.resets ? ` · ${fmtReset(e.resets)}` : ""}`);
+      sendNotification("TokenJuice", `threshold alert · ${e.label}: ${Math.round(e.remain)}% left${e.resets ? ` · ${fmtReset(e.resets)}` : ""}`);
       st[e.key] = { low: true, at: Date.now() }; changed = true;
     } else if (prev.low && e.remain > cfg.threshold + NOTIFY_HYSTERESIS) {
-      if (cfg.reset) sendNotification("TokenJuice", `${e.label} is back: ${Math.round(e.remain)}% left`);
+      if (cfg.reset) sendNotification("TokenJuice", `reset alert · ${e.label} is back: ${Math.round(e.remain)}% left`);
       st[e.key] = { low: false, at: Date.now() }; changed = true;
     }
   }
@@ -2307,7 +2312,8 @@ if (notificationTargets.length) {
   out.push("--Per quota window overrides (otherwise global policy applies) | size=11 color=#6b7280");
   for (const target of notificationTargets) {
     const targetPolicy = notificationPolicyFor(target);
-    out.push(`--${target.label}: ${targetPolicy.threshold}% · reset ${targetPolicy.reset ? "on" : "off"} | size=11 color=#8b949e`);
+    out.push(`--${target.label}: alerts ${targetPolicy.enabled ? "on" : "off"} · threshold ${targetPolicy.threshold}% · reset ${targetPolicy.reset ? "on" : "off"} · next ${fmtReset(target.resets) || "unknown"} | size=11 color=#8b949e`);
+    out.push(`----${target.label} alerts ${targetPolicy.enabled ? "off" : "on"} | bash='${SELF}' param1='--notify-target-${targetPolicy.enabled ? "off" : "on"}=${target.key}' terminal=false refresh=true`);
     out.push(`----${target.label} threshold 10% | bash='${SELF}' param1='--notify-target-threshold=${target.key}=10' terminal=false refresh=true`);
     out.push(`----${target.label} threshold 30% | bash='${SELF}' param1='--notify-target-threshold=${target.key}=30' terminal=false refresh=true`);
     out.push(`----${target.label} reset ${targetPolicy.reset ? "off" : "on"} | bash='${SELF}' param1='--notify-target-reset=${target.key}=${targetPolicy.reset ? "off" : "on"}' terminal=false refresh=true`);
