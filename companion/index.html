@@ -12,12 +12,14 @@
     <title>TokenJuice Pocket</title>
   </head>
   <body>
-    <main class="app-shell">
+    <main id="main" class="app-shell">
+      <a class="skip-link" href="#content">본문으로 건너뛰기</a>
       <header class="masthead">
         <a class="brand" href="./" aria-label="TokenJuice Pocket 홈"><span class="brand-mark" aria-hidden="true">▰</span><span>TOKENJUICE</span><em>POCKET</em></a>
         <span id="transport" class="transport">로컬 전용</span>
       </header>
 
+      <div id="content" tabindex="-1">
       <section id="empty-state" class="empty-state" aria-labelledby="welcome-title">
         <p class="eyebrow">AI CODING WORKFLOW MONITOR</p>
         <h1 id="welcome-title">다음 막힘을<br><i>먼저</i> 보세요.</h1>
@@ -50,6 +52,7 @@
           <span>자격증명 없음</span><span>자동 업로드 없음</span><span>마지막 성공 시각 표시</span>
         </section>
       </section>
+      </div>
 
       <footer><span>LOCAL-FIRST · V1</span><a class="privacy-link" href="./guide.html">설치·FAQ</a><a class="privacy-link" href="./privacy.html">개인정보</a><button id="clear" type="button" hidden>이 기기에서 삭제</button></footer>
     </main>

@@ -48,6 +48,8 @@ def main() -> None:
             page.goto("http://127.0.0.1:4173", wait_until="networkidle")
             assert page.get_by_text("내 스냅샷 가져오기").is_visible()
             assert page.get_by_text("예시 화면 보기").is_visible()
+            assert page.get_by_text("본문으로 건너뛰기").count() == 1
+            assert page.locator("#content").count() == 1
             # 첫 방문자는 자신의 파일 없이도 제품이 해결하는 문제를
             # 이해할 수 있어야 한다. 예시는 localStorage에 남지 않는다.
             page.get_by_text("예시 화면 보기").click()

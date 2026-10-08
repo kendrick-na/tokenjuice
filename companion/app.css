@@ -56,3 +56,10 @@ footer { display:flex; align-items:center; gap:1rem; margin-top:auto; border-top
 .guide-faq summary { cursor:pointer; color:var(--ink); font-weight:800; }
 .guide-faq details p { margin:.65rem 0 0; }
 @media (min-width: 700px) { .guide-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } .guide-faq { max-width:42rem; } }
+.skip-link { position:absolute; left:1rem; top:.75rem; z-index:10; transform:translateY(-160%); padding:.65rem .8rem; border:1px solid var(--lime); border-radius:4px; background:var(--canvas); color:var(--lime); }
+.skip-link:focus-visible { transform:translateY(0); }
+#content { scroll-margin-top:1rem; }
+.priority-card button, .snapshot-toolbar button, footer button, footer a { min-height:44px; display:inline-flex; align-items:center; justify-content:center; }
+.priority-card button { padding:.45rem 0; }
+.snapshot-toolbar button { padding:.35rem .55rem; }
+footer a, footer button { padding:.4rem .45rem; }

@@ -170,7 +170,7 @@ function priority(snapshot) {
 function renderPriority(snapshot) {
   const item = priority(snapshot);
   $("#priority-card").className = `priority-card ${item.tone}`;
-  $("#priority-card").innerHTML = `<p>${item.eyebrow}</p><h1>${escapeHtml(item.title)}</h1><div class="decision-grid"><div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div><button id="priority-action" type="button">${item.cta} <b aria-hidden="true">→</b></button>`;
+  $("#priority-card").innerHTML = `<p id="priority-label">${item.eyebrow}</p><h1>${escapeHtml(item.title)}</h1><div class="decision-grid"><div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div><button id="priority-action" type="button">${item.cta} <b aria-hidden="true">→</b></button>`;
   $("#priority-action").addEventListener("click", () => {
     if (item.cta.includes("가져오기")) fileInput.click();
     else $("#accounts").scrollIntoView({ behavior: "smooth", block: "start" });
