@@ -1066,3 +1066,148 @@ TokenJuice는 AI Limits Tracker의 잔여량 카드를 복제하는 서비스가
 > **경쟁 제품이 “얼마나 남았는가”를 보여준다면, TokenJuice는 “계속해도 되는가, 왜 그런가, 막히면 어디서 이어갈 것인가”를 보여준다.**
 
 따라서 다음 디자인 스프린트의 산출물은 예쁜 dashboard가 아니라 `Calm Operations Console`의 동작 가능한 prototype이다. P0는 `NOW → WHY → NEXT` popover, 신뢰 상태 표현, checkpoint/resume action이며 차트·위젯·Watch·provider 추가는 그 흐름이 검증된 이후로 미룬다.
+
+## 15. 2026-10-09 VibeUsage·Limits 추가 심층 조사 반영
+
+앞선 문서에서 두 서비스를 기능 수준으로만 다뤘으므로, 이번에 공식 사이트·공개 문서·GitHub README·App Store 업데이트 이력·공개 화면을 다시 확인해 업데이트안을 보강했다. 두 제품은 이름은 비슷하지만 역할이 다르다.
+
+- **VibeUsage** = 로컬 CLI 기반의 usage coach/관찰 도구
+- **Limits** = iPhone 중심의 quota glance/알림 companion
+
+### 15.1 VibeUsage 조사 결과
+
+#### 제품 정의와 타깃
+
+VibeUsage는 `npx vusage` 또는 설치 바이너리로 실행하는 open-source CLI다. 공식 사이트의 메시지는 “얼마나 썼나”보다 “어떻게 써서 덜 쓸 것인가”에 가깝다. Claude Code를 중심으로 Codex·Cursor·Gemini CLI를 확장 대상으로 삼고, 개발자·founder·engineering team이 여러 AI coding assistant의 사용량을 한 곳에서 이해하도록 설계됐다.
+
+#### 확인된 기능
+
+| 기능 | 확인 내용 | 제품적 의미 |
+|---|---|---|
+| Session metrics | 최근 7일 sessions, user/assistant messages, tool calls, input/output tokens | 단순 quota보다 실제 작업 패턴을 보여줌 |
+| Tool breakdown | Bash/Read/Edit/Grep 등 tool call 비중 | 사용 습관의 비효율을 발견할 수 있음 |
+| Personalized insight | “file read가 많으니 Grep을 사용하라”처럼 행동 팁 제공 | usage tracker에서 usage coach로 확장 |
+| Rate-limit awareness | 5-hour/7-day window, reset time, pace 비교 | 한도와 작업 속도를 연결 |
+| Local history | provider별 성공 snapshot을 JSONL로 저장, 최대 90일/8MiB | local-first·감사 가능성 |
+| Statusline / JSON | compact statusline, provider 필터, script/widget용 JSON | 개발자 workflow에 삽입 가능 |
+| Burn-rate guidance | 초과 pace를 green/yellow/red로 표시하고 pause/recovery guidance 제공 | “얼마 남음”보다 계획 수립에 유리 |
+| Smart routing | 현재 headroom이 가장 큰 provider/model을 추천하되 요청 자체를 route하지는 않음 | multi-provider 전환의 의사결정 계층 |
+| Provider health | provider status page를 조회해 operational 상태 표시 | 인증 문제와 provider 장애를 구분 |
+| Security posture | release attestation, read-only usage fetch, prompt/code/credential을 history에 저장하지 않음 | 공급망·프라이버시 신뢰를 제품 메시지로 사용 |
+
+#### VibeUsage의 실제 UX/비주얼
+
+VibeUsage는 consumer 앱처럼 그래픽을 앞세우지 않고 터미널을 1차 화면으로 삼는다. CLI 출력은 box-drawing header, 텍스트 표, bar, 색상 pace indicator, insight 한 줄로 구성된다. 장점은 설치 후 `vusage` 한 번으로 빠르게 확인하고 statusline·스크립트·cron에 연결할 수 있다는 점이다. 반대로 일반 사용자는 “sessions / tool calls / pace / recovery”의 의미를 학습해야 하며, 모바일·위젯·시각적 onboarding은 약하다.
+
+따라서 TokenJuice는 VibeUsage에서 **pace 기반 위험 판단, provider health, local history, smart routing의 의사결정 개념**을 가져오되, CLI의 정보 밀도와 인증 복잡성을 기본 UX로 가져오지 않는다. 이 기능들은 다음처럼 변환한다.
+
+| VibeUsage 개념 | TokenJuice 변환 |
+|---|---|
+| pace color | `on track / at risk / will exhaust` 문구 + 색상 + 아이콘 |
+| recovery guidance | “18분 쉬기”가 아니라 “checkpoint 후 Codex로 전환” 같은 작업 행동 |
+| smart routing | 자동 전환이 아닌 `현재 여유가 큰 provider 추천` |
+| provider health | quota 문제·auth 문제·provider outage를 분리한 WHY 영역 |
+| statusline | developer mode의 compact menu-bar/statusline |
+| local JSONL history | 사용자가 이해 가능한 History/Trend 화면과 export |
+
+### 15.2 Limits 조사 결과
+
+#### 제품 정의와 타깃
+
+Limits는 iPhone 중심의 “your AI usage, always in view” 제품이다. Codex, Claude Code, Cursor, Grok, Antigravity를 연결하고 session·weekly limit, reset countdown, Home/Lock Screen widget을 한 곳에 둔다. 별도 Limits 계정 없이 OAuth로 각 provider에 직접 인증하며, token은 iOS Keychain에, usage snapshot은 기기에 저장하고 자체 서버에는 보내지 않는다고 설명한다.
+
+#### 확인된 기능과 제품 운영
+
+| 기능 | 확인 내용 | 제품적 의미 |
+|---|---|---|
+| Glance dashboard | readable ring/bar gauge, used/remaining/reset countdown | 앱을 열지 않고 상태를 이해하게 함 |
+| Widgets | Home/Lock Screen, single-limit, compact/medium/large layouts, optional refresh | 반복 확인을 OS surface로 이동 |
+| Notifications | reset·unexpected weekly reset·unused Codex manual reset expiry 경고 | reset을 수동으로 기억하는 문제 해결 |
+| Intelligent ordering | 가장 급한 quota/account를 먼저 노출, manual ordering도 지원 | 우선순위가 화면 구조에 직접 반영 |
+| Multi-account | provider별 여러 계정, widget에서 계정 번호 표시 | 파워유저의 계정 전환 니즈 대응 |
+| Broad account meters | Claude spend caps, Codex Business/Enterprise monthly credit, Cursor team/credit/on-demand/included-request | 단순 개인 quota를 넘어 조직·예산까지 확장 |
+| Reset credit | account detail에서 credit redeem 후 즉시 refresh | 단순 관찰에서 quota 조작으로 한 단계 확장 |
+| Privacy UX | 연결별 필요한 scope와 Safari/provider sign-in 흐름을 설명하는 Privacy and connections screen | 민감한 인증을 제품 신뢰로 전환 |
+| Localization | 한국어 포함 다국어 지원 | 소비자용 접근성·확장성 |
+| Pricing | Free 시작, Pro 월 $2.99·연 $9.99·lifetime $19.99로 표시된 App Store 정보 | 저가 utility 구독/일회성 결제 모델 |
+
+#### Limits의 실제 UX/비주얼
+
+Limits는 밝고 차분한 iPhone utility UI다. 핵심 시각 언어는 provider logo + 수평 bar/ring + 큰 잔여 퍼센트 + reset countdown이다. widget은 화면 크기에 따라 한 계정·여러 계정·전체 provider를 재배치하고, 가장 급한 계정을 위로 올린다. App Store 업데이트 이력에서 widget clipping, provider name truncation, refresh stall, repeated alert를 계속 고친 점은 이 제품의 경쟁력이 “기능 수”보다 작은 화면에서의 신뢰성과 가독성에 있음을 보여준다.
+
+Limits에서 TokenJuice가 가져갈 것은 **urgent-first ordering, widget을 위한 정보 압축, provider/account identity, reset alert, 연결·권한을 설명하는 trust screen**이다. 다만 quota가 정상이어도 작업 컨텍스트가 위험할 수 있으므로, TokenJuice는 ring 하나로 quota·context·cost를 합치지 않고 별도 상태로 유지한다.
+
+### 15.3 두 서비스에서 새로 도출한 경쟁 인사이트
+
+| 질문 | VibeUsage의 답 | Limits의 답 | TokenJuice의 기회 |
+|---|---|---|---|
+| 무엇을 측정하나? | session·message·tool·token·pace | quota·reset·account | quota + context + project state |
+| 어디서 보나? | terminal·statusline·JSON | iPhone·widget·notification | menu bar + Pocket + 작업 중인 desktop |
+| 어떤 행동을 유도하나? | 더 효율적인 tool 사용·pause·provider 추천 | 기다리기·reset 확인·account 선택 | checkpoint·resume brief·안전한 provider 전환 |
+| 신뢰를 어떻게 만드나? | local history·read-only·attestation | Keychain·OAuth scope·no server | source·last success·freshness·reason을 한 화면에 표시 |
+| 주요 약점은? | 일반 사용자에게 CLI/용어가 어려움 | 작업·프로젝트 맥락이 없음 | 두 강점을 합치되 기본 화면은 단순하게 유지 |
+
+### 15.4 업데이트안에 추가하는 기능 우선순위
+
+#### P0: Work Continuity Alert
+
+VibeUsage의 pace와 Limits의 urgent-first를 결합한다. 단순히 `Claude 23%`가 아니라 다음처럼 표시한다.
+
+```text
+⚠ Claude: 5-hour window will exhaust soon
+WHY: fresh  ·  last checked 2m ago  ·  pace above safe rate
+NEXT: Save checkpoint → switch to Codex
+```
+
+#### P0: Trust & Connection Center
+
+Limits의 Privacy and connections screen을 참고해 provider별로 다음을 보여준다.
+
+- 어떤 계정에 연결됐는가
+- 어떤 방식으로 읽었는가
+- 마지막 성공 fetch는 언제인가
+- 현재 값이 live/fallback/stale 중 무엇인가
+- auth 만료·provider outage·rate limit 중 원인이 무엇인가
+
+#### P1: Usage Coach
+
+VibeUsage의 personalized insight를 차용하되 “토큰을 아껴라” 수준에서 멈추지 않는다.
+
+- 최근 session에서 context가 빠르게 증가했는가
+- tool call이 반복되거나 불필요한 file read가 많은가
+- checkpoint를 만들면 다음 session의 비용·복구 시간이 줄어드는가
+- 현재 provider보다 여유 있는 provider가 있는가
+
+초기에는 설명 가능한 rule-based insight만 제공하고, 충분한 데이터가 쌓이기 전에는 AI가 생산성 점수를 임의로 매기지 않는다.
+
+#### P1: Compact surfaces
+
+Limits의 widget 압축 원칙과 VibeUsage의 statusline을 결합해 menu bar·desktop compact view를 만든다. 기본값은 가장 급한 1~3개 상태만 보여주고, 전체 provider·trend·tool breakdown은 detail view로 보낸다.
+
+#### P2: Developer export / integrations
+
+VibeUsage의 JSON·history와 유사한 export, shell/statusline, webhook은 power-user용으로 추가한다. 일반 사용자의 첫 onboarding에 노출하지 않는다.
+
+### 15.5 리스크와 검증 조건
+
+- **OAuth/ToS 리스크**: VibeUsage README도 Claude consumer OAuth의 third-party usage 접근 제한을 명시한다. TokenJuice는 provider별 공식 API·허용된 local read·사용자 동의 범위를 분리해 connector별 법무/정책 검토를 거친다.
+- **데이터 신뢰 리스크**: background refresh는 iOS가 실행 시점을 결정하므로 Limits도 약 15분 주기라는 한계가 있다. TokenJuice는 timestamp와 freshness를 숨기지 않는다.
+- **과잉 분석 리스크**: tool call·token·heatmap을 홈에 모두 넣으면 VibeUsage의 개발자용 복잡성을 재현한다. coach/analytics는 detail로 보낸다.
+- **위젯 집착 리스크**: widget은 강력하지만 사용자 retention과 반복 확인 행동이 먼저 검증돼야 한다. P0의 checkpoint/resume보다 앞세우지 않는다.
+
+검증 조건은 다음으로 추가한다.
+
+1. 사용자가 urgent-first 카드만 보고 10초 안에 가장 안전한 다음 행동을 선택하는가
+2. live/fallback/stale와 auth/outage 차이를 30초 안에 설명하는가
+3. Usage Coach 제안의 50% 이상이 실제 checkpoint·provider 전환·tool workflow 개선으로 이어지는가
+4. 여러 provider를 쓰지 않는 사용자도 첫 provider 하나로 가치를 경험하는가
+5. widget/알림이 실제 재방문을 만들지 못하면 P2로 되돌리는가
+
+### 15.6 추가 출처
+
+- [VibeUsage 공식 사이트 — usage coach, local CLI, 5-hour/7-day insight](https://vibeusage.com/)
+- [VibeUsage GitHub README — install, pace, history, statusline, routing, provider status, security caveat](https://github.com/joshuadavidthomas/vibeusage/blob/main/README.md)
+- [VibeUsage dashboard 설명 — multi-tool, project/model/time-window, leaderboard](https://www.vibeusage.cc/?section=install)
+- [Limits 공식 사이트 — iPhone glance, widgets, reset notifications, privacy](https://getlimits.app/)
+- [Limits Support — OAuth 연결, background refresh, Keychain/on-device storage](https://getlimits.app/support)
+- [Limits App Store — 기능 업데이트, multi-account, widgets, reset credits, pricing](https://apps.apple.com/ca/app/limits-ai-usage-tracker/id6783130074)
