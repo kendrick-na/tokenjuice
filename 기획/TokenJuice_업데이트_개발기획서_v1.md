@@ -1302,3 +1302,22 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 - 사용자가 10초 안에 가장 위험한 상태를 찾는다.
 - 30초 안에 그 상태의 신뢰도와 원인을 설명한다.
 - 경고 후 실제로 checkpoint 또는 안전한 provider 전환을 수행한다.
+
+## 17. 2026-10-09 구현 백로그 inventory와 게이트
+
+| 항목 | 상태 | 증거 또는 남은 게이트 |
+|---|---|---|
+| v1.1 신뢰성 엔진·알림·진단 | 완료 | `CHANGELOG.md`, `32 pass` 엔진 회귀, release-verify |
+| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 구현 완료 | 엔진 fixture/Windows 문법 CI; Windows 실기기 렌더는 별도 장비 게이트 |
+| P0 UX1~UX5 | 구현 완료 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test |
+| P0 context checkpoint | 구현 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트 |
+| UX6 접근성·375px·5명 사용성 | 부분 완료 | 자동 라벨·progressbar·모바일 회귀는 통과; 대비 실측·키보드/스크린리더·실사용자 5명은 미실행 |
+| UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
+| UX8 알림 센터/설정 UX | 부분 완료 | 엔진 임계치·reset 알림은 완료; 계정별 UI 설정 센터는 미완료 |
+| UX9 메뉴바 상세 패널/compact | 구현 완료 | compact/notch 출력과 SwiftBar 설치본 비교 통과; 실제 notch 기기 시각 검증은 남음 |
+| UX10 랜딩/설치 경로 | 부분 완료 | README·Pocket 온보딩·Pages workflow 존재; 실제 신규 사용자 5명 검증은 남음 |
+| P1 7-day history/Usage Coach | 대기 | 2주 diary와 실제 행동 전환 데이터 필요; 임의 완료 처리하지 않음 |
+| P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자·provider 안전 adapter 검증 필요 |
+| 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
+
+완료 증거의 공통 기준은 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 통과다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.
