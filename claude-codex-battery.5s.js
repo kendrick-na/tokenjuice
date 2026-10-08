@@ -1571,11 +1571,12 @@ if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off"].i
     process.exit(1);
   }
 }
-if (argv[0]?.startsWith("--notify-target-threshold=") || argv[0]?.startsWith("--notify-target-reset=") || argv[0]?.startsWith("--notify-target-on=") || argv[0]?.startsWith("--notify-target-off=")) {
+if (argv[0]?.startsWith("--notify-target-threshold=") || argv[0]?.startsWith("--notify-target-reset=") || argv[0]?.startsWith("--notify-target-on=") || argv[0]?.startsWith("--notify-target-off=") || argv[0]?.startsWith("--notify-account-reconnect=")) {
   try {
     const prefix = argv[0].startsWith("--notify-target-threshold=") ? "--notify-target-threshold="
       : argv[0].startsWith("--notify-target-reset=") ? "--notify-target-reset="
-      : argv[0].startsWith("--notify-target-on=") ? "--notify-target-on=" : "--notify-target-off=";
+      : argv[0].startsWith("--notify-target-on=") ? "--notify-target-on="
+      : argv[0].startsWith("--notify-target-off=") ? "--notify-target-off=" : "--notify-account-reconnect=";
     const payload = argv[0].slice(prefix.length);
     const split = payload.lastIndexOf("=");
     const key = split < 1 ? payload : payload.slice(0, split);
@@ -1583,10 +1584,11 @@ if (argv[0]?.startsWith("--notify-target-threshold=") || argv[0]?.startsWith("--
     if (!key) throw new Error("target is required");
     const patch = prefix.includes("threshold") ? { threshold: Number(value) }
       : prefix.includes("reset") ? { reset: value === "on" }
+      : prefix.includes("reconnect") ? { reconnect: value === "on" }
       : { enabled: prefix.includes("-on=") };
     if (patch.threshold != null && (!Number.isFinite(patch.threshold) || patch.threshold <= 0 || patch.threshold >= 100)) throw new Error("threshold must be between 1 and 99");
     const override = updateNotifyTarget(key, patch);
-    console.log(`notification target updated: ${key} enabled=${override.enabled == null ? "global" : override.enabled} threshold=${override.threshold ?? "global"} reset=${override.reset == null ? "global" : override.reset}`);
+    console.log(`notification target updated: ${key} enabled=${override.enabled == null ? "global" : override.enabled} threshold=${override.threshold ?? "global"} reset=${override.reset == null ? "global" : override.reset} reconnect=${override.reconnect == null ? "off" : override.reconnect}`);
     process.exit(0);
   } catch (e) {
     console.error(`could not update notification target: ${String(e.message || e)}`);
@@ -1763,6 +1765,10 @@ function notificationPolicyFor(entry) {
     reset: override.reset == null ? global.reset : override.reset !== false,
   };
 }
+function notificationPolicyForAccount(accountIndex) {
+  const override = notifyConfig().overrides[`claude:${accountIndex}`] || {};
+  return { reconnect: override.reconnect === true };
+}
 const NOTIFY_STATE_FILE = path.join(CACHE_DIR, "notify-state.json");
 const NOTIFY_HYSTERESIS = 5; // percent points above the threshold before "back"
 function sendNotification(title, body) {
@@ -1784,6 +1790,20 @@ function runNotifications(entries) {
   try { st = JSON.parse(readFileSync(NOTIFY_STATE_FILE, "utf8")) || {}; } catch {}
   let changed = false;
   for (const e of entries) {
+    if (e.kind === "reconnect") {
+      const cfg = notificationPolicyForAccount(e.accountIndex);
+      const prev = st[e.key] || { active: false };
+      const active = cfg.reconnect && e.state === "auth_expired" && !e.stale;
+      if (active && !prev.active) {
+        const last = e.lastSuccessAt ? ` · last success ${fmtAgo(e.lastSuccessAt)}` : " · last success never";
+        const retry = e.retryAt ? ` · ${fmtRetryAt(e.retryAt)}` : "";
+        sendNotification("TokenJuice", `reconnect required · ${e.label} · reason login expired · next action: run claude login${last}${retry}`);
+        st[e.key] = { active: true, at: Date.now() }; changed = true;
+      } else if (!active && prev.active) {
+        st[e.key] = { active: false, at: Date.now() }; changed = true;
+      }
+      continue;
+    }
     const cfg = notificationPolicyFor(e);
     if (!cfg.enabled || e.state !== "fresh" || !Number.isFinite(e.remain)) continue;
     const prev = st[e.key] || { low: false };
@@ -1801,6 +1821,11 @@ function notificationEntries() {
   const out = [];
   claudes.forEach((cl, i) => {
     const state = cl.state ?? (cl.items.length ? "fresh" : "unavailable");
+    out.push({
+      key: `claude:${i}:reconnect`, kind: "reconnect", accountIndex: i,
+      label: accounts[i]?.name || `Claude account ${i + 1}`, state, stale: !!cl.stale,
+      lastSuccessAt: cl.lastSuccessAt ?? cl.at ?? null, retryAt: cl.retryAt ?? null,
+    });
     for (const it of cl.items) out.push({ key: `claude:${i}:${it.name}`, label: `Claude ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, state });
   });
   for (const it of codex.items) out.push({ key: `codex:${it.name}`, label: `Codex ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, state: codex.state ?? "fresh" });
@@ -2094,8 +2119,10 @@ for (let ai = 0; ai < accounts.length; ai++) {
   const title = accounts.length > 1 ? `Claude plan limits — ${accounts[ai].name}` : "Claude plan limits · account quota";
   const state = cl.state ?? (cl.stale ? "stale" : cl.items.length ? "fresh" : "unavailable");
   const badge = trustBadge({ state, source: cl.source });
+  const reconnectPolicy = notificationPolicyForAccount(ai);
   if (ai > 0) out.push("---");
   out.push(`${title}  ${badge.icon} ${badge.level} | size=13 color=#8b949e`);
+  out.push(`--Reconnect alerts: ${reconnectPolicy.reconnect ? "on" : "off"} · only for fresh auth expiry | bash='${SELF}' param1='--notify-account-reconnect=claude:${ai}=${reconnectPolicy.reconnect ? "off" : "on"}' terminal=false refresh=true`);
   out.push(`--${badge.icon} ${badge.text} | size=11 color=#8b949e`);
   if (cl.items.length) {
     for (const i of cl.items) {

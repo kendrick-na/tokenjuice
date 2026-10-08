@@ -359,6 +359,20 @@ test("notification overrides inherit global policy and target-specific threshold
   expect(run("--notify-target-on=claude:0:5-hour")).toContain("enabled=true");
 });
 
+test("reconnect alert is account opt-in, transition-safe, and prompt-free", () => {
+  config({ api: true, autoRenew: false, notify: { enabled: false } });
+  usage(401);
+  expect(run("--notify-account-reconnect=claude:0=on")).toContain("reconnect=true");
+  run(); run();
+  expect(notifications().length).toBe(1);
+  expect(notifications()[0]).toContain("reconnect required");
+  expect(notifications()[0]).toContain("reason login expired");
+  expect(notifications()[0]).toContain("next action: run claude login");
+  expect(notifications()[0]).toContain("last success never");
+  expect(notifications()[0]).not.toContain(SECRET_PROMPT);
+  expect(JSON.stringify(JSON.parse(readFileSync(path.join(home, ".config/claude-codex-battery/config.json"), "utf8")))).toContain("reconnect");
+});
+
 test("threshold alert fires once, reset alert fires once", () => {
   config({ api: true, notify: { enabled: true, threshold: 20 } });
   usage(200, okUsage(85, 10));
