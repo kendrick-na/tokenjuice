@@ -38,6 +38,26 @@ def contrast_ratio(foreground: str, background: str) -> float:
     return (max(first, second) + 0.05) / (min(first, second) + 0.05)
 
 
+def assert_no_horizontal_overflow(page) -> None:
+    dimensions = page.evaluate("({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth })")
+    assert dimensions["scrollWidth"] <= dimensions["innerWidth"], dimensions
+
+
+def visible_target_heights(page) -> list[float]:
+    return page.locator("button:visible, .primary-action:visible, footer a:visible, .snapshot-toolbar button:visible").evaluate_all(
+        "els => els.map(el => ({ id: el.id, text: (el.innerText || '').trim(), height: el.getBoundingClientRect().height }))"
+    )
+
+
+def assert_theme_contrast(page) -> None:
+    theme = page.evaluate("""() => {
+      const styles = getComputedStyle(document.documentElement);
+      return Object.fromEntries(['--ink', '--muted', '--faint', '--teal', '--panel-2'].map(name => [name, styles.getPropertyValue(name).trim()]));
+    }""")
+    for foreground in ("--ink", "--muted", "--faint", "--teal"):
+        assert contrast_ratio(theme[foreground], theme["--panel-2"]) >= 4.5, (foreground, theme)
+
+
 def main() -> None:
     with tempfile.TemporaryDirectory() as directory:
         snapshot = Path(directory) / "widget-snapshot.json"
@@ -57,13 +77,53 @@ def main() -> None:
             page.goto("http://127.0.0.1:4173", wait_until="networkidle")
             assert page.get_by_text("내 스냅샷 가져오기").is_visible()
             assert page.get_by_text("예시 화면 보기").is_visible()
+            assert page.get_by_label("내 스냅샷 가져오기").count() == 1
+            assert page.get_by_role("button", name="예시 화면 보기").is_visible()
             assert page.get_by_text("본문으로 건너뛰기").count() == 1
             assert page.locator("#content").count() == 1
-            theme = page.evaluate("""() => {
-              const styles = getComputedStyle(document.documentElement);
-              return { faint: styles.getPropertyValue('--faint').trim(), panel: styles.getPropertyValue('--panel-2').trim() };
-            }""")
-            assert contrast_ratio(theme["faint"], theme["panel"]) >= 4.5
+            # UX6: the supported mobile and desktop shells must not create a
+            # sideways scroll region. Desktop is checked explicitly because
+            # the account grid changes at the breakpoint.
+            assert_no_horizontal_overflow(page)
+            page.set_viewport_size({"width": 1280, "height": 900})
+            page.reload(wait_until="networkidle")
+            assert_no_horizontal_overflow(page)
+            page.set_viewport_size({"width": 375, "height": 812})
+            page.reload(wait_until="networkidle")
+            assert_no_horizontal_overflow(page)
+            targets = visible_target_heights(page)
+            assert min(target["height"] for target in targets) >= 44, targets
+            # UX6: emulate browser large text without changing the product
+            # data; the first-run CTA must remain readable and contained.
+            page.add_style_tag(content="html { font-size: 200% !important; }")
+            assert_no_horizontal_overflow(page)
+            assert page.get_by_text("내 스냅샷 가져오기").is_visible()
+            # The product intentionally uses one dark token set. A light
+            # preference must not silently swap to an untested palette.
+            page.emulate_media(color_scheme="light")
+            assert page.evaluate("getComputedStyle(document.documentElement).colorScheme") == "dark"
+            assert_theme_contrast(page)
+            assert_no_horizontal_overflow(page)
+            page.emulate_media(color_scheme=None)
+            page.reload(wait_until="networkidle")
+            # Keyboard-only: the first tab reaches the skip link and every
+            # visible tab stop exposes the shared focus-visible outline.
+            focus_order = []
+            for _ in range(12):
+                page.keyboard.press("Tab")
+                focused = page.evaluate("""() => {
+                  const el = document.activeElement;
+                  if (!el || el === document.body) return null;
+                  const box = el.getBoundingClientRect();
+                  const style = getComputedStyle(el);
+                  return { tag: el.tagName, id: el.id, text: (el.innerText || el.getAttribute('aria-label') || '').trim(), visible: box.width > 0 && box.height > 0, outline: parseFloat(style.outlineWidth) || 0 };
+                }""")
+                if focused and focused["visible"]:
+                    focus_order.append(focused)
+                    assert focused["outline"] >= 2, focused
+            assert focus_order[0]["text"] == "본문으로 건너뛰기", focus_order
+            assert any(item["id"] == "preview-demo" for item in focus_order), focus_order
+            assert_theme_contrast(page)
             # 첫 방문자는 자신의 파일 없이도 제품이 해결하는 문제를
             # 이해할 수 있어야 한다. 예시는 localStorage에 남지 않는다.
             page.get_by_text("예시 화면 보기").click()
@@ -71,11 +131,17 @@ def main() -> None:
             assert page.get_by_text("NOW", exact=True).is_visible()
             assert page.get_by_text("WHY", exact=True).is_visible()
             assert page.get_by_text("NEXT", exact=True).is_visible()
+            assert page.locator("#priority-card").get_attribute("aria-labelledby") == "priority-label"
             assert page.get_by_text("새 스냅샷 가져오기").is_visible()
             assert page.get_by_text("NOW", exact=True).is_visible()
             assert page.get_by_text("WHY", exact=True).is_visible()
             assert page.get_by_text("NEXT", exact=True).is_visible()
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") is None
+            # Reduced motion is a real media preference, not only a CSS text
+            # check: all entrance animations must resolve to near-zero.
+            page.emulate_media(reduced_motion="reduce")
+            assert page.evaluate("parseFloat(getComputedStyle(document.querySelector('.dashboard')).animationDuration)") <= 0.01
+            page.emulate_media(reduced_motion=None)
             page.reload(wait_until="networkidle")
             assert page.get_by_text("내 스냅샷 가져오기").is_visible()
             assert page.locator('link[rel="icon"]').get_attribute("href") == "./icons/tokenjuice-192.png"
@@ -103,6 +169,9 @@ def main() -> None:
             assert page.get_by_text("작업 컨텍스트").is_visible()
             assert page.get_by_text("checkpoint 권장").count() >= 1
             assert page.get_by_text("84% 사용").is_visible()
+            targets = visible_target_heights(page)
+            assert min(target["height"] for target in targets) >= 44, targets
+            assert_no_horizontal_overflow(page)
             with page.expect_download() as download_info:
                 page.get_by_text("메타데이터 checkpoint 저장").click()
             checkpoint = download_info.value
@@ -122,6 +191,17 @@ def main() -> None:
             page.reload(wait_until="domcontentloaded")
             assert page.get_by_text("Personal").is_visible()
             page.context.set_offline(False)
+
+            # The guide is a separate UX10 surface but shares the same 375px
+            # accessibility gate.
+            page.goto("http://127.0.0.1:4173/guide.html", wait_until="networkidle")
+            page.set_viewport_size({"width": 375, "height": 812})
+            page.reload(wait_until="networkidle")
+            assert_no_horizontal_overflow(page)
+            assert page.get_by_text("메뉴바에 설치").is_visible()
+            targets = visible_target_heights(page)
+            assert min(target["height"] for target in targets) >= 44, targets
+            page.goto("http://127.0.0.1:4173/", wait_until="networkidle")
 
             # Export with the real Bun engine and import it through the browser
             # WebCrypto path. This proves the two implementations interoperate.

@@ -1322,3 +1322,17 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
 최신 기능 코드 `5617b9a`의 Engine verification `37811131425`와 Windows build `37811131623`은 성공했다. 정식 patch release `v1.2.1`은 tag commit `f1a17763ab0ee004f7d6379f1ca03006def75163`에서 생성됐고 tagged workflow `37811984533`의 build/release가 성공했다. [v1.2.1 release](https://github.com/kendrick-na/tokenjuice/releases/tag/v1.2.1)의 macOS 엔진은 122,369 bytes, `sha256:be84b894ec70a97d4bc1a4104d1c8d3d9b4333f8bac9bd4ce818aaa6545f9cee`, Windows exe는 16,581,600 bytes, `sha256:2ef969f59beff624be915edb30a02cc441ca4db3e0d399f77add6a8bde9a9344`이며 모두 uploaded다. Pocket 배포 URL은 HTTP 200을 반환한다. 이후 문서-only 커밋은 release asset을 변경하지 않는다. 완료 증거의 공통 기준은 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 통과다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.
+
+### 17.1 UX6·UX8·UX9 자동 검증 연결표
+
+| 기준 | 자동 검증 증거 | 자동화로 대체하지 않는 실제 게이트 |
+|---|---|---|
+| 375px horizontal overflow | `tests/companion.test.py`의 `assert_no_horizontal_overflow`: 375×812에서 Pocket·guide, snapshot dashboard와 1280px desktop viewport를 각각 검사 | 실제 iOS Safari/Android Chrome의 viewport·safe-area 차이 |
+| browser text zoom / large text | 375px에서 `html { font-size: 200% }`를 주입하고 overflow·첫 CTA 가시성을 검사; header/footer 줄바꿈 포함 | OS 설정의 Dynamic Type·브라우저별 실제 text zoom 렌더 |
+| keyboard-only focus order/visibility | Tab 12회로 skip link 첫 진입, preview button 도달, 각 visible tab stop의 `outlineWidth >= 2` 검사 | 스크린리더가 읽는 순서·음성 명칭의 실제 이해 |
+| accessibility names/labels | `get_by_label("내 스냅샷 가져오기")`, role button name, `#priority-card[aria-labelledby="priority-label"]`, skip link·`#content` landmark 검사 | 실제 VoiceOver/NVDA/Android TalkBack 상호작용 |
+| touch target minimum | Pocket/guide의 visible button·primary action·footer link·toolbar button과 dashboard checkpoint CTA의 실제 bounding height를 모두 `>=44px`로 검사 | 실제 손가락 오조작·기기별 터치 hit slop |
+| prefers-reduced-motion | `emulate_media(reduced_motion="reduce")` 후 dashboard animation duration `<=0.01s` 검사; CSS 마지막 media override로 precedence 보장 | 멀미·인지 부담에 대한 사용자 평가 |
+| light/dark contrast 범위 | 현재 제품이 dark token set임을 `color-scheme: dark`로 고정하고, dark 및 light preference 에뮬레이션 양쪽에서 ink/muted/faint/teal 대 panel-2 대비 `>=4.5:1` 검사 | 별도 light theme는 구현 대상이 아니므로 light palette acceptance는 pending이 아니라 제품 범위 밖 |
+| UX8 OS notification | 엔진 fixture가 account reconnect opt-in, auth_expired transition 단일 발화, stale/unavailable/429 제외, threshold/reset 이유와 retry 시각을 검증; `CCB_TEST_NOTIFY_LOG`로 payload만 확인 | 실제 macOS Notification Center·Windows toast 표시, 권한·방해금지·스케줄링 |
+| UX9 compact/notch | compact override와 SwiftBar 설치본 일치, Windows 공통 엔진·CI를 자동 검증 | 실제 notch Mac에서 icon clipping·가독성은 물리 장치 필요 |

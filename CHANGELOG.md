@@ -12,6 +12,15 @@
 - 계정별 opt-in `reconnect` 알림과 auth_expired transition 중복 방지
 - Pocket 접근성 대비 보정과 최신 설치·CI 검증
 
+## [1.2.2] - 2026-10-09
+
+### 출시 범위
+
+- Pocket/guide 375px·desktop overflow 및 200% large-text 대응
+- keyboard focus-visible·ARIA name/landmark·44px touch target 자동 검증 확대
+- prefers-reduced-motion 우선순위 보정 및 실제 media emulation 테스트
+- dark token 대비 측정 범위 확대와 light preference 회귀 확인
+
 ## [1.1.0] - 출시 후보
 
 ### 추가
