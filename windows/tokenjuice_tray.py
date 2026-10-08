@@ -325,6 +325,28 @@ def explain_no_limits(reason: str | None, state: str | None = None) -> list[str]
     return ["no usage data yet"]
 
 
+def state_display_label(state: str | None) -> str:
+    """Stable engine states translated for the human-facing tray only."""
+    return {
+        "fresh": "방금 확인됨",
+        "fallback": "대체 정보",
+        "stale": "업데이트 필요",
+        "auth_expired": "다시 연결 필요",
+        "rate_limited": "제공자 제한 중",
+        "unavailable": "확인할 수 없음",
+    }.get(state, "상태 확인 필요")
+
+
+def state_recovery_hint(state: str | None) -> str:
+    return {
+        "fallback": "대체 경로에서 가져온 값",
+        "stale": "현재 값이 아니므로 숫자를 헤더에 표시하지 않음",
+        "auth_expired": "Claude Code에서 다시 로그인",
+        "rate_limited": "다음 확인 가능 시각까지 기다림",
+        "unavailable": "다음 수집 때 다시 확인",
+    }.get(state, "")
+
+
 def bar_text(remain: float, width: int = 12) -> str:
     filled = round(width * max(0.0, min(100.0, remain)) / 100)
     return "█" * filled + "░" * (width - filled)
@@ -402,14 +424,17 @@ class TrayApp:
                 source = acc.get("sourceLabel") or acc.get("source") or "unknown source"
                 retry = acc.get("retryAt")
                 retry_text = f" · retry {time.strftime('%H:%M', time.localtime(retry / 1000))}" if retry else ""
-                yield MenuItem(f"   {state.replace('_', ' ')} · {source} · {when}{retry_text}", None, enabled=False)
+                yield MenuItem(
+                    f"   {state_display_label(state)} · {state_recovery_hint(state)} · {source} · {when}{retry_text}",
+                    None, enabled=False,
+                )
             if not items:
                 # Say the actual cause. "log in" is wrong when you *are* logged in
                 # and the limits simply need API mode turned on.
                 for line in explain_no_limits(acc.get("reason"), state):
                     yield MenuItem(f"   {line}", None, enabled=False)
             elif state != "fresh":
-                yield MenuItem("   last value shown above is not live", None, enabled=False)
+                yield MenuItem("   위 값은 현재 값이 아닙니다", None, enabled=False)
             for i in items:
                 r = round(100 - i.get("used", 0))
                 yield MenuItem(f"   {i.get('name')}  {bar_text(r)}  {r}% left", None, enabled=False)
@@ -454,7 +479,8 @@ class TrayApp:
             if codex_status.get("state") and codex_status.get("state") != "fresh":
                 last = codex_status.get("lastSuccessAt") or codex_status.get("observedAt")
                 when = f"last success {fmt_ago(last)}" if last else "no successful reading"
-                yield MenuItem(f"   {codex_status.get('state')} · {when}", None, enabled=False)
+                state = codex_status.get("state")
+                yield MenuItem(f"   {state_display_label(state)} · {state_recovery_hint(state)} · {when}", None, enabled=False)
             for i in codex:
                 r = round(100 - i.get("used", 0))
                 yield MenuItem(f"   {i.get('name')}  {bar_text(r)}  {r}% left", None, enabled=False)
@@ -465,7 +491,7 @@ class TrayApp:
             state = provider.get("state") or "unavailable"
             yield MenuItem(f"{label} — local quota file", None, enabled=False)
             if state != "fresh":
-                yield MenuItem(f"   {state.replace('_', ' ')} · no live number", None, enabled=False)
+                yield MenuItem(f"   {state_display_label(state)} · 실시간 숫자 없음", None, enabled=False)
             for item in provider.get("items") or []:
                 r = round(100 - item.get("used", 0))
                 yield MenuItem(f"   {item.get('name')}  {bar_text(r)}  {r}% left", None, enabled=False)

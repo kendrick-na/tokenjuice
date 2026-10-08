@@ -234,7 +234,7 @@ test("429 honours Retry-After: no request until then, human countdown shown", ()
   expect(calls()).toBe(1); // only the first render reached the endpoint
   const menu = run();
   expect(menu).toMatch(/retry in (59|60)m \(\d\d:\d\d\)|retry in 1h 00m/);
-  expect(menu).toContain("No requests are sent until then");
+  expect(menu).toContain("그때까지 요청하지 않으며 자동으로 다시 확인합니다");
 });
 
 test("429 without Retry-After still backs off at least 5 minutes", () => {

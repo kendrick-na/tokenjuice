@@ -549,6 +549,27 @@ function stateLabel(state) {
     : state || "unknown";
 }
 
+// 기계 소비자(--json/--text)에는 안정적인 영문 state를 그대로 제공한다. 이 함수는
+// 메뉴에서만 쓰는 사람 중심 언어다. PWA·macOS·Windows가 같은 상태 의미를 보여 준다.
+function stateDisplayLabel(state) {
+  return state === "fresh" ? "방금 확인됨"
+    : state === "fallback" ? "대체 정보"
+    : state === "stale" ? "업데이트 필요"
+    : state === "auth_expired" ? "다시 연결 필요"
+    : state === "rate_limited" ? "제공자 제한 중"
+    : state === "unavailable" ? "확인할 수 없음"
+    : "상태 확인 필요";
+}
+
+function stateRecoveryHint(state) {
+  return state === "fallback" ? "대체 경로에서 가져온 값입니다"
+    : state === "stale" ? "현재 값이 아니므로 헤더에 숫자를 표시하지 않습니다"
+    : state === "auth_expired" ? "Claude Code에서 다시 로그인하세요"
+    : state === "rate_limited" ? "다음 확인 가능 시각까지 기다립니다"
+    : state === "unavailable" ? "다음 수집 때 다시 확인합니다"
+    : "";
+}
+
 function fmtRetryAt(retryAt) {
   if (!retryAt || !Number.isFinite(Number(retryAt))) return "";
   const t = new Date(Number(retryAt));
@@ -1950,7 +1971,7 @@ for (let ai = 0; ai < accounts.length; ai++) {
       const last = cl.lastSuccessAt ?? cl.at;
       const when = last ? `last success ${fmtAgo(last)}` : "no successful reading";
       const retry = fmtRetryAt(cl.retryAt);
-      const note = state === "fallback" ? "using fallback source" : `not live (${stateLabel(state)})`;
+      const note = `${stateDisplayLabel(state)} · ${stateRecoveryHint(state)}`;
       out.push(`${state === "fallback" ? "↪" : "⚠️"} ${note} · ${when}${retry ? ` · ${retry}` : ""} | size=11 color=#ffcc00`);
     }
   } else if (cl.reason === "needs-api") {
@@ -1961,13 +1982,13 @@ for (let ai = 0; ai < accounts.length; ai++) {
     out.push('--  export CCB_API=1   — or  ~/.config/claude-codex-battery/config.json {"api":true} | font=Menlo size=11 color=#8b949e');
     out.push("--Sessions & Codex work without this. | size=11 color=#8b949e");
   } else if (cl.reason === "app-stale") {
-    out.push("⏸ Claude app paused usage sampling | size=12 color=#ffcc00");
-    out.push("--Fix: open the usage view from Claude's menu bar icon — it only polls if opened in the last 24h | size=11 color=#ffcc00");
+    out.push("⏸ 업데이트 필요 · Claude 앱의 사용량 수집이 멈췄습니다 | size=12 color=#ffcc00");
+    out.push("--조치: Claude 메뉴 막대 아이콘에서 사용량 화면을 여세요 (24시간 안에 열어야 수집합니다) | size=11 color=#ffcc00");
   } else if (cl.reason === "auth" || state === "auth_expired") {
-    out.push("🔐 Claude login expired — no live number | size=12 color=#ff453a");
+    out.push("🔐 다시 연결 필요 · Claude 로그인 만료 (실시간 숫자 없음) | size=12 color=#ff453a");
     if (cl.appLast) {
       out.push(`--Claude app stopped sampling (last ${fmtAgo(cl.appLast.at)}: 5-hour ${100 - cl.appLast.fh}% · weekly ${100 - cl.appLast.sd}% left) | size=11 color=#8b949e`);
-      out.push("--Fix: open the usage view from Claude's menu bar icon — it only polls if opened in the last 24h | size=11 color=#ffcc00");
+      out.push("--조치: Claude 메뉴 막대 아이콘에서 사용량 화면을 여세요 (24시간 안에 열어야 수집합니다) | size=11 color=#ffcc00");
     }
     const retry = fmtRetryAt(cl.retryAt);
     if (retry) out.push(`--Next try ${retry.replace(/^retry /, "")} | size=11 color=#8b949e`);
@@ -1978,8 +1999,8 @@ for (let ai = 0; ai < accounts.length; ai++) {
     // R4: the usage endpoint asked us to back off (Retry-After); we obey it and
     // make no request until then.
     const retry = fmtRetryAt(cl.retryAt);
-    out.push(`⏳ Usage server asked us to wait${retry ? ` — ${retry}` : ""} | size=12 color=#ffcc00`);
-    out.push("--No requests are sent until then · retries automatically | size=11 color=#8b949e");
+    out.push(`⏳ 제공자 제한 중 · ${stateRecoveryHint("rate_limited")}${retry ? ` — ${retry}` : ""} | size=12 color=#ffcc00`);
+    out.push("--그때까지 요청하지 않으며 자동으로 다시 확인합니다 | size=11 color=#8b949e");
   } else {
     out.push("⚠️ Couldn't load usage | size=12 color=#ff453a");
     out.push(`--${(cl.error || "").slice(0, 60)} | size=11 color=#8b949e`);
