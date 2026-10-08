@@ -1316,7 +1316,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | UX8 알림 센터/설정 UX | 부분 완료 | 메뉴에서 on/off·threshold·reset 알림을 직접 제어하고 현재 정책을 표시; 계정별 세부 설정 센터는 미완료 |
 | UX9 메뉴바 상세 패널/compact | 구현 완료 | compact/notch 출력과 SwiftBar 설치본 비교 통과; 실제 notch 기기 시각 검증은 남음 |
 | UX10 랜딩/설치 경로 | 부분 완료 | README·Pocket 온보딩·Pages workflow 존재; 실제 신규 사용자 5명 검증은 남음 |
-| P1 7-day history/Usage Coach | 대기 | 2주 diary와 실제 행동 전환 데이터 필요; 임의 완료 처리하지 않음 |
+| P1 7-day history/Usage Coach | 부분 구현/검증 대기 | opt-in local pace history 7일 JSON export 추가; 시각적 trend·Usage Coach 우선순위는 2주 diary와 실제 행동 전환 데이터 필요 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자·provider 안전 adapter 검증 필요 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 

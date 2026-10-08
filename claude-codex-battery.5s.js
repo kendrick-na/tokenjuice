@@ -1588,6 +1588,15 @@ if (argv[0]?.startsWith("--notify-target-threshold=") || argv[0]?.startsWith("--
     process.exit(1);
   }
 }
+if (argv[0] === "--forecast-history") {
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  console.log(JSON.stringify({
+    format: "tokenjuice-forecast-history-v1",
+    scope: "local pace observations, last 7 days",
+    observations: readForecastHistory().filter((row) => row.at >= cutoff).map((row) => ({ key: row.key, at: row.at, used: row.used })),
+  }, null, 2));
+  process.exit(0);
+}
 // --renew-login: the dropdown's "Renew Claude login now" (user-initiated, so it
 // ignores autoRenew:false but still refuses to run twice within a minute).
 if (argv[0] === "--renew-login") {
@@ -2263,6 +2272,7 @@ if (notificationTargets.length) {
     out.push(`----${target.label} reset ${targetPolicy.reset ? "off" : "on"} | bash='${SELF}' param1='--notify-target-reset=${target.key}=${targetPolicy.reset ? "off" : "on"}' terminal=false refresh=true`);
   }
 }
+if (forecastEnabled()) out.push(`--Export local pace history (7 days) | bash='${SELF}' param1=--forecast-history terminal=false`);
 if (!existsSync(CONFIG_FILE)) {
   // v1.2 first-run disclosure. It is deliberately visible in the product,
   // rather than being only a README promise. Creating the config below does

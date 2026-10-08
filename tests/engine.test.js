@@ -223,6 +223,18 @@ test("pace forecast is opt-in, local-only, and resets its baseline after a quota
   expect(afterReset.forecast.usedPerHour).toBeGreaterThan(0);
 });
 
+test("forecast history export is local, bounded to seven days, and prompt-free", () => {
+  config({ forecast: { enabled: true } });
+  cache("quota-history.json", { version: 1, observations: [
+    { key: "0:5-hour", at: Date.now() - 2 * 86400000, used: 30 },
+    { key: "0:5-hour", at: Date.now() - 8 * 86400000, used: 10 },
+  ] });
+  const history = JSON.parse(run("--forecast-history"));
+  expect(history.format).toBe("tokenjuice-forecast-history-v1");
+  expect(history.observations.length).toBe(1);
+  expect(JSON.stringify(history)).not.toContain(SECRET_PROMPT);
+});
+
 // ── R4 · 429 back-off ────────────────────────────────────────────────────
 test("429 honours Retry-After: no request until then, human countdown shown", () => {
   usage(429, {}, { "retry-after": "3600" });
