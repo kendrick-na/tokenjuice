@@ -695,6 +695,13 @@ function createStarterConfig() {
   writeFileSync(CONFIG_FILE, `${JSON.stringify(starter, null, 2)}\n`, { flag: "wx" });
   return { created: true, path: CONFIG_FILE };
 }
+function updateNotifyConfig(patch) {
+  const current = readConfig();
+  const next = { ...current, notify: { ...(current.notify || {}), ...patch } };
+  mkdirSync(CONFIG_DIR, { recursive: true });
+  writeFileSync(CONFIG_FILE, `${JSON.stringify(next, null, 2)}\n`);
+  return next.notify;
+}
 
 // The usage call. CCB_TEST_USAGE_FIXTURE=<file> (tests only) replaces the
 // keychain read and the network with a canned {status, headers, body} and logs
@@ -1540,6 +1547,22 @@ if (argv[0] === "--init-config") {
     process.exit(1);
   }
 }
+if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off"].includes(argv[0]) || argv[0]?.startsWith("--notify-threshold=")) {
+  try {
+    const patch = argv[0] === "--notify-on" ? { enabled: true }
+      : argv[0] === "--notify-off" ? { enabled: false }
+      : argv[0] === "--notify-reset-on" ? { reset: true }
+      : argv[0] === "--notify-reset-off" ? { reset: false }
+      : { threshold: Number(argv[0].split("=")[1]) };
+    if (patch.threshold != null && (!Number.isFinite(patch.threshold) || patch.threshold <= 0 || patch.threshold >= 100)) throw new Error("threshold must be between 1 and 99");
+    const notify = updateNotifyConfig(patch);
+    console.log(`notifications updated: enabled=${notify.enabled === true} threshold=${notify.threshold ?? 20} reset=${notify.reset !== false}`);
+    process.exit(0);
+  } catch (e) {
+    console.error(`could not update notifications: ${String(e.message || e)}`);
+    process.exit(1);
+  }
+}
 // --renew-login: the dropdown's "Renew Claude login now" (user-initiated, so it
 // ignores autoRenew:false but still refuses to run twice within a minute).
 if (argv[0] === "--renew-login") {
@@ -2186,6 +2209,14 @@ out.push(`--Copy diagnostics to clipboard | bash='${SELF}' param1=--copy-diagnos
 if (IS_MAC) {
   out.push(`--Pocket으로 내보내고 열기 (로컬 파일만 생성) | bash='${SELF}' param1=--open-pocket terminal=false`);
 }
+const notificationPolicy = notifyConfig();
+out.push("---");
+out.push(`Alert settings · ${notificationPolicy.enabled ? "on" : "off"} · threshold ${notificationPolicy.threshold}% · reset ${notificationPolicy.reset ? "on" : "off"} | size=13 color=#8b949e`);
+out.push(`--${notificationPolicy.enabled ? "Turn alerts off" : "Turn alerts on"} | bash='${SELF}' param1=--notify-${notificationPolicy.enabled ? "off" : "on"} terminal=false refresh=true`);
+out.push(`--Set alert threshold: 10% | bash='${SELF}' param1=--notify-threshold=10 terminal=false refresh=true`);
+out.push(`--Set alert threshold: 20% | bash='${SELF}' param1=--notify-threshold=20 terminal=false refresh=true`);
+out.push(`--Set alert threshold: 30% | bash='${SELF}' param1=--notify-threshold=30 terminal=false refresh=true`);
+out.push(`--Reset alerts: ${notificationPolicy.reset ? "off" : "on"} | bash='${SELF}' param1=--notify-reset-${notificationPolicy.reset ? "off" : "on"} terminal=false refresh=true`);
 if (!existsSync(CONFIG_FILE)) {
   // v1.2 first-run disclosure. It is deliberately visible in the product,
   // rather than being only a README promise. Creating the config below does

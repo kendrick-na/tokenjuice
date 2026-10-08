@@ -1313,7 +1313,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | P0 context checkpoint | 구현 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트 |
 | UX6 접근성·375px·5명 사용성 | 부분 완료 | 자동 라벨·progressbar·모바일 회귀는 통과; 대비 실측·키보드/스크린리더·실사용자 5명은 미실행 |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
-| UX8 알림 센터/설정 UX | 부분 완료 | 엔진 임계치·reset 알림은 완료; 계정별 UI 설정 센터는 미완료 |
+| UX8 알림 센터/설정 UX | 부분 완료 | 메뉴에서 on/off·threshold·reset 알림을 직접 제어하고 현재 정책을 표시; 계정별 세부 설정 센터는 미완료 |
 | UX9 메뉴바 상세 패널/compact | 구현 완료 | compact/notch 출력과 SwiftBar 설치본 비교 통과; 실제 notch 기기 시각 검증은 남음 |
 | UX10 랜딩/설치 경로 | 부분 완료 | README·Pocket 온보딩·Pages workflow 존재; 실제 신규 사용자 5명 검증은 남음 |
 | P1 7-day history/Usage Coach | 대기 | 2주 diary와 실제 행동 전환 데이터 필요; 임의 완료 처리하지 않음 |
