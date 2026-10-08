@@ -1705,6 +1705,13 @@ function buildWidgetSnapshot() {
     used: Number(item.used),
     resets: item.resets ?? null,
     state: item.state ?? null,
+    forecast: item.forecast ? {
+      kind: "local_pace_estimate",
+      beforeReset: !!item.forecast.beforeReset,
+      exhaustionAt: item.forecast.exhaustionAt ?? null,
+      samples: Number(item.forecast.samples) || 0,
+      usedPerHour: Number(item.forecast.usedPerHour) || 0,
+    } : null,
   });
   return {
     contractVersion: 1,

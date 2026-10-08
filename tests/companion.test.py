@@ -21,7 +21,7 @@ SNAPSHOT = {
         "source": "local",
         "lastSuccessAt": 1791390000000,
         "retryAt": None,
-        "items": [{"name": "5-hour", "used": 35, "resets": "2026-10-08T19:00:00.000Z"}],
+        "items": [{"name": "5-hour", "used": 35, "resets": "2026-10-08T19:00:00.000Z", "forecast": {"kind": "local_pace_estimate", "beforeReset": True, "samples": 4, "usedPerHour": 8.5}}],
     }],
     "codex": {"state": "rate_limited", "source": "codex-jsonl", "lastSuccessAt": None, "retryAt": 1791393600000, "items": []},
     "providers": [{"id": "cursor", "label": "Cursor", "state": "fresh", "source": "external-local-file", "items": [{"name": "Monthly", "used": 10, "resets": None}]}],
@@ -68,6 +68,7 @@ def main() -> None:
             page.locator("#snapshot-file").set_input_files(str(snapshot))
             page.get_by_text("Personal").wait_for()
             assert page.get_by_text("65%").is_visible()
+            assert page.get_by_text("리셋 전 소진 예상").is_visible()
             assert page.get_by_text("제공자 제한 중", exact=True).is_visible()
             assert page.get_by_text("다음 행동").count() >= 2
             # retryAt은 snapshot 계약에서 Unix ms다. 초처럼 다시 곱하지 않는다.

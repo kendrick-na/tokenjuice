@@ -361,6 +361,7 @@ test("widget snapshot is an explicit local-only export with no prompt content", 
   expect(snapshot.contractVersion).toBe(1);
   expect(snapshot.transport).toBe("local_export_only");
   expect(snapshot.claude[0].items.length).toBeGreaterThan(0);
+  expect(snapshot.claude[0].items[0]).toHaveProperty("forecast");
   expect(snapshot.sessions.every((session) => session.kind === "context")).toBe(true);
   expect(JSON.stringify(snapshot)).not.toContain('"topic"');
   expect(JSON.stringify(snapshot)).not.toContain(SECRET_PROMPT);
