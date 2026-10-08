@@ -746,3 +746,193 @@ Product Hunt에서 BlackFlare는 Mac 깨우기·완료/승인 알림·plan usage
 58. [Cursor 공식 문서 — background agent의 상태·handoff·보안 경계](https://docs.cursor.com/background-agent)
 59. [ClaudeUsageBar Product Hunt — 한눈 확인·경고·설치 후 즉시 동작이라는 이용자 가치 제안](https://www.producthunt.com/products/claudeusagebar)
 60. [Spotlight by Backplanes Product Hunt — Claude/Codex 세션을 행동 가능한 요약으로 바꾸는 가치 제안](https://www.producthunt.com/products/backplanes)
+
+---
+
+## 13. 2026-10-09 전략 업데이트 — AI Limits Tracker와 경쟁서비스 재검증
+
+> 이 섹션은 기존 v1 기획서의 경쟁 조사와 BM 가설을 최신 공개 자료로 재검증한 **우선 적용 부록**이다. 기존 내용과 충돌하는 경우 이 섹션의 판단을 우선한다. 특히 `AI Limits Tracker`(JoCoding)와 이름이 비슷한 별도 앱 `Limits: AI Usage Tracker`(다른 개발자)의 리뷰·가격·개인정보 정보를 섞지 않는다.
+
+### 13.1 먼저 바로잡을 대상 구분
+
+| 제품 | 운영 주체 | 핵심 표면 | 이번 기획에서의 역할 |
+|---|---|---|---|
+| **AI Limits Tracker** | JoCoding, Inc. | iPhone·Mac 메뉴바·Apple Watch·Android | 가장 직접적인 상용 비교 대상 |
+| **Limits: AI Usage Tracker** | 별도 개발자 | iPhone 위젯·Lock Screen·다중 계정 | 이름 유사 제품. AI Limits Tracker의 리뷰로 인용하지 않음 |
+| **OpenUsage** | 오픈소스 프로젝트 | macOS 메뉴바·터미널·statusline | 다중 provider·비용·개발자 관측성 기준점 |
+| **ClaudeCodeUsage** | 오픈소스 VS Code 확장 | VS Code status bar/dashboard | IDE 안에 들어간 로컬 usage 기준점 |
+| **VibeUsage·UsageDeck·OpenQuota** | 소규모 오픈소스/개인 프로젝트 | CLI·desktop·cross-platform | 시장의 반복되는 수요를 확인하는 보조 경쟁군 |
+
+AI Limits Tracker의 최신 App Store 페이지는 JoCoding, Inc.가 운영하며 iPhone·Mac·Apple Watch를 지원한다고 표시한다. 공식 기능은 provider별 사용량·리셋 시각, 연결 계정 정리, iCloud Keychain/CloudKit 기반 Apple 기기 연결, Home Screen widget, 로컬 알림, 별도 회원가입 없음이다. App Store 표시 가격은 Lifetime Pro US$29.99, Annual Pro US$14.99, Monthly Pro US$2.99다. [출처: AI Limits Tracker App Store](https://apps.apple.com/us/app/ai-limits-tracker/id6801493876)
+
+2026-10-09 확인 기준 최신 버전은 **1.0.23**이다. 최근 업데이트에서 단순 한도 표시를 넘어 다음 기능을 추가했다.
+
+- 한도가 리셋 전에 소진될 경우 빨간색 `Runs out` 시각 표시
+- 제공자 장애를 보여주는 Status 탭과 Apple Watch badge
+- Antigravity 한도의 모델명 표시
+- Codex reset credit 표시 및 앱/Apple Watch에서 직접 사용
+- 마지막 성공값을 유지하는 widget refresh와 provider 장애 상태 처리
+- 7일 사용 추세와 소진 예상 시각
+- 새 사용자 sign-in tour, purchase restore, multi-device 계정 삭제 동기화 개선
+
+이 변화는 AI Limits Tracker의 제품 방향이 “한도 숫자판”에서 **사용자가 다음에 무엇을 해야 하는지 알려주는 운영 화면**으로 이동하고 있음을 의미한다. 따라서 TokenJuice가 단순히 `C/S/X` 배터리를 더 예쁘게 만들거나 provider 수를 늘리는 것만으로는 충분하지 않다.
+
+### 13.2 경쟁서비스 전체 기능 지도
+
+| 제품군 | 사용자가 사는 가치 | 주요 기능 | TokenJuice가 배워야 할 점 | 그대로 따라 하면 안 되는 점 |
+|---|---|---|---|---|
+| AI Limits Tracker | 어디서든 공식 한도와 reset을 확인 | 모바일/Watch widget, 다중 계정, reset credit, local alert, Status, 소진 예상 | 온보딩, 신뢰 가능한 마지막 성공값, `Runs out`, reset credit UX | Apple 생태계·provider 인증을 그대로 확장하면 개발/보안 비용이 급증 |
+| Limits | 작은 비용으로 여러 계정의 quota를 한눈에 확인 | iPhone/Lock Screen widget, reset alert, Codex credit expiry, pace warning | 저가 utility와 widget의 습관성 | 이름·가격·리뷰를 AI Limits Tracker와 혼동하지 않기 |
+| OpenUsage | 모든 AI coding stack의 운영 데이터 통합 | 35~36 provider, quota, spend, token, burn rate, history, SQLite, tmux/statusline, JSON/CSV, Prometheus | 개발자용 observability와 로컬 history | provider 수 경쟁, API key/cookie/auth path 확장 |
+| ClaudeCodeUsage | IDE를 떠나지 않고 사용량 확인 | Claude Code/Codex local usage, VS Code status bar, dashboard, session/cost estimate | 현재 작업 표면에 들어가는 UX | 단순 비용 추정치를 provider quota와 섞지 않기 |
+| VibeUsage/UsageDeck/OpenQuota | 여러 provider를 섞는 개발자의 가벼운 통합 | CLI/desktop, token history, reset, estimated spend, cross-platform | Windows/Linux까지 포함한 배포·검색 수요 | 작은 프로젝트를 모두 별도 adapter로 흡수하지 않기 |
+| Agent workflow 제품군 | agent가 묻거나 멈추는 순간을 놓치지 않기 | 승인 요청, 질문, 완료 알림, session board, context meter, remote control | quota보다 “작업 중단”을 해결하는 방향 | 처음부터 거대한 command center가 되지 않기 |
+| 팀용 observability | 팀의 사용량·비용·adoption 관리 | 조직 dashboard, session trace, spend, policy, reports | 향후 B2B 가능성 | prompt/code 업로드를 기본값으로 도입하지 않기 |
+
+OpenUsage는 공식 사이트에서 35개 이상 provider의 quota·spend·rate limit·token·burn rate를 로컬에서 보여준다고 설명하며, GitHub 저장소에는 217 stars·25 forks가 표시된다. Claude provider 문서는 session, weekly, model-scoped limit, extra usage, rate-limit reset을 별도로 다룬다. 이는 “다중 provider 관측” 자체에는 이미 강한 무료 경쟁이 있다는 뜻이다. [OpenUsage](https://openusage.sh/) · [OpenUsage GitHub](https://github.com/janekbaraniewski/openusage) · [Claude provider 문서](https://github.com/robinebers/openusage/blob/main/docs/providers/claude.md)
+
+### 13.3 실제 사용자가 돈을 내는 이유에 대한 업데이트
+
+현재 공개 증거로 확인되는 지불 이유는 “일반 유저가 AI 사용량을 궁금해한다”가 아니다. 다음 네 조건 중 두 개 이상이 겹치는 파워유저가 돈을 낸다.
+
+1. Claude·Codex·Cursor 등 **두 개 이상의 provider 또는 계정**을 매일 사용한다.
+2. 한도에 걸리면 프로젝트 납기·업무·에이전트 실행이 실제로 중단된다.
+3. 모바일·메뉴바·Watch처럼 **계속 보이는 표면**이 필요하다.
+4. reset credit·소진 예상·provider 장애를 놓치면 이미 지불한 구독료를 낭비한다.
+
+그러므로 TokenJuice의 일반 소비자 전환율은 낮게 보는 것이 맞다. 반대로 고빈도 vibe coder, 프리랜서, AI agent를 업무에 붙인 소규모 팀에는 충분한 지불 이유가 있다. “세션 context 퍼센트”를 팔면 안 되고, **중단을 예방하고 작업을 이어가는 결과**를 팔아야 한다.
+
+### 13.4 업데이트된 제품 전략
+
+#### 포지셔닝
+
+기존 문구:
+
+> Claude Code와 Codex 사용량을 메뉴바에서 보여주는 battery tracker
+
+업데이트 문구:
+
+> **AI 코딩 작업이 한도·context 부족으로 끊기기 전에, 다음 작업까지 이어주는 로컬 작업 연속성 도구**
+
+AI Limits Tracker의 quota/reset 데이터는 경쟁 또는 선택적 connector로 취급하고, TokenJuice의 본체는 다음 판단으로 정의한다.
+
+> **Quota + Context + Trust + Project State → 다음 행동 추천**
+
+여기서 `Trust`는 `fresh`, `fallback`, `stale`, `auth_expired`, `rate_limited`, `unavailable` 상태를 의미한다. 숫자를 보여주는 것보다 숫자를 믿어도 되는지 알려주는 것이 TokenJuice의 가장 강한 차별화다.
+
+#### 권장 첫 고객
+
+| 우선순위 | 고객 | 강한 문제 | 검증 질문 |
+|---|---|---|---|
+| P0 | Claude Code + Codex를 매일 함께 쓰는 개인 | 한도·context를 오가며 작업이 끊김 | 이번 주에 한도 때문에 작업을 바꾼 횟수는? |
+| P0 | 여러 계정을 쓰는 vibe coder/프리랜서 | 어느 계정이 살아 있는지 모름 | 계정별 reset을 놓쳐 낭비한 적이 있는가? |
+| P1 | AI agent를 업무에 붙인 소규모 팀 | agent 승인·중단·비용 통제가 안 됨 | 작업 중단 1회 비용이 얼마인가? |
+| P2 | 일반 AI/가끔 코딩하는 사용자 | 문제 빈도가 낮음 | provider 기본 화면보다 무엇이 더 필요한가? |
+
+P2를 초기 핵심 고객으로 잡지 않는다. 일반 사용자는 무료 Pocket이나 provider 기본 화면으로 유입시키고, P0의 실제 작업 중단 문제를 해결하는 것이 우선이다.
+
+### 13.5 기능 업데이트안 — “슈퍼 서비스”의 올바른 범위
+
+#### Phase A — 무료 로컬 코어 강화
+
+- 기존 Claude·Codex 한도, 세션 context, trust 상태 유지
+- provider별 `last success`, `next retry`, `source`, `reason`을 동일한 카드 구조로 표시
+- 한도/세션/context를 한 숫자로 합치지 않고 별도 행으로 유지
+- `stale` 값은 최신값처럼 보이지 않게 하고, “마지막 성공값”임을 항상 표시
+- macOS SwiftBar·Windows tray·Linux CLI에서 동일한 JSON 계약 유지
+- 첫 실행 후 30초 안에 “데이터가 어디에서 왔는지” 확인 가능한 진단 화면 제공
+
+#### Phase B — Work Continuity 기능
+
+- context 80% 이상: `checkpoint 권장`
+- limit 20% 이하: `provider 전환 또는 짧은 작업 권장`
+- 둘 다 위험: `현재 세션을 요약하고 새 세션으로 이어가기`
+- stale/auth expired: 자동 전환하지 않고 먼저 재연결 안내
+- 프로젝트·브랜치·최근 파일·마지막 작업 의도를 로컬 checkpoint로 저장
+- 새 세션에서 복구할 수 있는 “resume brief” 생성
+
+이 단계가 TokenJuice의 핵심 차별화다. AI Limits Tracker가 “Runs out”을 보여준다면, TokenJuice는 “그래서 지금 무엇을 저장·전환·재개할지”까지 연결해야 한다.
+
+#### Phase C — 선택적 provider connector
+
+- AI Limits Tracker처럼 직접 provider usage를 읽는 기능은 opt-in connector로 둔다.
+- provider credentials를 TokenJuice 서버로 보내지 않는다.
+- 공식값·로컬집계·추정값을 각각 다른 `kind`와 `trust`로 표시한다.
+- reset credit은 provider가 직접 반환한 경우에만 표시하고, 로컬 추정으로 만들지 않는다.
+- 첫 후보는 Claude/Codex이며, OpenUsage처럼 30개 provider 지원을 목표로 삼지 않는다.
+
+#### Phase D — Pocket과 cross-device
+
+- 현재 Pocket의 수동 snapshot import는 유지한다.
+- 자동 cloud sync는 기본값으로 만들지 않는다.
+- 사용자가 명시적으로 켠 경우에만 encrypted checkpoint sync를 제공한다.
+- 모바일에서 전체 session log나 prompt를 보여주지 않고, quota·trust·resume brief만 표시한다.
+- push notification은 서버 업로드와 분리해 설계한다.
+
+#### Phase E — 팀용은 별도 검증
+
+- 개인 제품에 곧바로 prompt/code 업로드형 SaaS를 넣지 않는다.
+- 팀 기능은 먼저 로컬 집계 export와 opt-in 공유로 시작한다.
+- 팀 dashboard를 만들 때는 prompt 원문·소스코드·토큰이 기본 수집되지 않는 계약을 먼저 확정한다.
+
+### 13.6 경쟁사 대비 우선순위 매트릭스
+
+| 기능 | AI Limits Tracker 강점 | OpenUsage 강점 | TokenJuice 기회 | 우선순위 |
+|---|---|---|---|---|
+| 공식 quota/reset | 매우 강함 | provider별 상이 | trust 라벨과 local fallback 결합 | P0 |
+| 다중 provider | 4개 중심 | 35개 이상 | 2~4개만 깊게 지원 | P1 |
+| 다중 계정 | 강함 | 강함 | 계정별 project/session까지 연결 | P0 |
+| Mobile/Watch widget | 매우 강함 | 약함 | Pocket은 resume/status 중심 | P2 |
+| 비용/history | 제한적~중간 | 매우 강함 | “한도 대비 비용”보다 작업 중단 비용 | P1 |
+| Session context | 핵심 아님 | 분석 중심 | 가장 강한 차별화 | P0 |
+| Resume/checkpoint | 공개 강점 없음 | 일부 export | TokenJuice의 핵심 wedge | P0 |
+| Trust/stale/auth 상태 | 성공 스냅샷·상태 제공 | provider별 상이 | 제품 브랜드로 만들기 | P0 |
+| Windows | Android/Apple 중심 | 로컬 도구별 상이 | 네이티브 tray + 동일 engine | P1 |
+| Team/B2B | 해당 없음 | 로컬 중심 | 나중에 opt-in 별도 제품 | P2 |
+
+### 13.7 BM 업데이트
+
+현재 BM 가설은 다음처럼 수정한다.
+
+1. **무료:** 로컬 quota·session·trust tracker, macOS/Windows/Linux CLI, 기본 Pocket export.
+2. **Supporter/Lifetime:** 멀티계정, 고급 알림, 7일 history, pace forecast, checkpoint/resume brief, 서명된 자동 업데이트.
+3. **Pro 구독:** 서버 비용이 실제로 생기는 encrypted cross-device sync, push, team sharing을 출시할 때만 도입.
+4. **Team:** 개인 TokenJuice와 분리된 opt-in 제품. prompt/code 기본 수집 금지.
+
+단순 quota 숫자에 구독료를 붙이지 않는다. 무료 OSS인 OpenUsage·ccusage와 정면 가격 경쟁을 하게 되기 때문이다. 과금 단위는 “한도 화면”이 아니라 **작업 중단을 줄인 횟수, 자동 복구, 여러 계정 운영, 팀 정책**이어야 한다.
+
+### 13.8 30일 검증 로드맵
+
+| 기간 | 목표 | 구현/검증 | 통과 기준 |
+|---|---|---|---|
+| 1주차 | 신뢰 화면 | source/last success/reason/next retry 카드 통합 | 사용자가 30초 안에 숫자의 출처를 설명 |
+| 2주차 | Work Continuity | context·quota 동시 위험 규칙, checkpoint/resume brief | 실제 session 5개 이상에서 복구 성공 |
+| 3주차 | Connector | Claude/Codex 공식값·로컬값을 분리 표시 | 공식값과 fallback을 혼동하지 않음 |
+| 4주차 | 고객 검증 | P0 사용자 10~20명 인터뷰·2주 diary | 경고 후 checkpoint/전환 행동률 측정 |
+
+다음 조건을 만족하지 못하면 결제·대규모 provider 추가 개발을 보류한다.
+
+- 주간 활성 사용자 중 2개 이상 provider 사용자가 30% 미만
+- limit/context 경고 후 실제 행동 전환이 10% 미만
+- 사용자가 “provider 기본 화면으로 충분하다”고 반복 응답
+- resume brief가 실제 작업 재개 시간을 줄이지 못함
+
+### 13.9 최종 전략 결론
+
+AI Limits Tracker까지 모두 결합한 “AI 사용량 슈퍼앱”은 기능적으로는 매력적이지만, 현재 TokenJuice가 그대로 가면 경쟁 서비스의 기능을 늦게 따라가는 제품이 된다. 우리가 가져가야 할 방향은 다음이다.
+
+> **AI Limits Tracker가 “언제 막히는가”를 알려준다면, TokenJuice는 “막히기 전에 무엇을 저장하고 어디서 이어갈 것인가”를 해결한다.**
+
+따라서 다음 개발 스프린트의 대표 기능은 provider 추가나 모바일 widget이 아니라 `Work Continuity Alert + Checkpoint/Resume Brief`로 확정한다. AI Limits connector는 이 기능을 정확하게 만들기 위한 보조 데이터 계층으로만 도입한다.
+
+### 13.10 2026-10-09 최신 출처
+
+- [AI Limits Tracker App Store — 최신 1.0.23, 기능 업데이트, 가격, 개인정보](https://apps.apple.com/us/app/ai-limits-tracker/id6801493876)
+- [AI Limits Tracker Google Play — Android 기능, 2026-10-06 업데이트, Data safety](https://play.google.com/store/apps/details?id=com.jocoding.aiLimitsTracker)
+- [AI Limits Tracker 공식 사이트](https://ailimits.app/)
+- [Limits: AI Usage Tracker 공식 사이트 — 별도 제품](https://getlimits.app/)
+- [OpenUsage 공식 사이트](https://openusage.sh/)
+- [OpenUsage GitHub — provider 수·stars·기능](https://github.com/janekbaraniewski/openusage)
+- [OpenUsage Claude provider 문서](https://github.com/robinebers/openusage/blob/main/docs/providers/claude.md)
+- [ClaudeCodeUsage GitHub](https://github.com/ClaudeCodeUsage/ClaudeCodeUsage)
+- [VibeUsage](https://vibeusage.com/)
