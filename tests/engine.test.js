@@ -247,6 +247,18 @@ test("developer mode is explicit, read-only, and excludes prompt topics", () => 
   expect(details).not.toContain("implement the secret prompt");
 });
 
+test("statusline is opt-in, compact, and prompt-free", () => {
+  config({ api: true, sessionStatus: { enabled: true } });
+  usage(200, okUsage(20, 40));
+  claudeSession();
+  const statusline = run("--statusline").trim();
+  expect(statusline).toContain("TokenJuice");
+  expect(statusline).toContain("5-hour: 80% left");
+  expect(statusline).toContain("context 25%");
+  expect(statusline).not.toContain(SECRET_PROMPT);
+  expect(statusline).not.toContain("\n");
+});
+
 // ── R4 · 429 back-off ────────────────────────────────────────────────────
 test("429 honours Retry-After: no request until then, human countdown shown", () => {
   usage(429, {}, { "retry-after": "3600" });

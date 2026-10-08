@@ -1648,6 +1648,21 @@ if (argv.includes("--developer")) {
   process.exit(0);
 }
 
+// Compact, opt-in shell/statusline output. It is deliberately one line,
+// prompt-free, and reuses the same local/provider reads as the normal render.
+if (argv.includes("--statusline")) {
+  const quota = claudes.flatMap((account, accountIndex) => (account.items || []).map((item) => {
+    const prefix = accounts.length > 1 ? `${accounts[accountIndex]?.name || "Claude"} ` : "Claude ";
+    return `${prefix}${item.name}: ${Math.max(0, Math.round(100 - item.used))}% left`;
+  })).slice(0, 3);
+  const active = sessions.filter((session) => Date.now() - session.mtime < 15 * 60 * 1000)
+    .sort((a, b) => (b.pct || 0) - (a.pct || 0))[0];
+  const parts = ["TokenJuice", ...quota];
+  if (active) parts.push(`context ${Math.round(active.pct || 0)}%`);
+  console.log(parts.join(" | "));
+  process.exit(0);
+}
+
 // 노치 맥북(COMPACT): 메뉴바 아이콘이 노치에 가려 안 보이므로 폭을 최소화.
 //   한도는 첫 항목(5시간)만, 세션은 위험순 1개만. 드롭다운은 그대로 전부 표시.
 const groups = [];

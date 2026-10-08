@@ -1186,7 +1186,7 @@ Limits의 widget 압축 원칙과 VibeUsage의 statusline을 결합해 menu bar�
 
 #### P2: Developer export / integrations
 
-VibeUsage의 JSON·history와 유사한 export, shell/statusline, webhook은 power-user용으로 추가한다. 일반 사용자의 첫 onboarding에 노출하지 않는다.
+VibeUsage의 JSON·history와 유사한 export, shell/statusline, webhook은 power-user용으로 추가한다. 현재 `--json`, `--forecast-history`, `--developer`와 `--statusline`이 로컬·prompt-free 범위를 충족한다. webhook은 네트워크 전송·외부 공유·동의·보안 정책 검토가 필요하므로 별도 정책 게이트 전까지 구현하지 않는다. 일반 사용자의 첫 onboarding에 노출하지 않는다.
 
 ### 15.5 리스크와 검증 조건
 

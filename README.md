@@ -312,6 +312,7 @@ No tray build. The engine is cross-platform, so feed the CLI into your own bar
 ```bash
 bun claude-codex-battery.5s.js --text   # human-readable
 bun claude-codex-battery.5s.js --json   # structured, for tray widgets
+bun claude-codex-battery.5s.js --statusline # compact shell/statusline, opt-in
 ```
 
 ## Privacy: session topics
