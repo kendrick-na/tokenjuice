@@ -1314,7 +1314,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `12efce2`: 375px·1280px overflow, 200% large text, keyboard focus order/outline, ARIA name/landmark, 44px target, reduced-motion emulation, dark token contrast와 light preference 회귀를 browser test로 검증; `docs/VALIDATION_KIT.md` §1의 5명 script/기록표 준비; 스크린리더 수동 점검·실사용자 5명은 pending |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
 | UX8 알림 센터/설정 UX | 코드 기준 구현 완료 / OS presentation·실사용자 검증 대기 | 계정별 opt-in `reconnect`, auth_expired transition 단일 알림, 계정·이유·다음 행동·last success·retry 시각을 `5617b9a`에 추가; stale/unavailable/429·반복 렌더에는 발화하지 않음. OS 알림 표시와 실사용자 선호 검증은 pending |
-| UX9 메뉴바 상세 패널/compact | 구현 완료 / 실기기 검증 대기 | compact/notch 출력과 SwiftBar 설치본 비교 통과; `docs/VALIDATION_KIT.md` §3에 v1.2.2 notch·notification checklist 준비; 실제 notch 기기 시각 검증은 남음 |
+| UX9 메뉴바 상세 패널/compact | 구현 완료 / 실기기 검증 대기 | compact/notch 출력과 SwiftBar 설치본 비교 통과; `docs/VALIDATION_KIT.md` §3에 v1.2.2 notch·notification checklist 준비; 2026-10-09 CUA에서 SwiftBar inventory 미노출 및 `getApp` timeout(`-10005`)으로 실제 notch 시각 pass는 주장하지 않음 |
 | UX10 랜딩/설치 경로 | 코드 산출물 완료 / 사용자 검증 대기 | `279a260`: `companion/guide.html`의 가치·macOS/Windows/Pocket 설치·개인정보·FAQ·릴리스 링크; `37812922149` Pages 성공; `docs/VALIDATION_KIT.md` §1에 5명 신규 사용자 script 준비; 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | 부분 구현/검증 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 최소 diary schema 준비; 시각적 trend·Usage Coach 우선순위는 실제 행동 전환 데이터 필요 |
 | P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture와 최신 38개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
@@ -1335,4 +1335,4 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | prefers-reduced-motion | `emulate_media(reduced_motion="reduce")` 후 dashboard animation duration `<=0.01s` 검사; CSS 마지막 media override로 precedence 보장 | 멀미·인지 부담에 대한 사용자 평가 |
 | light/dark contrast 범위 | 현재 제품이 dark token set임을 `color-scheme: dark`로 고정하고, dark 및 light preference 에뮬레이션 양쪽에서 ink/muted/faint/teal 대 panel-2 대비 `>=4.5:1` 검사 | 별도 light theme는 구현 대상이 아니므로 light palette acceptance는 pending이 아니라 제품 범위 밖 |
 | UX8 OS notification | 엔진 fixture가 account reconnect opt-in, auth_expired transition 단일 발화, stale/unavailable/429 제외, threshold/reset 이유와 retry 시각을 검증; `CCB_TEST_NOTIFY_LOG`로 payload만 확인 | 실제 macOS Notification Center·Windows toast 표시, 권한·방해금지·스케줄링 |
-| UX9 compact/notch | compact override와 SwiftBar 설치본 일치, Windows 공통 엔진·CI를 자동 검증 | 실제 notch Mac에서 icon clipping·가독성은 물리 장치 필요 |
+| UX9 compact/notch | compact override와 SwiftBar 설치본 일치, Windows 공통 엔진·CI를 자동 검증 | 2026-10-09 CUA 관찰은 SwiftBar timeout(`-10005`)으로 실패; 실제 notch Mac에서 icon clipping·가독성은 여전히 물리 장치 필요 |
