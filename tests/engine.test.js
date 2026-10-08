@@ -338,7 +338,9 @@ test("notification overrides inherit global policy and target-specific threshold
   expect(run("--notify-target-reset=claude:0:5-hour=off")).toContain("reset=false");
   const cfg = JSON.parse(readFileSync(path.join(home, ".config/claude-codex-battery/config.json"), "utf8"));
   expect(cfg.notify.overrides["claude:0:5-hour"]).toEqual({ threshold: 10, reset: false });
-  expect(run()).toContain("claude:0:5-hour");
+  const menu = run();
+  expect(menu).toContain("Claude 5-hour: 10%");
+  expect(menu).toContain("Claude 5-hour threshold 10%");
 });
 
 test("threshold alert fires once, reset alert fires once", () => {
