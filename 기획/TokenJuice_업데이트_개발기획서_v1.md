@@ -1307,10 +1307,10 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 완료 | `CHANGELOG.md`, 최신 `38 pass`·`190 expect()` 엔진 회귀, release-verify |
-| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 구현 완료 | `5617b9a`: Engine `37811131425`, Windows `37811131623` 성공; 실기기 렌더는 별도 장비 게이트 |
-| P0 UX1~UX5 | 구현 완료 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test; `37809341999` Pages 성공 |
-| P0 context checkpoint | 구현 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트 |
+| v1.1 신뢰성 엔진·알림·진단 | 코드·자동 검증 완료 / 외부 gate 대기 | `CHANGELOG.md`, 최신 `38 pass`·`190 expect()` 엔진 회귀, release-verify; 실계정·OS notification presentation은 `docs/REQUIREMENTS_AUDIT.md`에 pending으로 분리 |
+| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 코드·CI 완료 / 실기기·신규 설치 대기 | `5617b9a`: Engine `37811131425`, Windows `37811131623` 성공; 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
+| P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test; `37812922149` Pages 성공; 10초/30초 사용자 지표는 pending |
+| P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
 | UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `12efce2`: 375px·1280px overflow, 200% large text, keyboard focus order/outline, ARIA name/landmark, 44px target, reduced-motion emulation, dark token contrast와 light preference 회귀를 browser test로 검증; `docs/VALIDATION_KIT.md` §1의 5명 script/기록표 준비; 스크린리더 수동 점검·실사용자 5명은 pending |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
 | UX8 알림 센터/설정 UX | 코드 기준 구현 완료 / OS presentation·실사용자 검증 대기 | 계정별 opt-in `reconnect`, auth_expired transition 단일 알림, 계정·이유·다음 행동·last success·retry 시각을 `5617b9a`에 추가; stale/unavailable/429·반복 렌더에는 발화하지 않음. OS 알림 표시와 실사용자 선호 검증은 pending |
