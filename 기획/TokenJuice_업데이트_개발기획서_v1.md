@@ -29,7 +29,7 @@ TokenJuice의 다음 승부처는 지원 AI를 많이 늘리는 것이 아니라
 | 범위 | 구현 증거 | 상태 |
 |---|---|---|
 | R1~R8, R15~R16 | 상태 계약, Retry-After, 수동 기본 로그인 갱신, wake debounce, 비밀값 없는 진단, fixture 회귀 테스트 | 구현·자동 검증 완료 |
-| R9~R11, R17~R18 | 안전한 starter config, 멀티 계정 별칭, Windows renderer, opt-in 세션 상태·pace forecast | 구현·자동 검증 완료(Windows 실기기 CI 대기) |
+| R9~R11, R17~R18 | 안전한 starter config, 멀티 계정 별칭, Windows renderer, opt-in 세션 상태·pace forecast | 구현·자동 검증 완료; `5617b9a` Engine `37811131425`, Windows `37811131623` 성공 |
 | R12 | 자격증명 없는 로컬 스냅샷 export와 TokenJuice Pocket PWA import | 구현·브라우저 자동 검증 완료 |
 | R13 | GitHub Copilot 공식 비용 adapter + 명시적 local quota-file adapter | 구현·fixture/PWA 검증 완료; Cursor/Antigravity는 쿠키 수집 없이 안전한 exporter 파일로만 연결 |
 | R14 | 선택적 암호화 수동 전달 bundle(PBKDF2 + AES-GCM), 자동 sync 없음 | 구현·엔진/PWA 상호운용 자동 검증 완료; CloudKit 자동 sync는 별도 제품 결정 |
@@ -1307,8 +1307,8 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 완료 | `CHANGELOG.md`, `36 pass` 엔진 회귀, release-verify |
-| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 구현 완료 | `37809342026` Engine, `37809341980` Windows, 실기기 렌더는 별도 장비 게이트 |
+| v1.1 신뢰성 엔진·알림·진단 | 완료 | `CHANGELOG.md`, 최신 `38 pass`·`190 expect()` 엔진 회귀, release-verify |
+| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 구현 완료 | `5617b9a`: Engine `37811131425`, Windows `37811131623` 성공; 실기기 렌더는 별도 장비 게이트 |
 | P0 UX1~UX5 | 구현 완료 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test; `37809341999` Pages 성공 |
 | P0 context checkpoint | 구현 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트 |
 | UX6 접근성·375px·5명 사용성 | 코드 검증 완료 / 사용자 검증 대기 | `e825e03`: `--faint`/`--panel-2` 대비율 4.5:1 이상 자동 점검 추가 및 browser test 통과; 실제 대비 측정·스크린리더 수동 점검·실사용자 5명은 pending |
@@ -1317,8 +1317,8 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | UX9 메뉴바 상세 패널/compact | 구현 완료 | compact/notch 출력과 SwiftBar 설치본 비교 통과; 실제 notch 기기 시각 검증은 남음 |
 | UX10 랜딩/설치 경로 | 코드 산출물 완료 / 사용자 검증 대기 | `279a260`: `companion/guide.html`의 가치·macOS/Windows/Pocket 설치·개인정보·FAQ·릴리스 링크; `37809141664` Pages 성공; 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | 부분 구현/검증 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; 시각적 trend·Usage Coach 우선순위는 2주 diary와 실제 행동 전환 데이터 필요 |
-| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture와 37개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
+| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture와 최신 38개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자·provider 안전 adapter 검증 필요 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
-`5ee7069` 기준 Windows build `37810467250`은 in progress, Engine verification `37810467261`은 queued 상태라 최종 CI 성공으로 기록하지 않는다. 직전 `e825e03`의 Windows build `37809988548`과 Publish TokenJuice Pocket `37809988430`은 성공했고 Engine verification `37809988532`는 queued로 남아 있다. 완료 증거의 공통 기준은 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 통과다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.
+최신 코드 증거 `5617b9a`의 Engine verification `37811131425`와 Windows build `37811131623`은 성공했다. 문서-only HEAD `680ec1d`는 새 실행을 만들지 않았으며, Pocket 배포 `37809988430`은 성공했고 배포 URL은 HTTP 200을 반환한다. GitHub Release `v1.2.0`은 draft가 아니며 macOS 엔진·Windows exe asset이 uploaded 상태다. 완료 증거의 공통 기준은 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 통과다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.

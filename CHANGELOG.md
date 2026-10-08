@@ -24,6 +24,9 @@
   지정 환경변수 토큰, 15분 캐시)
 - Cursor·Antigravity 등 안전한 exporter를 연결할 수 있는 명시적 local quota-file adapter
 - 엔진 fixture 회귀 테스트, 데이터 계약, 릴리스 검증 스크립트
+- opt-in 로컬 `--statusline` 출력과 prompt-free fixture 테스트
+- quota-window별 알림 on/off·threshold·reset·다음 reset 시각 표시
+- 계정별 opt-in `reconnect` 알림: auth_expired transition 단일 발화와 이유·다음 행동·last success·retry 시각 표시
 
 ### 변경
 
