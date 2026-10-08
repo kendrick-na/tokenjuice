@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#10181b">
+    <meta name="description" content="TokenJuice 설치, 개인정보, 자주 묻는 질문">
+    <link rel="stylesheet" href="./app.css">
+    <title>TokenJuice · 설치와 FAQ</title>
+  </head>
+  <body>
+    <main class="app-shell guide-shell">
+      <header class="masthead"><a class="brand" href="./" aria-label="TokenJuice Pocket 홈"><span class="brand-mark" aria-hidden="true">▰</span><span>TOKENJUICE</span><em>GUIDE</em></a><a class="transport" href="https://github.com/kendrick-na/tokenjuice/releases">릴리스</a></header>
+      <section class="guide-hero"><p class="eyebrow">AI CODING WORKFLOW MONITOR</p><h1>작업이 끊기기<br><i>전에</i> 보세요.</h1><p class="explain">TokenJuice는 Claude Code와 Codex의 한도, 리셋, 세션 컨텍스트를 로컬에서 보여주는 메뉴바·트레이 도구입니다. 숫자보다 다음 행동을 먼저 안내합니다.</p><a class="primary-action" href="./">Pocket 열기 <span aria-hidden="true">→</span></a></section>
+      <div class="guide-grid">
+        <section class="guide-card"><p class="eyebrow">01 · MACOS</p><h2>메뉴바에 설치</h2><p>저장소를 받은 뒤 터미널에서 실행하세요.</p><pre><code>CCB_YES=1 ./install.sh</code></pre><p>SwiftBar가 설치되어 있으면 TokenJuice 플러그인이 메뉴바에 나타납니다.</p></section>
+        <section class="guide-card"><p class="eyebrow">02 · WINDOWS</p><h2>트레이에 설치</h2><p>PowerShell에서 실행하세요.</p><pre><code>cd windows &amp;&amp; .\install.ps1</code></pre><p>Python과 Bun이 필요하며, 설치 후 시스템 트레이에서 상태를 확인합니다.</p></section>
+        <section class="guide-card"><p class="eyebrow">03 · POCKET</p><h2>휴대폰에서 확인</h2><p>Mac에서 <code>--export-widget-snapshot</code>으로 만든 파일을 Pocket에 직접 가져옵니다. Safari/Chrome의 “홈 화면에 추가”를 사용할 수 있습니다.</p><a class="text-link" href="./">스냅샷 가져오기 →</a></section>
+        <section class="guide-card"><p class="eyebrow">PRIVACY</p><h2>무엇을 보내나요?</h2><p>기본값은 로컬 전용입니다. 자격증명·프롬프트·코드를 자동 업로드하지 않습니다. Pocket은 사용자가 직접 가져온 snapshot만 브라우저에 저장합니다.</p><a class="text-link" href="./privacy.html">개인정보 원칙 보기 →</a></section>
+      </div>
+      <section class="guide-faq" aria-labelledby="faq-title"><p class="eyebrow">FAQ</p><h2 id="faq-title">자주 묻는 질문</h2><details><summary>일반 AI 사용자도 필요한가요?</summary><p>주로 Claude Code·Codex를 자주 사용하고, 한도나 컨텍스트 때문에 작업이 끊긴 경험이 있는 사용자를 위한 도구입니다.</p></details><details><summary>자동으로 provider를 바꾸나요?</summary><p>아니요. 상태와 안전한 다음 행동만 안내하며 compact·전환·커밋·배포를 대신 실행하지 않습니다.</p></details><details><summary>Pocket이 자동 동기화되나요?</summary><p>아니요. snapshot은 사용자가 직접 전달합니다. 자동 CloudKit 동기화는 제공하지 않습니다.</p></details><details><summary>릴리스 파일은 어디서 받나요?</summary><p><a class="text-link" href="https://github.com/kendrick-na/tokenjuice/releases">GitHub Releases</a>에서 확인할 수 있습니다. Windows exe는 릴리스 workflow가 생성합니다.</p></details></section>
+      <footer><a class="privacy-link" href="./">Pocket으로 돌아가기</a><a class="privacy-link" href="https://github.com/kendrick-na/tokenjuice">GitHub</a></footer>
+    </main>
+  </body>
+</html>

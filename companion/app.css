@@ -39,3 +39,20 @@ footer { display:flex; align-items:center; gap:1rem; margin-top:auto; border-top
 .context-card.danger .context-next b { color:var(--coral); }
 .context-card button { margin-top:.9rem; border:0; padding:0; background:none; color:var(--lime); font:800 .76rem var(--sans); text-decoration:underline; text-underline-offset:.22rem; }
 .context-card button b { margin-left:.35rem; font-size:1rem; }
+.guide-shell { padding-bottom:3rem; }
+.guide-hero { padding:2.5rem 0 2rem; }
+.guide-hero h1 { max-width:12ch; margin:1rem 0 1.15rem; font:700 clamp(2.8rem,12vw,5rem)/.9 var(--serif); letter-spacing:-.07em; }
+.guide-hero h1 i { color:var(--lime); font-weight:400; }
+.guide-hero .primary-action { margin-top:1.5rem; text-decoration:none; }
+.guide-grid { display:grid; gap:.8rem; }
+.guide-card, .guide-faq { border:1px solid var(--line); border-radius:6px; padding:1.2rem; background:#172326; }
+.guide-card h2, .guide-faq h2 { margin:.45rem 0 .7rem; font:700 1.35rem/1 var(--serif); letter-spacing:-.03em; }
+.guide-card p, .guide-faq p { color:var(--muted); font-size:.82rem; line-height:1.55; }
+.guide-card pre { overflow:auto; margin:1rem 0; padding:.8rem; border:1px solid #ffffff18; background:#10181b; color:var(--lime); font:600 .72rem/1.5 var(--mono); }
+.guide-card code { color:var(--amber); font:inherit; overflow-wrap:anywhere; }
+.text-link { color:var(--lime); font-size:.78rem; text-decoration:underline; text-underline-offset:.22rem; }
+.guide-faq { margin-top:.8rem; }
+.guide-faq details { border-top:1px solid #ffffff18; padding:.85rem 0 0; margin-top:.85rem; }
+.guide-faq summary { cursor:pointer; color:var(--ink); font-weight:800; }
+.guide-faq details p { margin:.65rem 0 0; }
+@media (min-width: 700px) { .guide-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } .guide-faq { max-width:42rem; } }
