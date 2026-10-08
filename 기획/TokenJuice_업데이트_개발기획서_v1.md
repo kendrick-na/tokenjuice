@@ -1307,17 +1307,17 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 완료 | `CHANGELOG.md`, `32 pass` 엔진 회귀, release-verify |
-| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 구현 완료 | 엔진 fixture/Windows 문법 CI; Windows 실기기 렌더는 별도 장비 게이트 |
-| P0 UX1~UX5 | 구현 완료 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test |
+| v1.1 신뢰성 엔진·알림·진단 | 완료 | `CHANGELOG.md`, `36 pass` 엔진 회귀, release-verify |
+| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 구현 완료 | `37809342026` Engine, `37809341980` Windows, 실기기 렌더는 별도 장비 게이트 |
+| P0 UX1~UX5 | 구현 완료 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test; `37809341999` Pages 성공 |
 | P0 context checkpoint | 구현 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트 |
-| UX6 접근성·375px·5명 사용성 | 부분 완료 | 자동 라벨·progressbar·모바일 회귀는 통과; 대비 실측·키보드/스크린리더·실사용자 5명은 미실행 |
+| UX6 접근성·375px·5명 사용성 | 코드 검증 완료 / 사용자 검증 대기 | `3360b48`: skip link·44px target·ARIA·375px overflow·reduced-motion 자동 점검 및 browser test; 실제 대비 측정·스크린리더 수동 점검·실사용자 5명은 pending |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
-| UX8 알림 센터/설정 UX | 부분 완료 | 메뉴에서 on/off·threshold·reset 알림을 직접 제어하고 현재 정책을 표시; 계정별 세부 설정 센터는 미완료 |
+| UX8 알림 센터/설정 UX | quota-window 메뉴 제어 완료 / 설정 센터 대기 | `4e00a1f`: 메뉴에서 전역·quota-window threshold/reset override를 실제 표시·제어하고 36개 엔진 테스트 통과; 별도 계정별 설정 센터와 사용자 선호 검증은 미완료 |
 | UX9 메뉴바 상세 패널/compact | 구현 완료 | compact/notch 출력과 SwiftBar 설치본 비교 통과; 실제 notch 기기 시각 검증은 남음 |
-| UX10 랜딩/설치 경로 | 부분 완료 | README·Pocket 온보딩·Pages workflow 존재; 실제 신규 사용자 5명 검증은 남음 |
+| UX10 랜딩/설치 경로 | 코드 산출물 완료 / 사용자 검증 대기 | `279a260`: `companion/guide.html`의 가치·macOS/Windows/Pocket 설치·개인정보·FAQ·릴리스 링크; `37809141664` Pages 성공; 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | 부분 구현/검증 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; 시각적 trend·Usage Coach 우선순위는 2주 diary와 실제 행동 전환 데이터 필요 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자·provider 안전 adapter 검증 필요 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
-완료 증거의 공통 기준은 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 통과다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.
+`4e00a1f` 후속 CI는 Engine `37809598393` queued, Windows `37809598400` in progress 상태이며 최종 성공으로 기록하지 않는다. `3360b48`까지의 Engine/Windows/Pages CI는 성공했다. 완료 증거의 공통 기준은 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 통과다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.
