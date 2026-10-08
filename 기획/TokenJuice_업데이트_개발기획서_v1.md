@@ -1311,7 +1311,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 구현 완료 | `5617b9a`: Engine `37811131425`, Windows `37811131623` 성공; 실기기 렌더는 별도 장비 게이트 |
 | P0 UX1~UX5 | 구현 완료 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test; `37809341999` Pages 성공 |
 | P0 context checkpoint | 구현 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트 |
-| UX6 접근성·375px·5명 사용성 | 코드 검증 완료 / 사용자 검증 대기 | `e825e03`: `--faint`/`--panel-2` 대비율 4.5:1 이상 자동 점검 추가 및 browser test 통과; 실제 대비 측정·스크린리더 수동 점검·실사용자 5명은 pending |
+| UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `12efce2`: 375px·1280px overflow, 200% large text, keyboard focus order/outline, ARIA name/landmark, 44px target, reduced-motion emulation, dark token contrast와 light preference 회귀를 browser test로 검증; 스크린리더 수동 점검·실사용자 5명은 pending |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
 | UX8 알림 센터/설정 UX | 코드 기준 구현 완료 / OS presentation·실사용자 검증 대기 | 계정별 opt-in `reconnect`, auth_expired transition 단일 알림, 계정·이유·다음 행동·last success·retry 시각을 `5617b9a`에 추가; stale/unavailable/429·반복 렌더에는 발화하지 않음. OS 알림 표시와 실사용자 선호 검증은 pending |
 | UX9 메뉴바 상세 패널/compact | 구현 완료 | compact/notch 출력과 SwiftBar 설치본 비교 통과; 실제 notch 기기 시각 검증은 남음 |
@@ -1321,7 +1321,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자·provider 안전 adapter 검증 필요 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
-최신 기능 코드 `5617b9a`의 Engine verification `37811131425`와 Windows build `37811131623`은 성공했다. 정식 patch release `v1.2.1`은 tag commit `f1a17763ab0ee004f7d6379f1ca03006def75163`에서 생성됐고 tagged workflow `37811984533`의 build/release가 성공했다. [v1.2.1 release](https://github.com/kendrick-na/tokenjuice/releases/tag/v1.2.1)의 macOS 엔진은 122,369 bytes, `sha256:be84b894ec70a97d4bc1a4104d1c8d3d9b4333f8bac9bd4ce818aaa6545f9cee`, Windows exe는 16,581,600 bytes, `sha256:2ef969f59beff624be915edb30a02cc441ca4db3e0d399f77add6a8bde9a9344`이며 모두 uploaded다. Pocket 배포 URL은 HTTP 200을 반환한다. 이후 문서-only 커밋은 release asset을 변경하지 않는다. 완료 증거의 공통 기준은 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 통과다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.
+최신 기능 코드 `12efce2`의 Engine verification `37812922211`, Windows build `37812922103`, Publish TokenJuice Pocket `37812922149`는 모두 성공했다. 정식 patch release `v1.2.2`는 tag commit `12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`에서 생성됐고 tagged workflow `37813141076`의 build/release가 성공했다. [v1.2.2 release](https://github.com/kendrick-na/tokenjuice/releases/tag/v1.2.2)의 macOS 엔진은 122,369 bytes, `sha256:be84b894ec70a97d4bc1a4104d1c8d3d9b4333f8bac9bd4ce818aaa6545f9cee`, Windows exe는 16,582,431 bytes, `sha256:abeed7e353f513de4c97f3ec29438d86274742e4750055b27ae285e8c66f0b64`이며 모두 uploaded다. Pocket 배포 URL은 HTTP 200을 반환한다. 이후 문서-only 커밋은 release asset을 변경하지 않는다. 완료 증거의 공통 기준은 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 통과다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.
 
 ### 17.1 UX6·UX8·UX9 자동 검증 연결표
 
