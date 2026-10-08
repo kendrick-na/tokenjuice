@@ -37,3 +37,5 @@ footer { display:flex; align-items:center; gap:1rem; margin-top:auto; border-top
 .context-next b { margin-right:.65rem; color:var(--teal); font:800 .63rem var(--mono); letter-spacing:.08em; }
 .context-card.caution .context-next b { color:var(--amber); }
 .context-card.danger .context-next b { color:var(--coral); }
+.context-card button { margin-top:.9rem; border:0; padding:0; background:none; color:var(--lime); font:800 .76rem var(--sans); text-decoration:underline; text-underline-offset:.22rem; }
+.context-card button b { margin-left:.35rem; font-size:1rem; }

@@ -78,6 +78,14 @@ def main() -> None:
             assert page.get_by_text("작업 컨텍스트").is_visible()
             assert page.get_by_text("checkpoint 권장").count() >= 1
             assert page.get_by_text("84% 사용").is_visible()
+            with page.expect_download() as download_info:
+                page.get_by_text("메타데이터 checkpoint 저장").click()
+            checkpoint = download_info.value
+            assert checkpoint.suggested_filename.startswith("tokenjuice-checkpoint-")
+            checkpoint_payload = json.loads(Path(checkpoint.path()).read_text(encoding="utf-8"))
+            assert checkpoint_payload["format"] == "tokenjuice-checkpoint-v1"
+            assert checkpoint_payload["privacy"] == "metadata_only"
+            assert "topic" not in json.dumps(checkpoint_payload)
             assert page.locator("#empty-state").is_hidden()
             page.reload(wait_until="networkidle")
             assert page.get_by_text("Personal").is_visible()

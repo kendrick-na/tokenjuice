@@ -84,6 +84,27 @@ function contextRisk(snapshot) {
   const next = pct >= 90 ? "현재 작업을 정리하고 새 세션으로 전환할 준비를 하세요." : pct >= 80 ? "다음 큰 작업 전에 checkpoint를 남길 시점입니다." : "현재 세션을 계속 사용해도 좋습니다.";
   return { session, pct, tone, label, next };
 }
+function saveCheckpoint(risk) {
+  const session = risk.session;
+  const checkpoint = {
+    format: "tokenjuice-checkpoint-v1",
+    createdAt: Date.now(),
+    privacy: "metadata_only",
+    platform: session.platform,
+    project: session.name || null,
+    branch: session.branch || null,
+    model: session.model || null,
+    context: { used: Number(session.used) || 0, window: Number(session.win) || null, pct: Number(risk.pct.toFixed(1)) },
+    status: session.status || null,
+    nextAction: risk.next,
+  };
+  const url = URL.createObjectURL(new Blob([`${JSON.stringify(checkpoint, null, 2)}\n`], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `tokenjuice-checkpoint-${session.name || "session"}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 function renderContext(snapshot) {
   const card = $("#context-card");
   const risk = contextRisk(snapshot);
@@ -92,7 +113,8 @@ function renderContext(snapshot) {
   const identity = [session.platform === "claude" ? "Claude" : "Codex", session.name, session.branch].filter(Boolean).join(" · ");
   card.hidden = false;
   card.className = `context-card ${risk.tone}`;
-  card.innerHTML = `<div class="context-head"><div><p>작업 컨텍스트</p><h2 id="context-title">${escapeHtml(risk.label)}</h2></div><strong>${Math.round(risk.pct)}<small>% 사용</small></strong></div><div class="context-bar" role="progressbar" aria-label="${escapeHtml(identity)} 컨텍스트 ${Math.round(risk.pct)}% 사용" aria-valuenow="${Math.round(risk.pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, risk.pct)}%"></i></div><p class="context-meta">${escapeHtml(identity)} · ${escapeHtml(session.model || "모델 정보 없음")}</p><p class="context-next"><b>NEXT</b>${escapeHtml(risk.next)}</p>`;
+  card.innerHTML = `<div class="context-head"><div><p>작업 컨텍스트</p><h2 id="context-title">${escapeHtml(risk.label)}</h2></div><strong>${Math.round(risk.pct)}<small>% 사용</small></strong></div><div class="context-bar" role="progressbar" aria-label="${escapeHtml(identity)} 컨텍스트 ${Math.round(risk.pct)}% 사용" aria-valuenow="${Math.round(risk.pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, risk.pct)}%"></i></div><p class="context-meta">${escapeHtml(identity)} · ${escapeHtml(session.model || "모델 정보 없음")}</p><p class="context-next"><b>NEXT</b>${escapeHtml(risk.next)}</p><button id="checkpoint-action" type="button">메타데이터 checkpoint 저장 <b aria-hidden="true">↓</b></button>`;
+  $("#checkpoint-action").addEventListener("click", () => saveCheckpoint(risk));
 }
 function priority(snapshot) {
   const payloads = allPayloads(snapshot);
