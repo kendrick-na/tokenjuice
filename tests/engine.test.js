@@ -30,14 +30,17 @@ function calls() { return existsSync(fx + ".calls") ? readFileSync(fx + ".calls"
 function copilotUsage(status, body = {}, headers = {}) { writeFileSync(copilotFx, JSON.stringify({ status, body, headers })); }
 function copilotCalls() { return existsSync(copilotFx + ".calls") ? readFileSync(copilotFx + ".calls", "utf8").trim().split("\n").filter(Boolean).length : 0; }
 function cache(name, obj) { return write(`.cache/claude-codex-battery/${name}`, obj); }
+// Node/Bun resolves os.homedir() from HOME on Unix but USERPROFILE on Windows.
+// Keep every spawned engine process inside this test's throwaway home on both.
+function engineEnv(overrides = {}) {
+  return { ...process.env, HOME: home, USERPROFILE: home, ...overrides };
+}
 
 function run(...args) {
   const r = spawnSync(process.execPath, [ENGINE, ...args], {
     encoding: "utf8",
     timeout: 30000,
-    env: {
-      ...process.env,
-      HOME: home,
+    env: engineEnv({
       CCB_COMPACT: "0",
       CCB_API: "",
       CCB_TOPICS: "",
@@ -45,7 +48,7 @@ function run(...args) {
       CCB_TEST_COPILOT_FIXTURE: copilotFx,
       CCB_CLAUDE_BIN: path.join(home, "fake-claude"),
       CCB_TEST_NOTIFY_LOG: path.join(home, "notify.log"),
-    },
+    }),
   });
   if (r.status !== 0) throw new Error(`engine exit ${r.status}: ${r.stderr}`);
   return r.stdout;
@@ -272,7 +275,7 @@ test("--renew-login runs on demand but not twice within a minute", async () => {
   expect(run("--renew-login").trim()).toBe("renew started");
   await sleep(300);
   expect(renewCalls().length).toBe(1);
-  const r = spawnSync(process.execPath, [ENGINE, "--renew-login"], { encoding: "utf8", env: { ...process.env, HOME: home, CCB_CLAUDE_BIN: path.join(home, "fake-claude"), CCB_COMPACT: "0" } });
+  const r = spawnSync(process.execPath, [ENGINE, "--renew-login"], { encoding: "utf8", env: engineEnv({ CCB_CLAUDE_BIN: path.join(home, "fake-claude"), CCB_COMPACT: "0" }) });
   expect(r.stdout).toContain("skipped");
   expect(renewCalls().length).toBe(1);
 });
@@ -361,7 +364,7 @@ test("encrypted sync bundle needs a one-shot passphrase and contains no plaintex
   const passphrase = "test-only sync passphrase";
   const r = spawnSync(process.execPath, [ENGINE, "--export-sync-bundle"], {
     encoding: "utf8", timeout: 30000,
-    env: { ...process.env, HOME: home, CCB_COMPACT: "0", CCB_API: "", CCB_TEST_USAGE_FIXTURE: fx, TOKENJUICE_SYNC_PASSPHRASE: passphrase },
+    env: engineEnv({ CCB_COMPACT: "0", CCB_API: "", CCB_TEST_USAGE_FIXTURE: fx, TOKENJUICE_SYNC_PASSPHRASE: passphrase }),
   });
   expect(r.status).toBe(0);
   expect(r.stdout).toContain("encrypted sync bundle exported locally");
@@ -383,7 +386,7 @@ test("encrypted sync bundle needs a one-shot passphrase and contains no plaintex
 
   const noPassphrase = spawnSync(process.execPath, [ENGINE, "--export-sync-bundle"], {
     encoding: "utf8", timeout: 30000,
-    env: { ...process.env, HOME: home, CCB_COMPACT: "0", CCB_API: "", CCB_TEST_USAGE_FIXTURE: fx },
+    env: engineEnv({ CCB_COMPACT: "0", CCB_API: "", CCB_TEST_USAGE_FIXTURE: fx }),
   });
   expect(noPassphrase.status).toBe(1);
   expect(noPassphrase.stderr).toContain("TOKENJUICE_SYNC_PASSPHRASE is required");
@@ -481,7 +484,7 @@ test("compact mode is an explicit safe layout override", () => {
   usage(200, okUsage());
   const r = spawnSync(process.execPath, [ENGINE, "--diagnostics"], {
     encoding: "utf8", timeout: 30000,
-    env: { ...process.env, HOME: home, CCB_COMPACT: "1", CCB_API: "", CCB_TEST_USAGE_FIXTURE: fx },
+    env: engineEnv({ CCB_COMPACT: "1", CCB_API: "", CCB_TEST_USAGE_FIXTURE: fx }),
   });
   expect(r.status).toBe(0);
   expect(r.stdout).toContain("compact true");
@@ -518,7 +521,8 @@ function helper(now, running) {
 }
 const refreshes = (o) => (o.match(/refreshallplugins/g) || []).length;
 
-test("wake helper: idle ticks do nothing, one refresh per wake, debounced", () => {
+const macOnlyTest = process.platform === "win32" ? test.skip : test;
+macOnlyTest("wake helper: idle ticks do nothing, one refresh per wake, debounced", () => {
   expect(refreshes(helper(1000, true))).toBe(1);   // first run
   expect(refreshes(helper(1015, true))).toBe(0);   // normal tick
   expect(refreshes(helper(1030, true))).toBe(0);
