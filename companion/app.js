@@ -96,9 +96,9 @@ function priority(snapshot) {
       title: `${lowest.payload.account || lowest.payload.label || "계정"} · ${lowest.item.name} ${Math.round(lowest.remaining)}% 남음`,
       copy: `${urgency} ${timeText(lowest.item.resets)}.`,
       tone: lowest.remaining < 20 ? "danger" : lowest.remaining < 50 ? "caution" : "good",
-      cta: lowest.remaining < 20 ? "스냅샷 저장 준비" : "세부 한도 보기",
+      cta: "세부 한도 보기",
       why: `${lowest.payload.sourceLabel || lowest.payload.source || "데이터 경로 정보 없음"} · ${lowest.payload.lastSuccessAt ? timeText(lowest.payload.lastSuccessAt, "마지막 성공") : "성공한 확인 없음"}`,
-      next: lowest.remaining < 20 ? "작업을 이어갈 수 있도록 현재 상태를 먼저 저장하세요." : "현재 상태를 확인하고 작업을 계속하세요.",
+      next: lowest.remaining < 20 ? "다음 작업 전환을 검토하고, 실제 checkpoint 저장은 다음 단계에서 연결합니다." : "현재 상태를 확인하고 작업을 계속하세요.",
     };
   }
   return {
