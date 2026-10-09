@@ -66,6 +66,7 @@ def main() -> None:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
             page = browser.new_page(viewport={"width": 390, "height": 844})
+            page.add_init_script("Object.defineProperty(Navigator.prototype, 'platform', { get: () => 'MacIntel' });")
             page.set_default_timeout(8_000)
             errors: list[str] = []
             page.on("pageerror", lambda error: errors.append(str(error)))
@@ -215,6 +216,8 @@ def main() -> None:
             assert_no_horizontal_overflow(page)
             assert page.get_by_text("공개 베타", exact=True).is_visible()
             assert page.get_by_text("설치하고 메뉴바 확인").is_visible()
+            assert page.get_by_text("이 기기는 macOS로 확인되었습니다. 아래 메뉴바 설치 경로만 안내합니다.").is_visible()
+            assert page.locator('[data-install-platform="windows"]').is_hidden()
             assert page.get_by_text("./install.sh --doctor", exact=True).count() == 2
             page.get_by_text("피드백에 어떤 정보를 보내면 되나요?", exact=True).click()
             assert page.get_by_text("bun claude-codex-battery.5s.js --copy-diagnostics", exact=True).is_visible()
