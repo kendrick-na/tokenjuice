@@ -157,6 +157,40 @@ test("value older than 2h is not shown at all", () => {
   expect(json().claude[0].items).toEqual([]);
 });
 
+test("each actionable Claude error presents one honest NEXT recovery", () => {
+  cache("claude-0.json", { ok: true, source: "api", at: Date.now() - 30 * 60000, items: [{ name: "5-hour", used: 10 }] });
+  usage(500);
+  json(); // record the failed refresh before rendering its stale recovery panel
+  const stale = run();
+  expect(stale.match(/--NEXT · /g) || []).toHaveLength(1);
+  expect(stale).toContain("NEXT · 메뉴를 다시 열어 최신 상태 확인");
+
+  rmSync(path.join(home, ".cache/claude-codex-battery"), { recursive: true, force: true });
+  config({ api: true, autoRenew: false });
+  usage(401);
+  const auth = run();
+  expect(auth.match(/--NEXT · /g) || []).toHaveLength(1);
+  expect(auth).toContain("NEXT · Claude Code에서 다시 로그인");
+  expect(auth).not.toContain("Renew Claude login now");
+
+  rmSync(path.join(home, ".cache/claude-codex-battery"), { recursive: true, force: true });
+  usage(429, {}, { "retry-after": "3600" });
+  const limited = run();
+  expect(limited.match(/--NEXT · /g) || []).toHaveLength(1);
+  expect(limited).toContain("NEXT · 다음 확인 가능 시각까지 기다리기");
+
+  rmSync(path.join(home, ".cache/claude-codex-battery"), { recursive: true, force: true });
+  config({ api: false });
+  const missing = run();
+  expect(missing.match(/--NEXT · /g) || []).toHaveLength(1);
+  expect(missing).toContain("NEXT · Claude usage API 모드 켜기");
+
+  config({ api: true });
+  usage(500);
+  const unavailable = run();
+  expect(unavailable).not.toContain("--NEXT ·");
+});
+
 test("recent Claude Desktop sample is a labelled fallback", () => {
   // Claude Desktop writes this history under macOS Library/Application
   // Support. Linux/Windows intentionally do not treat a fixture at that path
@@ -318,19 +352,19 @@ test("401 with autoRenew on: renews once in the background, never in a loop", as
   await sleep(300);
   expect(renewCalls().length).toBe(1);
   const menu = run();
-  expect(menu).toContain("Login renewal: auto");
+  expect(menu).toContain("claude login renewal: auto");
   expect(menu).toMatch(/auto run .* · ok/);
 });
 
-test("401 with autoRenew off: nothing runs, manual action is offered", async () => {
+test("401 with autoRenew off: nothing runs and the panel keeps one login action", async () => {
   if (process.platform !== "darwin") return;
   config({ api: true, autoRenew: false });
   usage(401);
   const menu = run();
   await sleep(300);
   expect(renewCalls().length).toBe(0);
-  expect(menu).toContain("Login renewal: manual");
-  expect(menu).toContain("param1=--renew-login");
+  expect(menu).toContain("NEXT · Claude Code에서 다시 로그인");
+  expect(menu).not.toContain("Renew Claude login now");
 });
 
 test("--renew-login runs on demand but not twice within a minute", async () => {

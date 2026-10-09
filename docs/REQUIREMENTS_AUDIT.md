@@ -16,7 +16,7 @@
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, `tests/engine.test.js` 40 pass/202 expect, `scripts/release-verify.sh`, Engine CI `37885325573`, macOS notification dry-run | 실계정·OS notification presentation은 별도. 코드/자동 검증 완료 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, `tests/engine.test.js` 41 pass/213 expect, `scripts/release-verify.sh`, Engine CI `37885325573`, macOS notification dry-run | 실계정·OS notification presentation은 별도. 코드/자동 검증 완료 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -52,7 +52,7 @@
 |---|---|---|---|
 | UX1 | shared state language/tokens across surfaces | `stateDisplayLabel()`, Pocket labels, shared engine, `tests/companion.test.py` | 코드 기준 완료; cross-OS visual parity pending |
 | UX2 | urgent-first NOW view with reset/forecast/source/CTA | Pocket `NOW/WHY/NEXT`, priority/context cards, demo/import browser test | 코드·browser 완료; 10-second user metric pending |
-| UX3 | stale/401/429/unavailable each has reason/action | engine state tests, menu recovery branches, Pocket recovery assertions | 코드·fixture 완료; real user recovery time pending |
+| UX3 | stale/401/429/unavailable each has reason/action | engine state tests (`NEXT` recovery uniqueness), menu recovery branches, Pocket recovery assertions | stale/auth/rate-limit/missing-data는 단일 안내, 원인 불명 unavailable은 행동 미제안까지 코드·fixture 완료; real user recovery time pending |
 | UX4 | <=3-step first-run onboarding and privacy promise | empty state steps, guide/install FAQ, browser text assertions | artifact/browser 완료; 5-person onboarding comprehension pending |
 | UX5 | consumer Pocket empty/demo/import/offline/re-export flow | Pocket browser test, service worker/offline, checkpoint/privacy assertions | 코드·browser 완료; phone PWA/device acceptance pending |
 | UX6 | contrast, 44px, keyboard, screen reader, 375px/desktop/dark/reduced motion | `tests/companion.test.py`, `docs/VALIDATION_KIT.md` §1/§3 | machine criteria pass; screen reader and 5-person gate pending |

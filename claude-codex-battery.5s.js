@@ -573,6 +573,19 @@ function stateRecoveryHint(state) {
     : "";
 }
 
+// A failure panel must make one next step obvious.  This is intentionally a
+// plain instruction, never an automatic retry, credential operation, or
+// provider-specific action when we cannot establish the cause.
+function recoveryActionFor({ state, reason, stale } = {}) {
+  if (reason === "needs-api") return "Claude usage API 모드 켜기";
+  if (reason === "app-stale") return "Claude 메뉴 막대 아이콘에서 사용량 화면 열기";
+  if (state === "auth_expired" || reason === "auth") return "Claude Code에서 다시 로그인";
+  if (reason === "login") return "터미널에서 claude를 실행해 로그인";
+  if (state === "rate_limited" || reason === "rate-limit") return "다음 확인 가능 시각까지 기다리기";
+  if (state === "stale" || stale) return "메뉴를 다시 열어 최신 상태 확인";
+  return "";
+}
+
 function fmtRetryAt(retryAt) {
   if (!retryAt || !Number.isFinite(Number(retryAt))) return "";
   const t = new Date(Number(retryAt));
@@ -2149,6 +2162,7 @@ for (let ai = 0; ai < accounts.length; ai++) {
   const title = accounts.length > 1 ? `Claude plan limits — ${accounts[ai].name}` : "Claude plan limits · account quota";
   const state = cl.state ?? (cl.stale ? "stale" : cl.items.length ? "fresh" : "unavailable");
   const badge = trustBadge({ state, source: cl.source });
+  const recoveryAction = recoveryActionFor({ state, reason: cl.reason, stale: cl.stale });
   const reconnectPolicy = notificationPolicyForAccount(ai);
   if (ai > 0) out.push("---");
   out.push(`${title}  ${badge.icon} ${badge.level} | size=13 color=#8b949e`);
@@ -2175,23 +2189,19 @@ for (let ai = 0; ai < accounts.length; ai++) {
     // 로컬 캐시 없음 + API 옵트인 꺼짐 → 키체인 안 건드리고 켜는 법만 안내
     out.push("ⓘ Claude limits need API mode | size=12 color=#8b949e");
     out.push("--No local usage cache on this Claude version. | size=11 color=#8b949e");
-    out.push("--Enable it (reads a keychain token, read-only): | size=11 color=#8b949e");
-    out.push('--  export CCB_API=1   — or  ~/.config/claude-codex-battery/config.json {"api":true} | font=Menlo size=11 color=#8b949e');
+    out.push("--API mode is an opt-in setting; it reads a keychain token read-only. | size=11 color=#8b949e");
     out.push("--Sessions & Codex work without this. | size=11 color=#8b949e");
   } else if (cl.reason === "app-stale") {
     out.push("⏸ 업데이트 필요 · Claude 앱의 사용량 수집이 멈췄습니다 | size=12 color=#ffcc00");
-    out.push("--조치: Claude 메뉴 막대 아이콘에서 사용량 화면을 여세요 (24시간 안에 열어야 수집합니다) | size=11 color=#ffcc00");
   } else if (cl.reason === "auth" || state === "auth_expired") {
     out.push("🔐 다시 연결 필요 · Claude 로그인 만료 (실시간 숫자 없음) | size=12 color=#ff453a");
     if (cl.appLast) {
       out.push(`--Claude app stopped sampling (last ${fmtAgo(cl.appLast.at)}: 5-hour ${100 - cl.appLast.fh}% · weekly ${100 - cl.appLast.sd}% left) | size=11 color=#8b949e`);
-      out.push("--조치: Claude 메뉴 막대 아이콘에서 사용량 화면을 여세요 (24시간 안에 열어야 수집합니다) | size=11 color=#ffcc00");
     }
     const retry = fmtRetryAt(cl.retryAt);
     if (retry) out.push(`--Next try ${retry.replace(/^retry /, "")} | size=11 color=#8b949e`);
   } else if (cl.reason === "login") {
     out.push("🔑 Log in to Claude Code first | size=12 color=#ffcc00");
-    out.push("--Run  claude  in a terminal and sign in — it shows up automatically | size=11 color=#8b949e");
   } else if (state === "rate_limited" || cl.reason === "rate-limit") {
     // R4: the usage endpoint asked us to back off (Retry-After); we obey it and
     // make no request until then.
@@ -2202,8 +2212,11 @@ for (let ai = 0; ai < accounts.length; ai++) {
     out.push("⚠️ Couldn't load usage | size=12 color=#ff453a");
     out.push(`--${(cl.error || "").slice(0, 60)} | size=11 color=#8b949e`);
   }
+  if (recoveryAction) out.push(`--NEXT · ${recoveryAction} | size=11 color=#ffcc00`);
   // R3: the login-renewal policy is always visible while API mode is on.
-  if (ai === 0 && IS_MAC && apiModeEnabled()) {
+  // Error panels keep a single recovery action above; the policy controls
+  // remain available for healthy readings without competing with that action.
+  if (ai === 0 && IS_MAC && apiModeEnabled() && !recoveryAction) {
     const auto = autoRenewEnabled();
     const bin = findClaudeBin();
     out.push(`Login renewal: ${auto ? "auto" : "manual"} · ${renewStatusLine()} | size=11 color=#8b949e`);
