@@ -1,5 +1,6 @@
 const KEY = "tokenjuice.widget-snapshot.v1";
 const SYNC_FORMAT = "tokenjuice-sync-v1";
+const SNAPSHOT_REEXPORT_AFTER_MS = 30 * 60 * 1000;
 const $ = (selector) => document.querySelector(selector);
 const fileInput = $("#snapshot-file");
 const importFeedback = $("#import-feedback");
@@ -20,6 +21,10 @@ function relativeTime(at) {
   if (min < 1) return "방금 확인한 스냅샷";
   if (min < 60) return `${min}분 전 확인한 스냅샷`;
   return `${Math.floor(min / 60)}시간 전 확인한 스냅샷`;
+}
+function snapshotNeedsRefresh(snapshot) {
+  const generatedAt = Number(snapshot?.generatedAt);
+  return Number.isFinite(generatedAt) && Date.now() - generatedAt >= SNAPSHOT_REEXPORT_AFTER_MS;
 }
 function timeText(value, prefix = "리셋") {
   if (!value) return `${prefix} 시각 없음`;
@@ -190,8 +195,14 @@ function render(snapshot, { demo = false } = {}) {
   $("#empty-state").hidden = true; $("#dashboard").hidden = false; $("#clear").hidden = demo;
   $("#transport").textContent = demo ? "예시 데이터" : "로컬 전용";
   $("#snapshot-time").textContent = demo ? "예시 데이터 · 기기에 저장하지 않음" : relativeTime(snapshot.generatedAt);
-  const stale = allPayloads(snapshot).some((source) => source.state !== "fresh");
-  $("#status-dot").className = stale ? "caution" : "good";
+  const providerNeedsAttention = allPayloads(snapshot).some((source) => source.state !== "fresh");
+  const transportNeedsRefresh = !demo && snapshotNeedsRefresh(snapshot);
+  $("#status-dot").className = providerNeedsAttention || transportNeedsRefresh ? "caution" : "good";
+  const snapshotWarning = $("#snapshot-age-warning");
+  snapshotWarning.hidden = !transportNeedsRefresh;
+  snapshotWarning.innerHTML = transportNeedsRefresh
+    ? `<b>스냅샷 업데이트 필요</b><span>이 파일은 ${escapeHtml(relativeTime(snapshot.generatedAt))}. provider 상태와 별개로, Mac에서 새 스냅샷을 내보낸 뒤 다시 가져오세요.</span>`
+    : "";
   renderPriority(snapshot);
   renderContext(snapshot);
   const providers = (snapshot.providers || []).map((provider) => card(provider.label || "Local provider", provider, "provider"));

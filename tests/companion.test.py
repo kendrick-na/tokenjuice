@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -171,6 +172,9 @@ def main() -> None:
             assert page.get_by_text("작업 컨텍스트").is_visible()
             assert page.get_by_text("checkpoint 권장").count() >= 1
             assert page.get_by_text("84% 사용").is_visible()
+            assert page.get_by_text("스냅샷 업데이트 필요", exact=True).is_visible()
+            assert "Mac에서 새 스냅샷을 내보낸 뒤 다시 가져오세요." in page.locator("#snapshot-age-warning").inner_text()
+            assert page.locator("#status-dot").get_attribute("class") == "caution"
             targets = visible_target_heights(page)
             assert min(target["height"] for target in targets) >= 44, targets
             assert_no_horizontal_overflow(page)
@@ -206,6 +210,13 @@ def main() -> None:
             targets = visible_target_heights(page)
             assert min(target["height"] for target in targets) >= 44, targets
             page.goto("http://127.0.0.1:4173/", wait_until="networkidle")
+
+            # A current export must not inherit an old file's transport warning.
+            fresh_snapshot = {**SNAPSHOT, "generatedAt": int(time.time() * 1000)}
+            fresh_path = Path(directory) / "fresh-widget-snapshot.json"
+            fresh_path.write_text(json.dumps(fresh_snapshot), encoding="utf-8")
+            page.locator("#snapshot-file").set_input_files(str(fresh_path))
+            page.locator("#snapshot-age-warning").wait_for(state="hidden")
 
             # Export with the real Bun engine and import it through the browser
             # WebCrypto path. This proves the two implementations interoperate.

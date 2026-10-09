@@ -34,6 +34,7 @@ TokenJuice의 시각적 방향은 화려한 대시보드가 아니라 **작업�
 - [x] 빈 상태에서 snapshot import와 demo preview를 함께 제공
 - [x] NOW/WHY/NEXT 우선순위 카드
 - [x] freshness·source·last success 정보
+- [x] provider 상태와 별개로 오래된 export 파일을 "스냅샷 업데이트 필요"로 구분
 - [x] offline/local-only 원칙 표시
 - [ ] 첫 화면에 “이 제품이 누구를 위한 것인지”와 실제 제한(PWA는 자동 동기화하지 않음)을 더 명확히 표시
 - [ ] import 성공 후 3초 안에 성공 피드백과 최신성 표시
