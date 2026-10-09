@@ -161,8 +161,8 @@ def main() -> None:
             page.get_by_text("계기판으로").click()
             page.locator("#snapshot-file").set_input_files(str(snapshot))
             page.get_by_text("Personal").wait_for()
-            assert page.locator("#import-feedback").get_by_text("스냅샷을 가져왔습니다. 가장 먼저 확인할 상태를 표시합니다.").is_visible()
-            assert page.locator("#live-region").inner_text() == "스냅샷을 가져왔습니다. 가장 먼저 확인할 상태를 표시합니다."
+            assert page.locator("#import-feedback").get_by_text("스냅샷을 가져왔습니다.", exact=False).is_visible()
+            assert "확인한 스냅샷 · 가장 먼저 확인할 상태를 표시합니다." in page.locator("#live-region").inner_text()
             assert page.get_by_text("65%").is_visible()
             assert page.get_by_text("리셋 전 소진 예상").is_visible()
             assert page.get_by_text("제공자 제한 중", exact=True).is_visible()

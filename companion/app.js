@@ -233,7 +233,7 @@ fileInput.addEventListener("change", async () => {
     }
     if (!valid(snapshot)) throw new Error("invalid");
     load(snapshot);
-    announce("스냅샷을 가져왔습니다. 가장 먼저 확인할 상태를 표시합니다.", "good");
+    announce(`스냅샷을 가져왔습니다. ${relativeTime(snapshot.generatedAt)} · 가장 먼저 확인할 상태를 표시합니다.`, "good");
   } catch { announce("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.", "danger"); }
   finally { fileInput.value = ""; }
 });
