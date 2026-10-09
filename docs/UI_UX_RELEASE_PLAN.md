@@ -100,6 +100,11 @@ CUA가 SwiftBar에 attach할 수 없어 실제 메뉴바/클릭 패널·notch·s
 source/install cmp와 release-verify 전체 exit 0(78 pass/890 assertions)을 확인했다.
 메뉴바·실기기 UI는 여전히 pending이며 상세 hash/격리 설치 실행은 audit §9.17이다.
 
+같은 날 R2/R13 실패한 local quota 읽기의 성공 시각 분리도 구현했다. 74157c2의 Engine
+37965807140·Windows 37965807177 success, 백업 후 좁은 설치 반영·격리 실행·본문 일치와
+release-verify 전체 exit 0(80 pass/1043 assertions)을 확인했다. 빈 파일의 관측을 마지막
+성공으로 표시하지 않으며 실제 메뉴바/UI·sleep/wake·사용성 gate는 그대로다. audit §9.18 참조.
+
 참가자에게 설명하지 않고 아래를 수행하게 한다.
 
 1. Pocket을 열고 “지금 작업을 계속해도 되는지” 말한다.

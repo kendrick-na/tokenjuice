@@ -25,15 +25,15 @@ Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 �
 최신 로컬 후보에는 §9.10~§9.18의 관측 검사·실패 renderer 일치·Windows 수동 안내와 승인된 설치 반영을 추가했다. 아래 과거 커밋/테스트
 수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
 
-§9.16~§9.17의 이전 설치 반영은 exit 0이었다. §9.18 새 후보의 설치 전 검증은
-source-install mismatch로 exit 1이며 후속 반영 결과를 별도 기록한다.
+§9.18 새 후보도 승인된 플러그인 한 파일 반영·격리 실행·source/install cmp 후
+release-verify 전체 exit 0이다. 설치 전 exit 1 기록은 아래에 보존한다.
 실제 메뉴바/실기기·사용자·스토어 gate는 계속 pending이다.
 
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 80 pass/1043 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; 새 후보 CI success·설치 전 release-verify exit 1(후속 결과 §9.18); 실제 UI pending |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 80 pass/1043 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; 새 후보 CI success·승인된 설치 반영 후 release-verify 전체 exit 0(§9.18); 실제 UI pending |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -730,3 +730,16 @@ macOS 새 두 fixture/80 pass/1043 assertions·Linux/Pocket browser/bundle 및 W
 engine/selftest/exe build/run/artifact를 확인했다. release는 tag가 없어 skipped이며
 Pages 변경 대상이 아니고 공개 Pocket 4d326d3/sw v11·desktop v1.2.2는 유지한다.
 승인된 좁은 설치 반영은 clean/synced checkpoint에서 백업·이전 본문 일치 확인 후 진행한다.
+
+CI 통과 후 clean/synced 9cbd4b2에서 설치 본문이 af7bdee와 정확히 일치함을 cmp로
+확인하고 복구 가능한 세 번째 백업을 확보했다(기존 전체 SHA-256 d6b94561…cba5ed).
+플러그인 한 파일에 이번 diff만 반영했다. 새 전체 SHA-256은
+16877b678212be81ccd15516e8123863259699e9339126f07c13582cdad01175,
+본문 SHA-256은 536a2ee71e9963ab56265d092d7c9cb0ba0b72713d2ae2ca0dda2df714011d8f다.
+기존 executable/owner/group·절대 Bun shebang을 보존했다. 임시 HOME/USERPROFILE,
+API 차단·알림/갱신 꺼짐의 설치 실행 파일로 invalid-file/items[]/lastSuccessAt null과
+diagnostics last success never를 확인했다. 실제 credential·사용자 설정은 읽거나 바꾸지 않았다.
+
+반영 후 release-verify 전체 exit 0: 80 pass/1043 assertions·engine/bundle/browser/
+문법/격리 알림/diff와 실제 설치본 일치가 통과했다. 앱 restart/refresh·CUA 재시도·
+OS 권한·새 tag/스토어 제출은 하지 않았다. 실제 노트북 UI와 위 외부 gate는 pending이다.

@@ -7,7 +7,8 @@
 
 - 공개 Pocket은 `4d326d3`/offline cache v11, desktop release는 immutable `v1.2.2`다.
 - 최신 엔진 후보는 Claude/Codex 잘못된 사용률·미래 관측 시각을 차단하고 오류 원인·성공
-  시각을 desktop renderer와 일치시킨다. 로컬 78개 테스트/890 assertions 및
+  시각을 desktop renderer와 일치시킨다. local provider의 실패 읽기도 성공으로 표시하지 않는다.
+  로컬 80개 테스트/1043 assertions 및
   release-verify는 승인된 플러그인 한 파일 갱신 뒤 설치본 일치까지 exit 0이다. 실제 UI는 pending이다.
   소스/CI 통과를 노트북 표시 문제의 해결 또는 스토어 출시로 기록하지 않는다.
 - 다음 P0는 UI 접근/사용자 관찰로 노트북의 메뉴바/패널·
@@ -16,7 +17,7 @@
   이번 코드 push에 포함하지 않는다. 신규 사용자 5명·인터뷰 10명·14일 diary 결과는 pending이다.
 - 전체 작업 내용 resume, 7일 trend/Coach, Windows toast, 자동 sync·모바일 설정과 native
   widget/스토어는 각각 데이터·동의·제품·플랫폼 계약이 필요하다. metadata-only 안내를
-  전체 작업 복원으로 홍보하지 않는다. 상세 코드/CI 증거는 `REQUIREMENTS_AUDIT.md` §9.12~§9.13이다.
+  전체 작업 복원으로 홍보하지 않는다. 상세 코드/CI·설치 일치와 남은 입력은 `REQUIREMENTS_AUDIT.md` §9.18이다.
 
 ## 1. 출시 전략
 
