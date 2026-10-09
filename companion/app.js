@@ -7,12 +7,12 @@ const importFeedback = $("#import-feedback");
 const liveRegion = $("#live-region");
 
 const stateCopy = {
-  fresh: { label: "방금 확인됨", tone: "good", action: "지금은 계속 작업해도 좋습니다." },
-  fallback: { label: "대체 정보", tone: "caution", action: "다음 확인 전까지는 대체 정보입니다." },
-  stale: { label: "업데이트 필요", tone: "caution", action: "Mac에서 새 스냅샷을 가져오세요." },
-  auth_expired: { label: "다시 연결 필요", tone: "danger", action: "Mac에서 Claude 로그인을 다시 확인하세요." },
-  rate_limited: { label: "제공자 제한 중", tone: "danger", action: "다음 확인 가능 시각까지 잠시 기다리세요." },
-  unavailable: { label: "확인할 수 없음", tone: "danger", action: "데이터 경로와 연결 상태를 확인하세요." },
+  fresh: { label: "방금 확인됨", tone: "good", meaning: "이 스냅샷을 만든 시점에 성공적으로 읽은 값입니다.", action: "지금은 계속 작업해도 좋습니다." },
+  fallback: { label: "대체 정보", tone: "caution", meaning: "제공자 응답 대신 최근 로컬 기록을 읽은 값입니다.", action: "다음 확인 전까지는 대체 정보입니다." },
+  stale: { label: "업데이트 필요", tone: "caution", meaning: "마지막 성공 값입니다. 현재 값으로 가정하면 안 됩니다.", action: "Mac에서 새 스냅샷을 가져오세요." },
+  auth_expired: { label: "다시 연결 필요", tone: "danger", meaning: "연결 자격이 만료되어 최신 사용량을 읽지 못했습니다.", action: "Mac에서 Claude 로그인을 다시 확인하세요." },
+  rate_limited: { label: "제공자 제한 중", tone: "danger", meaning: "제공자가 다음 확인 가능 시각 전의 요청을 제한하고 있습니다.", action: "다음 확인 가능 시각까지 잠시 기다리세요." },
+  unavailable: { label: "확인할 수 없음", tone: "danger", meaning: "확인 가능한 데이터를 찾지 못해 숫자를 표시하지 않았습니다.", action: "데이터 경로와 연결 상태를 확인하세요." },
 };
 
 function relativeTime(at) {
@@ -84,7 +84,7 @@ function card(name, payload, kind) {
   const itemMarkup = payload.items?.length ? payload.items.map(metric).join("") : "<p class=\"empty-card\">표시할 quota가 없습니다. 이 값은 숨긴 상태가 더 안전합니다.</p>";
   const source = payload.sourceLabel || payload.source || "데이터 경로 정보 없음";
   const observedAt = payload.lastSuccessAt || payload.observedAt;
-  return `<article class="account ${kind}"><header class="account-head"><div><span class="account-name">${escapeHtml(name)}</span><span class="source">${escapeHtml(source)}</span></div><span class="state ${status.tone}">${status.label}</span></header>${itemMarkup}<p class="recovery"><b>다음 행동</b>${status.action}${payload.retryAt ? ` ${timeText(payload.retryAt, "다음 확인")}.` : ""}</p><p class="last-success">${observedAt ? timeText(observedAt, "마지막 성공") : "마지막 성공 시각 없음"}</p></article>`;
+  return `<article class="account ${kind}"><header class="account-head"><div><span class="account-name">${escapeHtml(name)}</span><span class="source">${escapeHtml(source)}</span></div><span class="state ${status.tone}">${status.label}</span></header>${itemMarkup}<p class="state-explainer"><b>데이터 상태</b>${status.meaning}</p><p class="recovery"><b>다음 행동</b>${status.action}${payload.retryAt ? ` ${timeText(payload.retryAt, "다음 확인")}.` : ""}</p><p class="last-success">${observedAt ? timeText(observedAt, "마지막 성공") : "마지막 성공 시각 없음"}</p></article>`;
 }
 function allPayloads(snapshot) { return [...snapshot.claude, snapshot.codex, ...(snapshot.providers || [])]; }
 function contextSessions(snapshot) {
@@ -193,7 +193,7 @@ function renderPriority(snapshot) {
 }
 function render(snapshot, { demo = false } = {}) {
   $("#empty-state").hidden = true; $("#dashboard").hidden = false; $("#clear").hidden = demo;
-  $("#transport").textContent = demo ? "예시 데이터" : "로컬 전용";
+  updateTransport(demo);
   $("#snapshot-time").textContent = demo ? "예시 데이터 · 기기에 저장하지 않음" : relativeTime(snapshot.generatedAt);
   const providerNeedsAttention = allPayloads(snapshot).some((source) => source.state !== "fresh");
   const transportNeedsRefresh = !demo && snapshotNeedsRefresh(snapshot);
@@ -207,6 +207,11 @@ function render(snapshot, { demo = false } = {}) {
   renderContext(snapshot);
   const providers = (snapshot.providers || []).map((provider) => card(provider.label || "Local provider", provider, "provider"));
   $("#accounts").innerHTML = [...snapshot.claude.map((account) => card(account.account || "Claude", account, "claude")), card("Codex", snapshot.codex, "codex"), ...providers].join("");
+}
+function updateTransport(demo = false) {
+  $("#transport").textContent = demo
+    ? "예시 데이터"
+    : navigator.onLine ? "로컬 전용" : "오프라인 · 저장된 스냅샷";
 }
 function load(snapshot) { localStorage.setItem(KEY, JSON.stringify(snapshot)); render(snapshot); }
 function demoSnapshot() {
@@ -233,4 +238,7 @@ $("#replace").addEventListener("click", () => fileInput.click());
 $("#preview-demo").addEventListener("click", () => render(demoSnapshot(), { demo: true }));
 $("#clear").addEventListener("click", () => { localStorage.removeItem(KEY); location.reload(); });
 try { const snapshot = JSON.parse(localStorage.getItem(KEY)); if (valid(snapshot)) render(snapshot); } catch { localStorage.removeItem(KEY); }
+window.addEventListener("online", () => updateTransport());
+window.addEventListener("offline", () => updateTransport());
+updateTransport();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");

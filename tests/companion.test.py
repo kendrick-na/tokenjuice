@@ -164,6 +164,8 @@ def main() -> None:
             assert page.get_by_text("리셋 전 소진 예상").is_visible()
             assert page.get_by_text("제공자 제한 중", exact=True).is_visible()
             assert page.get_by_text("다음 행동").count() >= 2
+            assert page.get_by_text("이 스냅샷을 만든 시점에 성공적으로 읽은 값입니다.").count() >= 1
+            assert page.get_by_text("제공자가 다음 확인 가능 시각 전의 요청을 제한하고 있습니다.").is_visible()
             # retryAt은 snapshot 계약에서 Unix ms다. 초처럼 다시 곱하지 않는다.
             retry_copy = page.locator(".account.codex .recovery").inner_text()
             assert "다음 확인" in retry_copy and "1970" not in retry_copy
@@ -196,6 +198,7 @@ def main() -> None:
             page.context.set_offline(True)
             page.reload(wait_until="domcontentloaded")
             assert page.get_by_text("Personal").is_visible()
+            assert page.locator("#transport").inner_text() == "오프라인 · 저장된 스냅샷"
             page.context.set_offline(False)
 
             # The guide is a separate UX10 surface but shares the same 375px
