@@ -57,7 +57,7 @@ TokenJuice의 시각적 방향은 화려한 대시보드가 아니라 **작업�
 - [x] SwiftBar/Bun 의존성을 “고급 정보”가 아니라 설치 전제조건으로 명시
 - [x] 설치 실패 시 진단 복사와 GitHub 피드백 링크를 같은 화면에 배치
 - [x] 메뉴바 미표시 시 `./install.sh --doctor`로 설치 상태를 단계별 판정
-- [ ] App Store/Google Play 미지원 상태를 숨기지 않고 공개 베타로 표기
+- [x] App Store/Google Play 미지원 상태를 숨기지 않고 공개 베타로 표기
 
 ## 4. P1 화면 투두
 

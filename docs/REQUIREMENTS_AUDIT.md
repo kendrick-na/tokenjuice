@@ -6,17 +6,19 @@
 검증 gate로 분리해 매핑한다. `자동 통과`는 fixture/browser/CI 범위의 통과일 뿐이며,
 실사용자·실기기·정책 결정을 대신하지 않는다.
 
-기준 release는 `v1.2.2` (`12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`)다.
-최신 문서-only HEAD는 이 audit 문서가 반영된 `main`의 후속 문서 커밋이며, release asset은
-tag commit에서 고정되어 있다.
+기준 release asset은 `v1.2.2` (`12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`)다.
+2026-10-09 최신 public-beta 소스 기준은 `c08fa49`이며, 이 커밋의 Engine verification
+`37885325573`, Windows build `37885325588`, Publish TokenJuice Pocket `37885325558`은 모두
+성공했다. 이는 GitHub Pages의 PWA 소스 배포 증거이며, immutable macOS/Windows release asset이나
+실기기 acceptance를 대체하지 않는다.
 
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, `tests/engine.test.js` 38 pass/190 expect, `scripts/release-verify.sh`, Engine CI `37881044425`, macOS notification dry-run | 실계정·OS notification presentation은 별도. 코드/자동 검증 완료 |
-| v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
-| v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37881044414`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, `tests/engine.test.js` 39 pass/195 expect, `scripts/release-verify.sh`, Engine CI `37885325573`, macOS notification dry-run | 실계정·OS notification presentation은 별도. 코드/자동 검증 완료 |
+| v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
+| v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
 
 ## 2. R1–R20 요구사항 매핑

@@ -11,6 +11,11 @@
 > 사전 템플릿이며, 이번 릴리스의 실제 결과는 `docs/REQUIREMENTS_AUDIT.md`,
 > `docs/VALIDATION_KIT.md`, 공개 release/CI 근거로 판정한다.
 
+> 현재 상태 참고: `c08fa49`의 Engine verification, Windows build, Publish TokenJuice Pocket은
+> 모두 성공했고 GitHub Pages는 Actions 원본으로 활성화되어 있다. 아래 2026-10-08 원격
+> 사전조건은 historical template이며, 다음 immutable release 후보에서는 새 SHA 기준으로
+> 다시 확인한다.
+
 ## 원격 사전조건 (2026-10-08 확인)
 
 - [ ] 원격 `main`에 이번 변경을 검토·병합한 뒤 `Engine verification`과
