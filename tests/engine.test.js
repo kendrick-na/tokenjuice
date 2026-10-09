@@ -85,6 +85,7 @@ function codexSession({ usedPercent = 40, ageMin = 1, complete = false } = {}) {
   const p = write(".codex/sessions/2026/10/08/rollout-2026-10-08T00-00-00-01a0aaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jsonl", entries.join("\n") + "\n");
   const t = (Date.now() - ageMin * 60000) / 1000;
   utimesSync(p, t, t);
+  return p;
 }
 
 function claudeSession(model = "claude-test", contextTokens = 50000) {
@@ -445,6 +446,75 @@ test("stale numbers never trigger an alert", () => {
   cache("claude-0.json", { ok: true, source: "api", at: Date.now() - 30 * 60000, items: [{ name: "5-hour", used: 99 }] });
   usage(500);
   run();
+  expect(notifications()).toEqual([]);
+});
+
+test("reset-soon alert is explicit, once per known reset, and preserves threshold state", () => {
+  config({ api: true, notify: { enabled: true, threshold: 20 } });
+  expect(run("--notify-reset-soon=10")).toContain("resetSoonMinutes=10");
+  const resets = new Date(Date.now() + 5 * 60000).toISOString();
+  usage(200, { ...okUsage(85, 10), five_hour: { utilization: 85, resets_at: resets } });
+  run(); run();
+  expect(notifications().filter((n) => n.includes("reset soon"))).toHaveLength(1);
+  expect(notifications().filter((n) => n.includes("threshold alert"))).toHaveLength(1);
+  expect(notifications().find((n) => n.includes("reset soon"))).toContain("next action: wait for the reset");
+  cache("claude-0.json", {});
+  usage(200, { ...okUsage(5, 10), five_hour: { utilization: 5, resets_at: resets } });
+  run(); run();
+  expect(notifications().filter((n) => n.includes("reset soon"))).toHaveLength(1);
+  expect(notifications().filter((n) => n.includes("reset alert"))).toHaveLength(1);
+  cache("claude-0.json", {});
+  usage(200, { ...okUsage(5, 10), five_hour: { utilization: 5, resets_at: new Date(Date.now() + 7 * 60000).toISOString() } });
+  run(); run();
+  expect(notifications().filter((n) => n.includes("reset soon"))).toHaveLength(2);
+  const menu = run();
+  expect(menu).toContain("Reset soon alerts: 10 min");
+  expect(run("--notify-reset-soon=0")).toContain("resetSoonMinutes=0");
+});
+
+test("reset-soon ignores disabled, unknown, past, distant and non-fresh windows", () => {
+  const sample = (resets) => ({ ...okUsage(50, 10), five_hour: { utilization: 50, resets_at: resets } });
+  usage(200, sample(new Date(Date.now() + 5 * 60000).toISOString()));
+  config({ api: true, notify: { enabled: true } });
+  run(); // Global alerts do not opt the user in to the new alert.
+  config({ api: true, notify: { enabled: false, resetSoonMinutes: 10 } });
+  run();
+  config({ api: true, notify: { enabled: true, resetSoonMinutes: 10 } });
+  for (const resets of [null, "not a date", new Date(Date.now() - 60000).toISOString(), new Date(Date.now() + 60 * 60000).toISOString()]) {
+    cache("claude-0.json", {}); usage(200, sample(resets)); run();
+  }
+  for (const status of [500, 401, 429]) {
+    cache("claude-0.json", { ok: true, source: "api", at: Date.now() - 30 * 60000, items: [{ name: "5-hour", used: 50, resets: new Date(Date.now() + 5 * 60000).toISOString() }] });
+    usage(status); run();
+  }
+  expect(notifications()).toEqual([]);
+});
+
+test("reset-soon window overrides can opt out and Codex Unix resets are supported", () => {
+  config({ api: true, notify: { enabled: true, resetSoonMinutes: 10, overrides: { "claude:0:5-hour": { resetSoonMinutes: 0 } } } });
+  usage(200, { ...okUsage(50, 10), five_hour: { utilization: 50, resets_at: new Date(Date.now() + 5 * 60000).toISOString() } });
+  const codexPath = codexSession();
+  const lines = readFileSync(codexPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+  const event = lines.find((line) => line.payload?.rate_limits);
+  event.payload.rate_limits.primary.resets_at = Math.floor(Date.now() / 1000) + 5 * 60;
+  writeFileSync(codexPath, lines.map((line) => JSON.stringify(line)).join("\n") + "\n");
+  run(); run();
+  expect(notifications().filter((n) => n.includes("reset soon") && n.includes("Claude"))).toHaveLength(0);
+  expect(notifications().filter((n) => n.includes("reset soon") && n.includes("Codex"))).toHaveLength(1);
+});
+
+test("invalid reset-soon settings leave config unchanged and read-only exports never alert", () => {
+  config({ api: false, notify: { enabled: false } });
+  const cfgFile = path.join(home, ".config/claude-codex-battery/config.json");
+  const before = readFileSync(cfgFile, "utf8");
+  for (const value of ["-1", "61", "1.5", "not-a-number"]) {
+    const result = spawnSync(process.execPath, [ENGINE, `--notify-reset-soon=${value}`], { encoding: "utf8", env: engineEnv() });
+    expect(result.status).toBe(1);
+    expect(readFileSync(cfgFile, "utf8")).toBe(before);
+  }
+  config({ api: true, notify: { enabled: true, resetSoonMinutes: 10 } });
+  usage(200, { ...okUsage(50, 10), five_hour: { utilization: 50, resets_at: new Date(Date.now() + 5 * 60000).toISOString() } });
+  run("--json"); run("--text"); run("--widget-snapshot");
   expect(notifications()).toEqual([]);
 });
 

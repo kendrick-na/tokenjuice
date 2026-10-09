@@ -457,6 +457,14 @@ Claude API 모드의 로그인 갱신은 **기본 수동**이다. 로그인 만�
 `notify`도 기본 꺼짐이다. 켜면 최신(`fresh`) 한도만 기준으로 20% 이하 경고와 리셋 후 회복 알림을 한 번씩 보낸다.
 메뉴의 `Alert settings`에서 알림 켜기/끄기, threshold(10/20/30%), reset 알림을
 직접 바꿀 수 있다. 설정은 로컬 config.json에만 저장되고 서버로 전송되지 않는다.
+리셋 임박 알림은 별도 opt-in이다. `Alert settings`에서 10분 전 알림을 켜거나 끄며,
+`notify.resetSoonMinutes`는 기본 0(꺼짐), 정수 1~60분만 허용한다.
+`bun claude-codex-battery.5s.js --notify-reset-soon=10`으로도 설정할 수 있다.
+해당 quota 창의 알림 정책(전역 설정 또는 window override)도 켜져 있어야 하며,
+제공자가 알려 준 미래 reset 시각과 fresh 값이 있을 때만
+같은 quota/reset 시각에 한 번 경고한다. 절전 중 지나간 알림은 재생하지 않는다.
+window별 `notify.overrides["claude:0:5-hour"].resetSoonMinutes`로 상속값을 바꿀 수 있다.
+이는 예측 소진 알림이 아니며, Windows native toast는 아직 제공하지 않는다.
 pace forecast를 켠 경우 메뉴에서 최근 7일의 로컬 관측값을 JSON으로 내보낼 수도 있다.
 원문 prompt·코드·credential은 포함하지 않는다.
 

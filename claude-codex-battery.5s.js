@@ -1577,16 +1577,18 @@ if (argv[0] === "--init-config") {
     process.exit(1);
   }
 }
-if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off"].includes(argv[0]) || argv[0]?.startsWith("--notify-threshold=")) {
+if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off"].includes(argv[0]) || argv[0]?.startsWith("--notify-threshold=") || argv[0]?.startsWith("--notify-reset-soon=")) {
   try {
     const patch = argv[0] === "--notify-on" ? { enabled: true }
       : argv[0] === "--notify-off" ? { enabled: false }
       : argv[0] === "--notify-reset-on" ? { reset: true }
       : argv[0] === "--notify-reset-off" ? { reset: false }
+      : argv[0].startsWith("--notify-reset-soon=") ? { resetSoonMinutes: Number(argv[0].split("=")[1]) }
       : { threshold: Number(argv[0].split("=")[1]) };
     if (patch.threshold != null && (!Number.isFinite(patch.threshold) || patch.threshold <= 0 || patch.threshold >= 100)) throw new Error("threshold must be between 1 and 99");
+    if (patch.resetSoonMinutes != null && (!Number.isInteger(patch.resetSoonMinutes) || patch.resetSoonMinutes < 0 || patch.resetSoonMinutes > 60)) throw new Error("reset-soon minutes must be an integer from 0 to 60 (0 disables)");
     const notify = updateNotifyConfig(patch);
-    console.log(`notifications updated: enabled=${notify.enabled === true} threshold=${notify.threshold ?? 20} reset=${notify.reset !== false}`);
+    console.log(`notifications updated: enabled=${notify.enabled === true} threshold=${notify.threshold ?? 20} reset=${notify.reset !== false} resetSoonMinutes=${notify.resetSoonMinutes ?? 0}`);
     process.exit(0);
   } catch (e) {
     console.error(`could not update notifications: ${String(e.message || e)}`);
@@ -1767,6 +1769,9 @@ function buildDiagnostics() {
 // Off unless config.json has {"notify": {"enabled": true}}. Fires a macOS
 // notification once when a fresh limit drops to the threshold, and once when it
 // comes back (reset). Stale/fallback/blocked numbers never trigger anything.
+function resetSoonMinutes(value, fallback = 0) {
+  return Number.isInteger(value) && value >= 0 && value <= 60 ? value : fallback;
+}
 function notifyConfig() {
   const n = readConfig().notify || {};
   const threshold = Number(n.threshold);
@@ -1774,6 +1779,7 @@ function notifyConfig() {
     enabled: n.enabled === true,
     threshold: Number.isFinite(threshold) && threshold > 0 && threshold < 100 ? threshold : 20,
     reset: n.reset !== false,
+    resetSoonMinutes: resetSoonMinutes(n.resetSoonMinutes),
     overrides: n.overrides && typeof n.overrides === "object" ? n.overrides : {},
   };
 }
@@ -1785,6 +1791,7 @@ function notificationPolicyFor(entry) {
     enabled: override.enabled == null ? global.enabled : override.enabled === true,
     threshold: Number.isFinite(threshold) && threshold > 0 && threshold < 100 ? threshold : global.threshold,
     reset: override.reset == null ? global.reset : override.reset !== false,
+    resetSoonMinutes: resetSoonMinutes(override.resetSoonMinutes, global.resetSoonMinutes),
   };
 }
 function notificationPolicyForAccount(accountIndex) {
@@ -1831,10 +1838,21 @@ function runNotifications(entries) {
     const prev = st[e.key] || { low: false };
     if (!prev.low && e.remain <= cfg.threshold) {
       sendNotification("TokenJuice", `threshold alert · ${e.label}: ${Math.round(e.remain)}% left${e.resets ? ` · ${fmtReset(e.resets)}` : ""}`);
-      st[e.key] = { low: true, at: Date.now() }; changed = true;
+      st[e.key] = { ...prev, low: true, at: Date.now() }; changed = true;
     } else if (prev.low && e.remain > cfg.threshold + NOTIFY_HYSTERESIS) {
       if (cfg.reset) sendNotification("TokenJuice", `reset alert · ${e.label} is back: ${Math.round(e.remain)}% left`);
-      st[e.key] = { low: false, at: Date.now() }; changed = true;
+      st[e.key] = { ...prev, low: false, at: Date.now() }; changed = true;
+    }
+    // Separately opted in: warn once per provider-supplied reset timestamp.
+    // Missing/past reset times are never inferred, and a wake does not replay
+    // a missed warning. Preserve threshold hysteresis alongside this marker.
+    const resetAt = typeof e.resets === "number" ? e.resets * 1000 : Date.parse(e.resets);
+    const untilReset = resetAt - Date.now();
+    const current = st[e.key] || prev;
+    if (cfg.resetSoonMinutes > 0 && Number.isFinite(resetAt) && untilReset > 0
+      && untilReset <= cfg.resetSoonMinutes * 60000 && current.resetSoonAt !== resetAt) {
+      sendNotification("TokenJuice", `reset soon · ${e.label} · ${fmtReset(e.resets)} · next action: wait for the reset, then check fresh quota`);
+      st[e.key] = { ...current, resetSoonAt: resetAt, at: Date.now() }; changed = true;
     }
   }
   if (changed) { try { writeFileSync(NOTIFY_STATE_FILE, JSON.stringify(st)); } catch {} }
@@ -2385,6 +2403,8 @@ out.push(`--Set alert threshold: 10% | bash='${SELF}' param1=--notify-threshold=
 out.push(`--Set alert threshold: 20% | bash='${SELF}' param1=--notify-threshold=20 terminal=false refresh=true`);
 out.push(`--Set alert threshold: 30% | bash='${SELF}' param1=--notify-threshold=30 terminal=false refresh=true`);
 out.push(`--Reset alerts: ${notificationPolicy.reset ? "off" : "on"} | bash='${SELF}' param1=--notify-reset-${notificationPolicy.reset ? "off" : "on"} terminal=false refresh=true`);
+out.push(`--Reset soon alerts: ${notificationPolicy.resetSoonMinutes ? `${notificationPolicy.resetSoonMinutes} min` : "off"} (fresh only) | size=11 color=#8b949e`);
+out.push(`----${notificationPolicy.resetSoonMinutes ? "Disable reset soon alerts" : "Enable 10-minute reset soon alerts"} | bash='${SELF}' param1=--notify-reset-soon=${notificationPolicy.resetSoonMinutes ? 0 : 10} terminal=false refresh=true`);
 const notificationTargets = notificationEntries().slice(0, 8);
 if (notificationTargets.length) {
   out.push("--Per quota window overrides (otherwise global policy applies) | size=11 color=#6b7280");

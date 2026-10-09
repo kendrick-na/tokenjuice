@@ -89,6 +89,18 @@ adapter 결과다. 항목은 `{ id, label, usageFile }`이며, 파일에는 `ite
 Windows 트레이와 모든 후속 위젯은 `contractVersion: 2`를 확인해야 한다. 알 수 없는
 상태는 안전하게 `unavailable`로 취급하고 숫자를 숨긴다. 알림은 `fresh` 값에만 허용한다.
 
+## 리셋 임박 알림 (local desktop opt-in)
+
+해당 창의 effective `enabled:true`와 별도로 `notify.resetSoonMinutes`를 1~60의 정수로 설정한
+경우에만 발화한다. enabled와 resetSoonMinutes 모두 quota-window override를 우선한다.
+기본 0은 꺼짐이며 quota-window override에서 같은 필드를 상속/변경할
+수 있다. CLI `--notify-reset-soon=10`/`=0`과 메뉴 토글은 로컬 설정만 바꾼다.
+fresh quota와 provider가 알려 준 미래 reset 시각(Claude ISO/Codex Unix seconds)에만
+적용하며 같은 quota/reset 시각의 중복 알림을 cache에서 막는다. 과거/불명/임계 구간 밖의
+reset, stale/fallback/blocked 값은 제외한다. 기존 threshold hysteresis와 상태를 공유해도
+각 marker를 보존한다. 모든 read-only export는 알림을 발화하지 않는다.
+이는 forecast 소진 예측 알림이나 Windows toast가 아니며 Pocket 설정 전달도 아니다.
+
 ## 위젯 스냅샷 계약 v1
 
 `--widget-snapshot`은 자격증명 없이 표시 가능한 quota 상태만 JSON으로 출력한다.

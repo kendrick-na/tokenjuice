@@ -22,13 +22,13 @@ TokenJuice의 다음 승부처는 지원 AI를 많이 늘리는 것이 아니라
 - 2026년 Product Hunt 신제품 흐름은 단순 quota 표시를 넘어 세션 상태·승인 요청·완료 알림·컨텍스트·비용까지 묶는 “AI agent command center”로 확장되고 있다.
 - 시장의 약점은 공통적이다. Claude·Cursor·Codex의 사용량 경로가 공식 공개 API가 아니거나 CLI/브라우저 세션에 의존하고, 토큰 만료·429·수면 복귀·계정 선택 오류가 쉽게 “0%” 또는 오래된 숫자로 보인다.
 - TokenJuice는 설치본을 이미 보유하고, Claude Team과 Codex를 한 메뉴바에서 읽으며, Windows 트레이 버전까지 있다는 점이 강점이다.
-- v1.1·v1.2의 신뢰성 엔진과 R12/R19/R20의 로컬 기반은 구현했지만 전체 요구사항 완료는 아니다. R6 리셋 임박·소진 예측 알림과 R10 다중 Codex 계정은 미구현이다. 암호화 수동 전달은 자동 sync가 아니다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성 결정 전까지 `implementation boundary` blocker다.
+- v1.1·v1.2의 신뢰성 엔진과 R12/R19/R20의 로컬 기반은 구현했지만 전체 요구사항 완료는 아니다. R6 소진 예측 알림과 R10 다중 Codex 계정은 미구현이며 리셋 임박은 이번 후속 코드에서 별도 opt-in으로 구현했다. 암호화 수동 전달은 자동 sync가 아니다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성 결정 전까지 `implementation boundary` blocker다.
 
 ### 1.1 2026-10-08 구현 추적
 
 | 범위 | 구현 증거 | 상태 |
 |---|---|---|
-| R1~R8, R15~R16 | 상태 계약, Retry-After, 수동 기본 로그인 갱신, wake debounce, 비밀값 없는 진단, fixture 회귀 테스트 | R6는 부분 구현: threshold·잔여량 회복 알림만 있고 리셋 임박·예측 소진 알림은 없음. 나머지는 자동 검증 범위 내 구현; 실제 기기 acceptance는 별도 |
+| R1~R8, R15~R16 | 상태 계약, Retry-After, 수동 기본 로그인 갱신, wake debounce, 비밀값 없는 진단, fixture 회귀 테스트 | R6는 threshold·잔여량 회복·opt-in reset-soon 구현, 예측 소진 알림은 없음. 나머지는 자동 검증 범위 내 구현; 실제 기기 acceptance는 별도 |
 | R9~R11, R17~R18 | 안전한 starter config, Claude 멀티 계정 별칭, Windows renderer, opt-in 세션 상태·pace forecast | R10 다중 Codex 계정과 R11 Windows toast는 미구현. Engine `37881044425`, Windows `37881044414` 성공은 구현된 범위의 과거 CI 기록 |
 | R12 | 자격증명 없는 로컬 스냅샷 export와 TokenJuice Pocket PWA import | 구현·브라우저 자동 검증 완료 |
 | R13 | GitHub Copilot 공식 비용 adapter + 명시적 local quota-file adapter | 구현·fixture/PWA 검증 완료; Cursor/Antigravity는 쿠키 수집 없이 안전한 exporter 파일로만 연결 |
@@ -1307,7 +1307,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 알림 부분 구현 / 자동 검증·외부 gate 분리 | `42 pass`·`217 expect()` 엔진 회귀; R6 리셋 임박·소진 예측 알림 미구현. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
+| v1.1 신뢰성 엔진·알림·진단 | 알림 부분 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `46 pass`·`238 expect()` 엔진 회귀; opt-in reset-soon 구현, R6 소진 예측 알림 미구현. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 멀티 계정·표시 구현 / Codex 멀티 계정·Windows toast 미구현 | `6cacedb` Engine `37886745999`, Windows `37886745975` 성공은 구현된 코드 범위만 증명. 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
@@ -1337,7 +1337,7 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
 않으므로, 임시 HOME/config와 provider 자격증명 부재를 보장하는 실행 도구가 별도 준비되기 전에는
 실기기 notification을 실행하지 않는다.
 
-최신 Pocket 배포는 `6cacedb`이며 Engine [37886745999](https://github.com/kendrick-na/tokenjuice/actions/runs/37886745999), Windows [37886745975](https://github.com/kendrick-na/tokenjuice/actions/runs/37886745975), Pages [37886745971](https://github.com/kendrick-na/tokenjuice/actions/runs/37886745971)가 모두 success임을 GitHub에서 확인했다. 위 `12efce2` 릴리스 기록은 immutable v1.2.2의 과거 기준이며 현재 PWA 소스와 구분한다.
+최신 Pocket 배포는 `49a012f`이며 Engine [37943107693](https://github.com/kendrick-na/tokenjuice/actions/runs/37943107693), Windows [37943107732](https://github.com/kendrick-na/tokenjuice/actions/runs/37943107732), Pages [37943107852](https://github.com/kendrick-na/tokenjuice/actions/runs/37943107852)가 모두 success임을 GitHub에서 확인했다. 공개 app.js의 가져오기 내부 검사·신뢰 상태별 숫자 표시와 sw.js v10도 HTTP 응답으로 확인했다. 위 `12efce2` 릴리스 기록은 immutable v1.2.2의 과거 기준이며 현재 PWA 소스와 구분한다.
 
 `17d02c8`(README historical 이미지 표기)과 `016a60a`(Pocket 설정 경계)는 문서만 변경했다. `.github/workflows/engine-verify.yml`, `windows-build.yml`, `companion-pages.yml`의 push paths에 해당 문서 경로가 없고 두 커밋의 run도 없다. 문서 변경이 새 CI/Pages 배포를 뜻하지 않는다. 이번 문서 정합성 검증의 release-verify 결과는 엔진 42 pass/217 assertions·브라우저·번들·스크립트·알림 dry-run 자동 단계 통과, 마지막 SwiftBar 설치본 불일치로 exit 1이다. 설치본 갱신, notch/tray·스크린리더 실기기 확인, 5명 사용성, 10명 인터뷰·14일 diary는 pending이다.
 
@@ -1365,7 +1365,7 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   history/statusline, 계정 reconnect·window override, 접근성·복구 개선은 이후 커밋이다.
 - `v1.2.2` desktop 자산은 `12efce2`에 고정돼 있다. 현재 main이나 Pocket 변경을 이미
   내려받은 exe/SwiftBar 설치본에 자동 반영됐다고 설명하지 않는다.
-- 남은 일은 외부 gate만이 아니다. R6 예측/리셋 임박 알림과 R10 다중 Codex 계정은
+- 남은 일은 외부 gate만이 아니다. R6 예측 소진 알림과 R10 다중 Codex 계정은
   별도 코드 백로그다. Phase B의 작업 의도·최근 파일을 담은 resume brief도 metadata-only
   checkpoint로 대체 완료 처리하지 않는다. §16.5의 개인정보·자동 전환 금지 경계를 유지한다.
 - 이번 최소 안전 수정은 Pocket 손상 파일 가져오기였다. 내부 구조 오류 14종의 기존
@@ -1375,6 +1375,10 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   Claude/Codex/local-provider 12가지 상태 조합과 fresh/fallback 표시 유지 회귀를 추가했다.
   `bff96e7` Pages 테스트의 암호화 처리 race도 완료 조건 대기와 느린 복호화 회귀로
   수정했다. 해당 실패 run을 공개 배포 성공으로 취급하지 않는다.
+- 이어서 R6 reset-soon을 별도 opt-in으로 구현했다. 기본 0(꺼짐), 전역/윈도별 1~60분,
+  local CLI/menu 제어, fresh·미래 reset 조건, 동일 reset 중복 방지와 threshold 상태 보존을
+  fixture 4개로 검증했다. 현재 전체 46 tests/238 assertions 통과; OS 실기기·Windows
+  sender와 소진 예측 알림은 미완료다. Pocket 설정 전송/설치본 변경은 하지 않았다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
