@@ -110,7 +110,15 @@ Codex quota를 읽을 때 존재하는 각 창의 `used_percent`는 유한한 �
 fallback하거나 reset 경과를 근거로 잘못된 값을 0%로 바꾸지 않는다. 다른 정상 프로필은
 영향받지 않는다. 누락/null 사용률 창을 건너뛰는 기존 동작과 정상 숫자 0·100은 유지한다.
 
-실패 레코드의 파일 수정 시각은 `observedAt`에만 남긴다. 성공 이력이 따로 저장되지 않은
+Codex의 quota 창이 있는 탐색 레코드는 파일 mtime이 양의 유한한 Date-valid/nonfuture
+Unix ms여야 한다. 실패하면 reset 추론 전에 `unavailable / invalid_timestamp / items: []`로
+반환하며 과거 레코드/다른 파일로 우회하지 않는다. 마지막 성공은 null, 실패 observedAt은
+실제 읽기 시각이다. 정상 파일의 1시간 fresh/stale 기준·파일/행 탐색 순서·null 창 건너뛰기는
+유지한다. 다른 프로필은 독립적이다. 이 검사는 quota 관측에 한정되며 session context 또는
+pace의 명시적 event timestamp를 파일 mtime으로 대체하지 않는다. reset 스키마/OS 시계
+보정 정책을 새로 정의하지 않고 파일/설정/계정은 수정하지 않는다.
+
+사용률 검사를 실패한 레코드의 유효 파일 수정 시각은 `observedAt`에만 남긴다. 성공 이력이 따로 저장되지 않은
 이 경로의 `lastSuccessAt`은 `null`이다. JSON/widget에 잘못된 사용률을 내보내거나 pace
 history·quota 알림에 사용하지 않는다. 이 검사는 Codex 사용률에 한정되며 reset 등 모든
 provider 필드의 스키마를 검증하거나 실계정 정확성을 보증하는 것은 아니다.

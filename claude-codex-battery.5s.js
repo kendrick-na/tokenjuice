@@ -1154,6 +1154,12 @@ function getCodex(profile = selectedCodexProfile()) {
       const rl = obj?.payload?.rate_limits ?? obj?.rate_limits;
       if (!rl) continue;
       const windows = [rl.primary, rl.secondary].filter((window) => window?.used_percent != null);
+      if (windows.length && !validObservationTime(f.mtime)) {
+        // Fail before reset inference or fallback to another file. A future
+        // file observation cannot establish a successful quota reading.
+        return { ok: false, items: [], reason: "invalid_timestamp",
+          ...usageState({ state: "unavailable", source: "codex-jsonl" }), observedAt: Date.now() };
+      }
       if (windows.some((window) => !Number.isFinite(window.used_percent) || window.used_percent < 0 || window.used_percent > 100)) {
         // Reject at the source, before reset inference or Number() in consumers.
         // Do not turn an older reading into "fresh" after a malformed newest one.
@@ -2541,7 +2547,7 @@ for (const codex of codexReadings) {
       out.push(`⚠️ Codex ${stateLabel(codex.state)} · last success ${last ? fmtAgo(last) : "unknown"} | size=11 color=#ffcc00`);
     }
   } else {
-    out.push(`${codex.reason === "invalid_profiles" ? "Invalid codexAccounts · fix unique IDs, names and absolute local roots in config.json" : "No session data yet (shows after you run Codex in this profile)"} | size=11 color=#8b949e`);
+    out.push(`${codex.reason === "invalid_profiles" ? "Invalid codexAccounts · fix unique IDs, names and absolute local roots in config.json" : codex.reason === "invalid_timestamp" ? "사용량 기록 시각을 확인할 수 없어 숫자를 표시하지 않습니다" : "No session data yet (shows after you run Codex in this profile)"} | size=11 color=#8b949e`);
   }
   if (selected && activeCodexSessions.length) {
     out.push("---");

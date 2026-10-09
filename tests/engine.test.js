@@ -1060,6 +1060,47 @@ test("Codex profiles preserve independent fresh, stale and unavailable states fo
   expect(notifications().every((row) => row.includes("Personal"))).toBe(true);
 });
 
+test("Codex future quota mtime is not fresh or a successful observation", () => {
+  config({ api: false, codexForecast: { enabled: true }, notify: { enabled: true, threshold: 20 } });
+  const file = codexSession({ usedPercent: 99, ageMin: -1 });
+  const older = write(".codex/sessions/older.jsonl", JSON.stringify({ rate_limits: { primary: { used_percent: 20 } } }));
+  const old = (Date.now() - 120000) / 1000;
+  utimesSync(older, old, old);
+  const c = json();
+  expect(c.codexStatus.state).toBe("unavailable");
+  expect(c.codexStatus.reason).toBe("invalid_timestamp");
+  expect(c.codexStatus.lastSuccessAt).toBeNull();
+  expect(c.codexStatus.at).toBeUndefined(); // Existing status export has no at field.
+  expect(c.codexStatus.observedAt).toBeLessThanOrEqual(Date.now());
+  expect(c.codex).toEqual([]);
+  expect(JSON.parse(run("--widget-snapshot")).codex.items).toEqual([]);
+  expect(run()).toContain("사용량 기록 시각을 확인할 수 없어 숫자를 표시하지 않습니다");
+  expect(notifications()).toEqual([]);
+  expect(JSON.parse(run("--codex-forecast-history")).observations).toEqual([]);
+  // A subsequent real, valid file observation recovers without changing quota.
+  const now = (Date.now() - 1000) / 1000;
+  utimesSync(file, now, now);
+  expect(json().codexStatus.state).toBe("fresh");
+  expect(json().codex[0].used).toBe(99);
+});
+
+test("Codex quota mtime validation keeps profile isolation and the one-hour boundary", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200;
+  config({ api: false, codexAccounts: codexProfileList(), notify: { enabled: true, threshold: 20 } });
+  codexProfileSample(".codex-personal", { at: now, reset, primaryUsed: 99 }, -1);
+  codexProfileSample(".codex-work", { at: now, reset, primaryUsed: 99, secondaryUsed: 99 });
+  expect(json().codexAccounts.map((account) => account.state)).toEqual(["unavailable", "fresh"]);
+  run();
+  expect(notifications()).toHaveLength(2);
+  expect(notifications().every((row) => row.includes("Work"))).toBe(true);
+  config({ api: false });
+  for (const ageMin of [59, 61]) {
+    codexSession({ ageMin, usedPercent: 40 });
+    expect(json().codexStatus.state).toBe(ageMin < 60 ? "fresh" : "stale");
+    expect(json().codex[0].used).toBe(40);
+  }
+});
+
 test("Codex rejects malformed quota percentages before reset inference, export and alerts", () => {
   const now = Date.now(), reset = Math.floor(now / 1000) + 7200;
   config({ api: false, codexForecast: { enabled: true }, notify: { enabled: true, threshold: 20, codexForecast: true } });

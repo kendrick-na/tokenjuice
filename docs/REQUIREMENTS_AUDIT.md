@@ -22,14 +22,14 @@ Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 증거�
 Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 실제 설치 성공으로 대체하지 않는다.
 
 현재 공개 Pocket은 §9.9의 `4d326d3`/sw v11, desktop 자산은 immutable `v1.2.2`다.
-최신 로컬 엔진 후보에는 §9.10~§9.12의 Claude utilization/Desktop 표본·cache 관측 검사를 추가했다. 아래 과거 커밋/테스트
+최신 로컬 엔진 후보에는 §9.10~§9.13의 Claude 표본/cache 및 Codex 파일 관측 검사를 추가했다. 아래 과거 커밋/테스트
 수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
 
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 73 pass/806 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 75 pass/825 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -497,3 +497,26 @@ public Pocket `4d326d3`/sw v11과 immutable desktop v1.2.2는 유지한다.
 reset/source별 시각 형식·시계 오차 정책은 근거 확인 전 pending이다. 전체 work-content
 resume·7일 trend/Coach·Pocket 설정/Windows sender·보안/스토어 결정, 설치본/실기기/
 사용성 및 10명 interview/14일 diary·작업 재개 효과는 여전히 완료하지 않았다.
+
+소스 `d4794d1f00d51b1f7ad09f068c3636a0e3a0c6f7`의 Engine
+[37960097872](https://github.com/kendrick-na/tokenjuice/actions/runs/37960097872)와 Windows
+[37960097908](https://github.com/kendrick-na/tokenjuice/actions/runs/37960097908)는 모두 success다.
+macOS 로그의 새 timestamp fixture 및 73 pass/806 assertions도 확인했다. Windows exe
+build/run/artifact까지 성공, tag가 없어 release는 skipped다. Pages/설치본 변경은 아니다.
+
+### 9.13 Codex quota 파일 관측 시각 검증 (2026-10-10)
+
+clean `d4794d1`=origin/main에서 동일 R1/R15 신뢰성 계약의 다음 항목을 진행했다.
+systematic-debugging으로 미래 quota 파일 mtime이 fresh가 되는 두 fixture 실패를 재현했다.
+파일 나이가 음수인 경우도 1시간 이내로 판단한 것이 원인이었다. quota 창이 있는 레코드의
+mtime을 양의 유한한 Date-valid/nonfuture Unix ms로 검사하고 reset 추론 전에 fail-closed한다.
+invalid_timestamp/items[]/lastSuccessAt null 및 실제 읽기 observedAt을 반환하며 과거 파일로
+우회하지 않는다. 정상 파일 관측으로 회복하고 프로필 독립성·1시간 기준·기존 파일/행 탐색과
+null 창 건너뛰기는 유지한다. event timestamp/pace/context/reset 계약은 변경하지 않는다.
+
+두 합성 fixture/19 assertions로 미래 사용량·성공·widget/알림/history 차단, 유효 mtime 뒤
+회복과 다른 프로필 정상 알림, 59/61분 상태를 검증했다. 테스트의 미노출 at 기대 및 'older'
+파일의 실제 mtime만 기존 export/탐색 규칙에 맞게 수정했다. 전체 로컬 75 pass/825 assertions와
+release-verify 자동 browser/bundle/syntax/격리 알림/diff 단계는 통과했지만 마지막 설치본
+불일치로 전체 exit 1이다. 후속 CI는 아래에 기록한다. 설치본/실기기/사용성/인터뷰/스토어/전체 resume 및 Coach gate는
+계속 pending이며 Pocket `4d326d3`/sw v11·desktop v1.2.2는 유지한다.

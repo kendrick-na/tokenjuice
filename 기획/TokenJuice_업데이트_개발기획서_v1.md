@@ -1307,7 +1307,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `73 pass`·`806 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization·Desktop 표본/cache 관측 검사 및 malformed 응답 backoff 추가. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
+| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `75 pass`·`825 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization·Desktop 표본/cache 관측 검사 및 malformed 응답 backoff 추가. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 및 수동 Codex 프로필 구현 / 실계정·OS 검증 대기 | Codex explicit root/alias/ID/표시 선택·stable notification/history key 구현. `862d50f` Engine `37950615407`·Windows `37950615519`, Windows 호환 수정 `70abf9e`의 `37950833358`는 success. 실제 Windows/macOS UI와 신규 설치는 validation kit pending. Windows toast 미구현 |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | metadata-only 생성/재개 상세 코드 구현·browser 검증 / 전체 resume·사용자 검증 대기 | 기존 다운로드에 checkpoint 다시 열기·메타데이터 확인·재개 안내 복사/텍스트 저장·오류 보존·메모리 전용 보관을 추가. 작업 의도/최근 파일 복원이나 실제 resume 행동 전환 완료가 아니며 `docs/VALIDATION_KIT.md` diary gate 유지 |
@@ -1318,7 +1318,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | UX10 랜딩/설치 경로 | 코드·배포 완료 / 사용자 검증 대기 | `6cacedb` Pages `37886745971` 성공. `6245fad`에서 README의 두 구버전 inline 이미지를 제거하고 현재 Pocket 링크로 대체; 원본 파일 보존. 현재 Pocket 화면과 immutable v1.2.2 desktop 화면은 별개. 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | local history export 구현 / 제품 우선순위 근거 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 diary 실행 순서, 분모/판정 기준 보완; 시각적 trend·Usage Coach는 행동 전환 데이터와 의사결정 전까지 보류 |
 | P1 작은 화면·checkpoint·설정 | 안전한 로컬 subset 완료 / history·제품·보안 gate 대기 | `679f079` 80%/90% 로컬 checkpoint 내보내기 CTA; `6cacedb` 상태·NEXT를 유지하고 상세만 접는 Pocket disclosure. trend/Usage Coach는 실제 시계열 snapshot 계약·10명 interview·14일 diary 근거 대기; `016a60a` Pocket 설정 경계는 제품·보안 결정 전 gated |
-| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline`과 별도 `--codex-forecast-history`, additive `codexAccounts[]` 추가; prompt-free fixture를 포함한 현재 73개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
+| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline`과 별도 `--codex-forecast-history`, additive `codexAccounts[]` 추가; prompt-free fixture를 포함한 현재 75개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자 지표와 provider 안전·정책 검증 필요; 의사결정 전 구현 보류 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
@@ -1476,6 +1476,17 @@ release-verify 자동 단계는 통과했지만 마지막 설치본 불일치로
 확인하며 public Pocket `4d326d3`/sw v11·desktop v1.2.2는 바꾸지 않았다. 다음 안전 후보는
 Codex 파일 mtime 관측 검사다. 일반 reset/시계 오차 계약, 설치/실기기/인터뷰/스토어 및
 전체 resume·trend/Coach gate는 pending이다. 상세는 `docs/REQUIREMENTS_AUDIT.md` §9.12 참조.
+
+`d4794d1`의 Engine [37960097872](https://github.com/kendrick-na/tokenjuice/actions/runs/37960097872)·
+Windows [37960097908](https://github.com/kendrick-na/tokenjuice/actions/runs/37960097908)는
+success다. macOS 73 pass/806 assertions 및 Windows exe build/run을 확인했다. release는
+tag가 없어 skipped이며 Pages·설치본 변경은 아니다.
+
+§17.2 이어서(2026-10-10): Codex quota 파일의 미래/불명 mtime을 reset 추론·성공·과거
+fallback 전에 차단했다. 두 fixture/19 assertions로 정상 관측 뒤 회복·프로필 독립 알림과
+1시간 기준을 검증한다. 일반 reset/OS 시계 보정이나 session context·pace의 event 시각은
+바꾸지 않았다. 공개 Pocket/desktop asset 및 실제 설치본은 유지하며 사용자·실기기·스토어/
+전체 resume·trend/Coach gate는 계속 pending이다. 상세는 `docs/REQUIREMENTS_AUDIT.md` §9.13 참조.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

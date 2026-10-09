@@ -7,6 +7,10 @@
 
 ### 변경
 
+- Codex quota 파일의 미래/불명 mtime을 reset 추론·성공·과거 fallback 전에 차단한다.
+  `invalid_timestamp` 안내와 정상 파일 관측 뒤 회복, 프로필 격리 및 1시간 기준을 유지한다.
+  session context·pace event timestamp 계약이나 실제 설치본을 바꾼 것은 아니다.
+
 - Claude API cache/local 파일의 미래·불명 관측 시각을 최신값/성공 fallback에서 제외한다.
   실패 관측을 마지막 성공으로 승격하지 않고 정상 응답 뒤 회복과 기존 freshness 기준을
   유지한다. local 미래 mtime은 `invalid_timestamp`로 안내한다. 설치본 변경은 아니다.
