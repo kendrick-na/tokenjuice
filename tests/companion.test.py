@@ -45,7 +45,7 @@ def assert_no_horizontal_overflow(page) -> None:
 
 
 def visible_target_heights(page) -> list[float]:
-    return page.locator("button:visible, .primary-action:visible, footer a:visible, .snapshot-toolbar button:visible").evaluate_all(
+    return page.locator("button:visible, .primary-action:visible, footer a:visible, .snapshot-toolbar button:visible, .account-detail summary:visible").evaluate_all(
         "els => els.map(el => ({ id: el.id, text: (el.innerText || '').trim(), height: el.getBoundingClientRect().height }))"
     )
 
@@ -167,6 +167,19 @@ def main() -> None:
             assert page.locator("#demo-notice").is_hidden()
             assert page.locator("#import-feedback").get_by_text("스냅샷을 가져왔습니다.", exact=False).is_visible()
             assert "확인한 스냅샷 · 가장 먼저 확인할 상태를 표시합니다." in page.locator("#live-region").inner_text()
+            # Core status and NEXT remain visible on a narrow screen; verbose
+            # provenance is a semantic disclosure with normal keyboard use.
+            details = page.locator(".account-detail")
+            assert details.count() == 3
+            assert all(details.nth(index).get_attribute("open") is None for index in range(details.count()))
+            assert page.get_by_text("다음 행동").count() >= 2
+            first_summary = details.nth(0).locator("summary")
+            first_summary.focus()
+            page.keyboard.press("Enter")
+            assert details.nth(0).get_attribute("open") is not None
+            assert page.locator(".account.claude .state-explainer").get_by_text("이 스냅샷을 만든 시점에 성공적으로 읽은 값입니다.").is_visible()
+            for index in range(1, details.count()):
+                details.nth(index).locator("summary").click()
             assert page.get_by_text("65%").is_visible()
             assert page.get_by_text("리셋 전 소진 예상").is_visible()
             assert page.get_by_text("제공자 제한 중", exact=True).is_visible()

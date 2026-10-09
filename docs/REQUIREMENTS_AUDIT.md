@@ -63,7 +63,7 @@
 | UX11 | choose native mobile platform only after PWA usage/waitlist evidence | PWA exists; no native implementation | intentionally pending; requires usage/waitlist evidence |
 | UX12 | validate free/paid boundary before payments | no payment/cloud code; strategy docs | intentionally pending; requires product/pricing/privacy decision |
 | P0 | Work Continuity Slice | Pocket decision hierarchy, metadata checkpoint, trust/context separation | code/test pass; user behavior gate pending |
-| P1 | Usage Coach/history/compact surfaces | history export, developer evidence, statusline, forecast, 80%/90% local checkpoint handoff | safe local subset implemented; coach/trend behavior evidence pending |
+| P1 | Usage Coach/history/compact surfaces | history export, developer evidence, statusline, forecast, 80%/90% local checkpoint handoff, small-screen detail disclosure browser test | safe local subset implemented; coach/trend behavior evidence pending |
 | P2 | developer integrations/widgets/providers | JSON/history/statusline/local adapter/manual bundle | webhook/native widget/Watch/extra policy-gated connectors pending |
 
 ## 4. Mismatch corrections made by this audit
