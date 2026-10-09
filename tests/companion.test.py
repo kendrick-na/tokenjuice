@@ -131,6 +131,8 @@ def main() -> None:
             # 첫 방문자는 자신의 파일 없이도 제품이 해결하는 문제를
             # 이해할 수 있어야 한다. 예시는 localStorage에 남지 않는다.
             page.get_by_text("예시 화면 보기").click()
+            assert page.get_by_text("예시 화면", exact=True).is_visible()
+            assert page.get_by_text("실제 사용량이 아니며 이 기기에 저장되지 않습니다. 내 상태를 보려면 Mac에서 내보낸 스냅샷을 가져오세요.").is_visible()
             assert page.get_by_text("제공자 제한 중", exact=True).is_visible()
             assert page.get_by_text("NOW", exact=True).is_visible()
             assert page.get_by_text("WHY", exact=True).is_visible()
@@ -161,6 +163,7 @@ def main() -> None:
             page.get_by_text("계기판으로").click()
             page.locator("#snapshot-file").set_input_files(str(snapshot))
             page.get_by_text("Personal").wait_for()
+            assert page.locator("#demo-notice").is_hidden()
             assert page.locator("#import-feedback").get_by_text("스냅샷을 가져왔습니다.", exact=False).is_visible()
             assert "확인한 스냅샷 · 가장 먼저 확인할 상태를 표시합니다." in page.locator("#live-region").inner_text()
             assert page.get_by_text("65%").is_visible()

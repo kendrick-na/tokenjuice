@@ -74,3 +74,5 @@ footer a, footer button { padding:.4rem .45rem; }
 
 .snapshot-limit { max-width:34rem; margin:1rem 0 0; border-left:3px solid var(--amber); padding:.55rem .75rem; background:#ffcc7012; color:var(--muted); font-size:.78rem; line-height:1.55; }
 .snapshot-limit b { display:block; margin-bottom:.2rem; color:var(--amber); font:800 .62rem var(--mono); letter-spacing:.08em; }
+.demo-notice { display:grid; grid-template-columns:auto 1fr; gap:.6rem; margin:0 0 1rem; border:1px solid var(--amber); border-radius:5px; padding:.65rem .75rem; background:#ffcc7012; color:var(--muted); font-size:.76rem; line-height:1.45; }
+.demo-notice b { align-self:start; color:var(--amber); font:800 .61rem/1.5 var(--mono); letter-spacing:.08em; white-space:nowrap; }

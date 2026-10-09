@@ -193,6 +193,7 @@ function renderPriority(snapshot) {
 }
 function render(snapshot, { demo = false } = {}) {
   $("#empty-state").hidden = true; $("#dashboard").hidden = false; $("#clear").hidden = demo;
+  $("#demo-notice").hidden = !demo;
   updateTransport(demo);
   $("#snapshot-time").textContent = demo ? "예시 데이터 · 기기에 저장하지 않음" : relativeTime(snapshot.generatedAt);
   const providerNeedsAttention = allPayloads(snapshot).some((source) => source.state !== "fresh");
