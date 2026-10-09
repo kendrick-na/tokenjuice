@@ -15,22 +15,15 @@ gives the matching installer. Do NOT run install.sh on Windows; it is macOS-only
 
 Shows your Claude Code / Codex usage limits *and* your live session context window as battery icons — in the **macOS menu bar** ([SwiftBar](https://github.com/swiftbar/SwiftBar)) or the **Windows system tray**. Green = go, red = wrap it up.
 
-![demo](docs/demo.gif)
-
-> Historical menu-bar example only. This GIF predates the current NOW/WHY/NEXT,
-> recovery, and checkpoint UI; it is not evidence of the current release.
+Open [TokenJuice Pocket](https://kendrick-na.github.io/tokenjuice/) for the current
+Pocket interface. Choose “예시 화면 보기” to preview sample data, or import your
+own exported snapshot. Pocket uses manual snapshots; desktop behavior is
+documented below.
 
 <p align="center">
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-black">
   <img alt="runtime" src="https://img.shields.io/badge/runtime-bun-black?logo=bun">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue">
-</p>
-
-<p align="center">
-  <img alt="dropdown" src="docs/screenshot.png" width="440">
-
-  <p><em>Historical SwiftBar dropdown example only; current menu wording and layout are verified by the automated engine tests, not this image.</em></p>
-  <br><sub>Click the battery for a full breakdown — per-limit resets and every active session's context window.</sub>
 </p>
 
 <p align="center"><i><a href="#한국어">🇰🇷 한국어 아래로 ↓</a></i></p>
@@ -357,6 +350,8 @@ MIT
 **Claude Code & Codex 얼마나 남았는지 — 맥 메뉴바에서 배터리로.**
 
 Claude Code / Codex 사용 한도와 **지금 세션의 컨텍스트 잔량**을 배터리로 보여주는 [SwiftBar](https://github.com/swiftbar/SwiftBar) 플러그인. 초록=여유, 빨강=곧 소진.
+
+최신 Pocket 화면은 [TokenJuice Pocket](https://kendrick-na.github.io/tokenjuice/)에서 확인하세요. **예시 화면 보기**로 샘플 데이터를 살펴보거나 내보낸 스냅샷을 가져올 수 있습니다. Pocket은 수동 스냅샷 방식이며 데스크톱 동작은 아래 안내를 따릅니다.
 
 | | 배터리 | 표시 |
 |---|---|---|

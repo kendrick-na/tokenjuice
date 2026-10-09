@@ -66,7 +66,11 @@ TokenJuice의 시각적 방향은 화려한 대시보드가 아니라 **작업�
 - [x] session context 80%/90% 단계별 checkpoint CTA (80% checkpoint 권장, 90% 새 세션 전환 준비; 클릭 시 로컬 스냅샷만 내보냄)
 - [x] 작은 화면에서 핵심 카드만 먼저 보이고 상세는 접기 (상태·NEXT는 항상 표시, 출처·마지막 성공은 키보드 가능한 disclosure)
 - [ ] keyboard, VoiceOver/TalkBack, reduced motion, dynamic text 실기기 점검
-- [ ] 스크린샷과 실제 화면이 다른 문서 예시 제거
+- [x] 스크린샷과 실제 화면이 다른 문서 예시 제거 (README의 `docs/demo.gif`·`docs/screenshot.png` inline 참조 제거; 원본 파일 보존; 영문·한국어 본문에서 현재 Pocket 링크와 수동 snapshot/예시 데이터 구분 안내)
+
+2026-10-09 검증: README의 두 이미지 참조는 검색 결과 0건이며 원본 파일은 Git에 그대로 남아 있다. Pocket 링크는 HTTP 200을 반환했다. `scripts/release-verify.sh`의 엔진 42 pass/217 assertions, 브라우저·번들·스크립트·알림 dry-run 단계는 통과했다. 마지막 SwiftBar 설치본 불일치로 전체 결과는 exit 1이며 실기기 gate를 유지한다. README와 이 문서는 Engine/Windows/Pages push path filter 대상이 아니므로 문서 반영이 새 PWA 배포를 뜻하지 않는다.
+
+남은 미체크 항목은 7일 trend의 실제 시계열 snapshot 계약·행동 근거, Pocket 설정의 제품·보안 결정, notch/tray·스크린리더·큰 글자 실기기 확인이다. 사용자 5명 테스트·10명 인터뷰·14일 diary와 설치본 검증은 `docs/LAUNCH_FEEDBACK_PLAN.md` 및 `docs/VALIDATION_KIT.md`의 외부 gate로 계속 추적한다.
 
 ## 5. 출시 전 UX 검증 시나리오
 
