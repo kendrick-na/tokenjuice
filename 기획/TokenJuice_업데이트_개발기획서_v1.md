@@ -1307,7 +1307,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `76 pass`·`829 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization·Desktop 표본/cache 관측 검사 및 malformed 응답 backoff 추가. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
+| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `76 pass`·`829 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization·Desktop 표본/cache 관측 검사 및 malformed 응답 backoff 추가. 승인된 플러그인 갱신 후 release-verify 전체 exit 0·실제 UI pending. 실계정·OS notification presentation은 pending |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 및 수동 Codex 프로필 구현 / 실계정·OS 검증 대기 | Codex explicit root/alias/ID/표시 선택·stable notification/history key 구현. `862d50f` Engine `37950615407`·Windows `37950615519`, Windows 호환 수정 `70abf9e`의 `37950833358`는 success. 실제 Windows/macOS UI와 신규 설치는 validation kit pending. Windows toast 미구현 |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | metadata-only 생성/재개 상세 코드 구현·browser 검증 / 전체 resume·사용자 검증 대기 | 기존 다운로드에 checkpoint 다시 열기·메타데이터 확인·재개 안내 복사/텍스트 저장·오류 보존·메모리 전용 보관을 추가. 작업 의도/최근 파일 복원이나 실제 resume 행동 전환 완료가 아니며 `docs/VALIDATION_KIT.md` diary gate 유지 |
@@ -1526,6 +1526,17 @@ disabled다. JSON/engine·macOS opt-in 갱신과 credential/settings는 변경�
 Windows [37962206168](https://github.com/kendrick-na/tokenjuice/actions/runs/37962206168)는
 success다. macOS 76 pass/829 assertions와 Windows 새 수동 인증 안내 selftest·exe build/run을
 확인했다. release는 skipped이고 Pages 재배포·실제 로그인 성공을 뜻하지 않는다.
+
+§17.2 이어서(2026-10-10): 승인 범위에서 설치 플러그인 한 파일을 백업 후 최신 엔진
+본문으로 갱신했다. 일반 installer/launch/restart/refresh·config/권한/로그인 agent는
+변경하지 않고 executable/shebang을 보존했다. 과거 5617b9a와 기존 설치본의 정확한
+일치를 확인해 사용자 수정이 없는 것을 검증했고, 새 설치본 본문 cmp 및 격리 설치 실행
+fixture가 통과했다. 전체 release-verify는 76 pass/829 assertions·browser/bundle/syntax/
+격리 알림/diff·실제 source-install 일치까지 exit 0이다. 상세 hash/백업/실패 비교 명령의
+재검증 근거는 audit §9.16에 남겼다. 승인 원문은 공개 저장소에 올리지 않았다.
+CUA가 SwiftBar에 attach할 수 없어 실제 메뉴바 아이콘/패널은 pending이다. 파일 일치·
+프로세스 존재를 실제 UI/reload·sleep/wake 성공으로 설명하지 않는다. public Pocket/
+desktop asset·사용자/실기기/스토어 및 전체 resume/history/Coach gate는 계속 유지한다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

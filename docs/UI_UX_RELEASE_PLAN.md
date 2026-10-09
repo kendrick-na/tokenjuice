@@ -91,6 +91,11 @@ overflow도 재현 후 flex 줄바꿈으로 수정했다. VoiceOver/TalkBack·�
 
 ## 5. 출시 전 UX 검증 시나리오
 
+2026-10-10 설치본 검증 후속: 승인 범위의 플러그인 한 파일 갱신·백업·본문 cmp·격리
+실행이 완료됐고 release-verify는 설치본 일치까지 exit 0(76 pass/829 assertions)이다.
+CUA가 SwiftBar에 attach할 수 없어 실제 메뉴바/클릭 패널·notch·sleep/wake 확인은 pending이다.
+일반 installer/앱 restart/refresh·권한·설정은 변경하지 않았다. 상세는 audit §9.16이다.
+
 참가자에게 설명하지 않고 아래를 수행하게 한다.
 
 1. Pocket을 열고 “지금 작업을 계속해도 되는지” 말한다.

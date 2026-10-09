@@ -8,9 +8,9 @@
 - 공개 Pocket은 `4d326d3`/offline cache v11, desktop release는 immutable `v1.2.2`다.
 - 최신 엔진 후보는 Claude/Codex 잘못된 사용률·미래 관측 시각을 차단하고 오류 원인·성공
   시각을 desktop renderer와 일치시킨다. 로컬 76개 테스트/829 assertions 및
-  release-verify 자동 단계는 통과했으나 설치본 비교는 실패다.
+  release-verify는 승인된 플러그인 한 파일 갱신 뒤 설치본 일치까지 exit 0이다. 실제 UI는 pending이다.
   소스/CI 통과를 노트북 표시 문제의 해결 또는 스토어 출시로 기록하지 않는다.
-- 다음 P0는 사용자 승인 후 기존 설치본 갱신·실행 → 사용자 노트북의 메뉴바/패널·
+- 다음 P0는 UI 접근/사용자 관찰로 노트북의 메뉴바/패널·
   quota/trust·절전 복귀 확인이다. 코드 mismatch만으로 미표시 원인을 확정하지 않는다.
 - 이후 실기기 검증 결과를 바탕으로 patch 후보를 결정한다. tag/release 및 스토어 제출은
   이번 코드 push에 포함하지 않는다. 신규 사용자 5명·인터뷰 10명·14일 diary 결과는 pending이다.
@@ -38,6 +38,7 @@ TokenJuice는 현재 모든 플랫폼에 같은 형태로 출시할 수 없다. 
 ### P0-A. Mac 핵심 경로 복구
 
 - [ ] 네 Mac에서 `CCB_YES=1 ./install.sh` 전체 로그 확보
+- [x] 승인된 기존 플러그인 한 파일 갱신·백업·소스 일치·격리 실행 검증 (일반 installer와 앱 restart/refresh는 하지 않음)
 - [x] `./install.sh --doctor` 읽기 전용 진단 경로
 - [ ] Homebrew, Bun, SwiftBar, 플러그인 복사, SwiftBar 실행을 단계별로 판정
 - [ ] `bun claude-codex-battery.5s.js --text` 출력 확보

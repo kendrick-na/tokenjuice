@@ -25,11 +25,14 @@ Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 �
 최신 로컬 후보에는 §9.10~§9.15의 관측 검사·실패 renderer 일치와 Windows 수동 인증 안내를 추가했다. 아래 과거 커밋/테스트
 수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
 
+§9.16에서 승인된 플러그인 한 파일 갱신과 격리 실행·source/install cmp를 완료해 최신
+release-verify는 exit 0이다. 실제 메뉴바/실기기·사용자·스토어 gate는 계속 pending이다.
+
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 76 pass/829 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 76 pass/829 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; 승인된 플러그인 갱신 뒤 release-verify 설치본 일치까지 exit 0; 실제 UI는 pending |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -71,7 +74,7 @@ Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 �
 | UX6 | contrast, 44px, keyboard, screen reader, 375px/desktop/dark/reduced motion | `6cacedb` Pocket disclosure + `tests/companion.test.py`; Engine/Windows/Publish runs `37886745999`/`37886745975`/`37886745971` success | machine criteria pass only; screen reader, physical notch/tray, and 5-person gate pending |
 | UX7 | local-labeled forecast/action language | forecast tests and Pocket “리셋 전 소진 예상” assertion | code pass; diary/action conversion pending |
 | UX8 | per-account/window threshold/reset/reconnect and reason/next time | desktop notification policy/override/reconnect tests; `CCB_TEST_NOTIFY_LOG` | macOS engine contract·sender pass; Pocket snapshot deliberately excludes overrides, so mobile settings are gated pending a product/security decision rather than writing Mac `config.json`. OS presentation pending. Windows toast는 현재 `pystray`/Pillow 패키징만으로는 안전하게 구현할 수 없어 기능·설치 경계 결정 전까지 blocked |
-| UX9 | detailed menu/tray panel and compact/notch safety | menu output, compact test, Windows CI; release-verify의 설치본 비교는 불일치 | code/build pass; 설치본 갱신·physical notch·OS visual pending |
+| UX9 | detailed menu/tray panel and compact/notch safety | menu output, compact test, Windows CI; 승인된 플러그인 갱신 후 release-verify 설치본 비교 일치 | code/build/source-install match pass; physical notch·OS visual pending |
 | UX10 | value/install/privacy/OS/FAQ/release landing | `guide.html`, Pages CI `37885325558`, Pages HTTP 200 | artifact/deploy pass; new-user 5-person gate pending |
 | UX11 | choose native mobile platform only after PWA usage/waitlist evidence | PWA exists; no native implementation | intentionally pending; requires usage/waitlist evidence |
 | UX12 | validate free/paid boundary before payments | no payment/cloud code; strategy docs | intentionally pending; requires product/pricing/privacy decision |
@@ -607,3 +610,40 @@ renderer/selftest와 macOS 한정 갱신 계약 문서만 변경하며 실제 �
 [37962206168](https://github.com/kendrick-na/tokenjuice/actions/runs/37962206168)는 success다.
 macOS 76 pass/829 assertions 및 Windows 새 manual-auth selftest·exe build/run/artifact를
 확인했다. tag가 없어 release는 skipped이며 Pages 변경 대상이 아니다. 실제 로그인은 실행하지 않았다.
+
+### 9.16 승인된 플러그인 한 파일 갱신·설치본 일치 (2026-10-10)
+
+검증된 사용자 승인 범위에서 clean ba1292a=origin/main의 플러그인만 갱신했다. 승인 원문과
+대화 ID는 로컬 전용 기록에 남기고 저장소에는 올리지 않는다. 일반 install.sh는 prefs와
+로그인 항목/LaunchAgent를 변경하므로 실행하지 않았다. 앱 launch/restart/refresh도 하지 않았다.
+
+첫 비교 루프는 zsh의 변수 뒤 colon 해석 때문에 git show revision:path 인자가 잘못되어
+실패했다. 이 출력을 일치 근거로 쓰지 않았다. braces로 수정한 탐색 후 /bin/bash의
+set -euo pipefail·고정 인자 git show·cmp로 다시 검증해 설치 본문이 정확히 과거
+5617b9a5358e62e7a704257ab63799f61b38e59b와 일치함을 확인했다. 기존 본문 SHA-256은
+97049930f7e45e87baf315db309dbe0564fdad4381e2b867ba0ef37dc4b681d1이다.
+소스 차이는 엔진 한 파일의 377 additions/59 deletions이며 사용자 추가 수정은 없었다.
+
+기존 파일 전체 SHA-256 2ef157e7065ea5d73486f48e86d07bb96fe2972b1fd1f592b6936483e686bcc0의
+동일 백업을 먼저 확보하고 app-support backups에 영구 로컬 복사했다. 기존 executable
+권한/owner/group와 절대 Bun shebang을 보존해 tokenjuice-battery.5s.js만 갱신했다.
+설정·credential·Keychain·알림 권한·로그인 항목/agent는 변경하지 않았다.
+
+설치 본문과 소스의 cmp가 통과했으며 새 본문 SHA-256은
+d12ee937e9488c8e2ffe9f387b644e7494d89f7b5d862bb673e9cc5622a381fd,
+새 설치 전체 SHA-256은 00f54c1a9a6fa6293082c0111716b478ac9593606fb163148c8ce8b10371c739다.
+임시 HOME/USERPROFILE의 synthetic local quota 20/40, API 차단·알림/갱신 꺼짐으로 설치
+실행 파일의 fresh/local 출력까지 확인했다. 실제 계정 로그/credential을 테스트 입력으로 쓰지 않았다.
+전체 release-verify는 이제 exit 0: 76 pass/829 assertions·bundle·문법·격리 알림·Pocket
+browser·diff 및 실제 설치본 일치가 모두 통과했다. 엔진 소스는 바꾸지 않았으므로 기존
+8f255fd/7ff5a44의 Engine/Windows CI 증거가 유효하며 Pages/desktop tag/release를 발행하지 않았다.
+
+실제 메뉴바 acceptance는 pending이다. shell은 기존 SwiftBar 프로세스를 확인했지만 CUA
+getApp(SwiftBar)가 약 5초 timeout이고 inventory에 SwiftBar가 없었다. 컨트롤타워의 경로
+attach도 실패했다. process/file 일치를 실제 아이콘·클릭 패널 표시나 자동 reload 성공으로
+승격하지 않는다. UI 접근/사용자 관찰, sleep/wake·notch·실계정/root mapping·신규 설치와
+Windows 실기기·interview/diary·스토어 및 전체 resume/history/Coach gate는 유지한다.
+
+다음 독립 코드 후보는 R13 명시 local quota-file adapter의 미래 observedAt/mtime 검사다.
+현재 Unix ms 관측·15분 fresh/2시간 stale 계약 및 무인증 로컬 경계가 명시되어 있어,
+계약/consumer/합성 재현을 먼저 확인할 수 있다. 새 provider·시각 포맷/수집 경계를 만들지 않는다.
