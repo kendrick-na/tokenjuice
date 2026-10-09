@@ -22,14 +22,14 @@ TokenJuice의 다음 승부처는 지원 AI를 많이 늘리는 것이 아니라
 - 2026년 Product Hunt 신제품 흐름은 단순 quota 표시를 넘어 세션 상태·승인 요청·완료 알림·컨텍스트·비용까지 묶는 “AI agent command center”로 확장되고 있다.
 - 시장의 약점은 공통적이다. Claude·Cursor·Codex의 사용량 경로가 공식 공개 API가 아니거나 CLI/브라우저 세션에 의존하고, 토큰 만료·429·수면 복귀·계정 선택 오류가 쉽게 “0%” 또는 오래된 숫자로 보인다.
 - TokenJuice는 설치본을 이미 보유하고, Claude Team과 Codex를 한 메뉴바에서 읽으며, Windows 트레이 버전까지 있다는 점이 강점이다.
-- v1.1·v1.2의 신뢰성 엔진과 R12/R19/R20의 로컬 기반은 구현했지만 전체 요구사항 완료는 아니다. R6 리셋 임박과 Claude local pace 예측 알림은 후속 코드에서 별도 opt-in으로 구현했다. R10 다중 Codex 계정과 Codex pace 예측은 미구현이다. 암호화 수동 전달은 자동 sync가 아니다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성 결정 전까지 `implementation boundary` blocker다.
+- v1.1·v1.2의 신뢰성 엔진과 R12/R19/R20의 로컬 기반은 구현했지만 전체 요구사항 완료는 아니다. R6 리셋 임박과 Claude/Codex local pace 예측 알림을 별도 opt-in으로 구현했고 R10 수동 Codex root/별칭/ID/표시 선택·계정별 상태/키 계약을 추가했다. 실제 인증 계정 자동 식별/로그인 전환은 아니며 실계정/root mapping·OS acceptance는 pending이다. 암호화 수동 전달은 자동 sync가 아니다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성 결정 전까지 `implementation boundary` blocker다.
 
 ### 1.1 2026-10-08 구현 추적
 
 | 범위 | 구현 증거 | 상태 |
 |---|---|---|
 | R1~R8, R15~R16 | 상태 계약, Retry-After, 수동 기본 로그인 갱신, wake debounce, 비밀값 없는 진단, fixture 회귀 테스트 | R6는 threshold·잔여량 회복·opt-in reset-soon/Claude local forecast 구현. Codex 예측 없음. 나머지는 자동 검증 범위 내 구현; 실제 기기 acceptance는 별도 |
-| R9~R11, R17~R18 | 안전한 starter config, Claude 멀티 계정 별칭, Windows renderer, opt-in 세션 상태·pace forecast | R10 다중 Codex 계정과 R11 Windows toast는 미구현. Engine `37881044425`, Windows `37881044414` 성공은 구현된 범위의 과거 CI 기록 |
+| R9~R11, R17~R18 | 안전한 starter config, Claude 멀티 계정 별칭, Windows renderer, opt-in 세션 상태·Claude/Codex pace 및 수동 Codex 프로필 | R10 수동 root/alias/ID/표시 선택은 후속 구현, 실제 mapping/OS 검증 pending. R11 Windows toast는 미구현. Engine `37881044425`, Windows `37881044414`는 과거 CI이며 최신 증거는 §17.2 참조 |
 | R12 | 자격증명 없는 로컬 스냅샷 export와 TokenJuice Pocket PWA import | 구현·브라우저 자동 검증 완료 |
 | R13 | GitHub Copilot 공식 비용 adapter + 명시적 local quota-file adapter | 구현·fixture/PWA 검증 완료; Cursor/Antigravity는 쿠키 수집 없이 안전한 exporter 파일로만 연결 |
 | R14 | 선택적 암호화 수동 전달 bundle(PBKDF2 + AES-GCM), 자동 sync 없음 | 구현·엔진/PWA 상호운용 자동 검증 완료; CloudKit 자동 sync는 별도 제품 결정 |
@@ -1307,8 +1307,8 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `54 pass`·`292 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 단일 프로필 Codex local forecast 구현. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
-| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 멀티 계정·표시 구현 / Codex 멀티 계정·Windows toast 미구현 | `6cacedb` Engine `37886745999`, Windows `37886745975` 성공은 구현된 코드 범위만 증명. 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
+| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `59 pass`·`346 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast 구현. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
+| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 및 수동 Codex 프로필 구현 / 실계정·OS 검증 대기 | Codex explicit root/alias/ID/표시 선택·stable notification/history key 구현. 직전 `065d868` Engine `37948130019`, Windows `37948130013` 성공. 새 프로필 Windows UI CI는 별도 확인하며 실제 Windows/macOS UI와 신규 설치는 validation kit pending. Windows toast 미구현 |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
 | UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `6cacedb`: 375px detail disclosure, Enter keyboard, 44px target browser test; Engine/Windows/Publish `37886745999`/`37886745975`/`37886745971` 성공. 스크린리더·실기기 notch/tray·실사용자 5명은 pending |
@@ -1318,7 +1318,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | UX10 랜딩/설치 경로 | 코드·배포 완료 / 사용자 검증 대기 | `6cacedb` Pages `37886745971` 성공. `6245fad`에서 README의 두 구버전 inline 이미지를 제거하고 현재 Pocket 링크로 대체; 원본 파일 보존. 현재 Pocket 화면과 immutable v1.2.2 desktop 화면은 별개. 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | local history export 구현 / 제품 우선순위 근거 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 diary 실행 순서, 분모/판정 기준 보완; 시각적 trend·Usage Coach는 행동 전환 데이터와 의사결정 전까지 보류 |
 | P1 작은 화면·checkpoint·설정 | 안전한 로컬 subset 완료 / history·제품·보안 gate 대기 | `679f079` 80%/90% 로컬 checkpoint 내보내기 CTA; `6cacedb` 상태·NEXT를 유지하고 상세만 접는 Pocket disclosure. trend/Usage Coach는 실제 시계열 snapshot 계약·10명 interview·14일 diary 근거 대기; `016a60a` Pocket 설정 경계는 제품·보안 결정 전 gated |
-| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline`과 별도 `--codex-forecast-history` 추가; prompt-free fixture를 포함한 현재 54개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
+| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline`과 별도 `--codex-forecast-history`, additive `codexAccounts[]` 추가; prompt-free fixture를 포함한 현재 59개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자 지표와 provider 안전·정책 검증 필요; 의사결정 전 구현 보류 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
@@ -1365,8 +1365,8 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   history/statusline, 계정 reconnect·window override, 접근성·복구 개선은 이후 커밋이다.
 - `v1.2.2` desktop 자산은 `12efce2`에 고정돼 있다. 현재 main이나 Pocket 변경을 이미
   내려받은 exe/SwiftBar 설치본에 자동 반영됐다고 설명하지 않는다.
-- 남은 일은 외부 gate만이 아니다. 단일 프로필 Codex pace 예측은 아래에서 구현했으나
-  R10 다중 Codex 계정은 별도 코드 백로그다. Phase B의 작업 의도·최근 파일을 담은 resume brief도 metadata-only
+- 남은 일은 외부 gate만이 아니다. Codex pace와 R10 수동 로컬 프로필 subset은 아래에서
+  구현했으나 시각적 history·전체 resume workflow는 별도 코드 백로그다. Phase B의 작업 의도·최근 파일을 담은 resume brief도 metadata-only
   checkpoint로 대체 완료 처리하지 않는다. §16.5의 개인정보·자동 전환 금지 경계를 유지한다.
 - 이번 최소 안전 수정은 Pocket 손상 파일 가져오기였다. 내부 구조 오류 14종의 기존
   화면·저장본 보존, 구버전 v1 호환, 손상된 저장본 복구와 정상 암호화 상호운용을
@@ -1400,6 +1400,19 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   격리 알림 검증이 통과했다. release-verify 전체는 installed-source mismatch로 exit 1이며
   실제 노트북 작동·OS notification·사용자 acceptance는 그대로 pending이다. 새 CI는 push
   후 확인한다. 이 engine/tests 변경은 Pages 필터 대상이 아니므로 PWA 배포 SHA는 유지된다.
+- `065d868` Codex pace의 Engine [37948130019](https://github.com/kendrick-na/tokenjuice/actions/runs/37948130019)·Windows [37948130013](https://github.com/kendrick-na/tokenjuice/actions/runs/37948130013)는 success다.
+- 2026-10-10 R10의 수동 Codex 프로필 subset을 추가했다. 최대 8개의 explicit local root,
+  별칭·stable ID·표시 선택을 제공한다. macOS/Windows 메뉴에서 선택 상태와 신뢰 상태를
+  평문으로 표시하고, 선택 동작은 로그인 전환이 아님을 명시한다. legacy JSON/X header/
+  Pocket/context는 선택 계정만 유지하며 additive `codexAccounts[]`는 전체 quota를 담는다.
+  notification/pace key는 ID와 창 역할로 분리하고 rename/reorder에 영향받지 않는다.
+  잘못된 manifest/선택은 다른 계정으로 fallback하지 않는다. root를 다른 실제 계정용으로
+  바꾸면 새 ID를 사용하며 같은 root 안의 로그인 전환은 자동 인증 식별하지 않는다.
+  5개 fixture/54 assertions로 격리·선택·호환·privacy·알림/상태를 검증해 전체 59 tests/
+  346 assertions가 통과했다. Windows selftest에 메뉴/argv 선택 회귀도 추가했으나 Mac의
+  pystray 부재로 로컬 실행은 미통과여서 Windows CI에서 별도 확인한다. release-verify
+  자동 단계 통과와 installed-source mismatch(exit 1), 실계정·OS UI·사용자 pending은
+  분리한다. 실제 설치본·release asset·PWA를 이번 변경으로 갱신했다고 주장하지 않는다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

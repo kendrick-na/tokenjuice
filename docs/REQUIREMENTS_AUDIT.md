@@ -1,6 +1,6 @@
 # TokenJuice 요구사항·증거 최종 감사
 
-확인일: 2026-10-09
+확인일: 2026-10-10
 
 이 문서는 개발기획서의 요구사항을 현재 저장소의 코드·테스트·CI·release·실제
 검증 gate로 분리해 매핑한다. `자동 통과`는 fixture/browser/CI 범위의 통과일 뿐이며,
@@ -12,18 +12,18 @@
 성공했다. 이는 GitHub Pages의 PWA 소스 배포 증거이며, immutable macOS/Windows release asset이나
 실기기 acceptance를 대체하지 않는다.
 
-직전 desktop **소스 후보**는 `6f7184b2c36b01ffd579605ac784a7bf111b3da5`다.
-Engine verification `37945674193`·Windows build `37945674232`는 모두 success다.
+직전 desktop **소스 후보**는 `065d8683e3ba33daa47b6d13e7380f549e03be37`다.
+Engine verification `37948130019`·Windows build `37948130013`는 모두 success다.
 이후 audit/기획서 문서-only 변경은 해당 CI 필터나 Pages 배포를 다시 실행하지 않는다.
 desktop release asset/설치본은 갱신하지 않았고, Pocket 배포는 계속 `49a012f`다.
-이후 Codex 단일 프로필 pace 구현의 로컬 증거는 아래 §9.5다. 새로운 SHA별 CI는 push
+Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 로컬 증거는 §9.6이다. 새로운 SHA별 CI는 push
 후 별도로 기록하며, 로컬 통과를 CI 또는 실제 설치 성공으로 대체하지 않는다.
 
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 54 pass/292 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Codex는 단일 프로필/유효 이벤트·reset 조건부. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 59 pass/346 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Codex는 명시적 로컬 프로필/유효 이벤트·reset 조건부. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -41,7 +41,7 @@ desktop release asset/설치본은 갱신하지 않았고, Pocket 배포는 계�
 | R7 | official quota와 local context/cost 분리 | `kind` contract, session/context/cost tests, Pocket cards | 코드·자동 검증 완료 |
 | R8 | secret-free copyable diagnostics | `--diagnostics`, `--copy-diagnostics`, diagnostics privacy test | 자동 검증 완료; 실제 support workflow는 pending |
 | R9 | first-run onboarding/permission/keychain choice | `--init-config`, `guide.html`, starter config test | artifact·자동 검증 완료; 신규 사용자 comprehension pending |
-| R10 | multi-account aliases/status | `loadAccounts()`, multi-directory test, menu labels; Codex는 고정 `~/.codex/sessions` | 부분 구현: 여러 Claude 계정 별칭·각 cache만 검증. 여러 Codex 계정의 root/alias/선택/알림 키 계약은 아직 없음. 실제 Team/personal 계정 사용성도 pending |
+| R10 | multi-account aliases/status | `loadAccounts()`, `loadCodexProfiles()`, selected legacy/additive JSON, macOS/Windows menu, 5 profile tests | Claude 및 수동 Codex root/alias/ID/표시 선택·계정별 상태/알림/history 계약 구현. 실제 인증 계정 자동 식별·로그인 전환은 하지 않음. Windows 새 메뉴 CI·실제 Team/personal mapping/사용성은 별도 검증 |
 | R11 | Windows/macOS meaning/alarm parity | shared JS engine, Windows build `37885325588`, Engine CI `37885325573` | tray/build/contract 완료; macOS·Windows tray 실제 presentation pending. Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성이 필요해 현재 범위에서 blocked |
 | R12 | mobile companion/widget | Pocket import/export/offline/encrypted bundle browser test, Pages `37885325558` | PWA local export 완료; native widget/retention pending |
 | R13 | provider adapters | Copilot official-cost and local quota-file tests | 안전한 범위의 adapter 완료; extra provider policy/format validation pending |
@@ -49,7 +49,7 @@ desktop release asset/설치본은 갱신하지 않았고, Pocket 배포는 계�
 | R15 | data contract/fixtures/regression | `docs/DATA_CONTRACT.md`, `tests/engine.test.js`, CI matrix | 자동 검증 완료; undocumented provider contracts remain risk |
 | R16 | trust badges/source labels | `trustBadge()`, menu/Pocket source/freshness assertions | 코드·자동 검증 완료 |
 | R17 | opt-in session status | `getAllSessions()`, session status test, snapshot/Pocket context | 코드·fixture 완료; 실제 agent 상태 정확도는 user/device pending |
-| R18 | opt-in pace forecast | `forecastForItem()`, `codexForecastForItem()`, 7-day export/history·primary/secondary·privacy tests, Pocket forecast assertions | Claude/Codex quota 구현·자동 검증. Codex는 단일 프로필, 명시적 최근 이벤트 시각·미래 reset·충분한 표본 조건부. 실제 행동 전환 pending |
+| R18 | opt-in pace forecast | `forecastForItem()`, `codexForecastForItem()`, 7-day export/history·primary/secondary·profile/privacy tests, Pocket forecast assertions | Claude/Codex quota 구현·자동 검증. Codex는 수동 프로필 ID로 분리하고 명시적 최근 이벤트 시각·미래 reset·충분한 표본 조건부. 실제 행동 전환 pending |
 | R19 | notch/compact view | `CCB_COMPACT`, compact test, Windows/macOS release build | 코드·CI 완료; 실제 notch clipping/legibility pending |
 | R20 | project/context/cost report | project report and explicit rate-table tests | 코드·fixture 완료; 실제 user pricing setup/interpretation pending |
 
@@ -161,7 +161,7 @@ detached child 로그보다 먼저 끝나는 재현 가능한 race가 드러났�
 
 | 문서/범위 | 구현된 범위 | 남은 범위·정확한 성격 |
 |---|---|---|
-| master §6 R1~R20·UX1~UX12, §7 종료 조건 | 위 §2~§3 매핑 | R6 Claude/Codex 단일 프로필 예측과 reset-soon은 로컬 코드로 구현. R10 다중 Codex 계정은 **미구현 코드**. R11 Windows toast는 설치 경계 결정 선행 |
+| master §6 R1~R20·UX1~UX12, §7 종료 조건 | 위 §2~§3 매핑 | R6 Claude/Codex 예측/reset-soon, R10 Codex 수동 로컬 프로필 subset 구현. 인증 계정/root mapping과 새 설치/OS UI는 별도 검증. R11 Windows toast는 설치 경계 결정 선행 |
 | master §13 Phase A trust | 로컬 source/last success/상태 분류 | 독립 provider-health/outage 수집 없음. HTTP failure를 provider outage로 단정하지 않음 |
 | master §13 Phase B continuity | context 80/90%, 프로젝트·브랜치 등 metadata checkpoint | 최근 파일·마지막 작업 의도를 담은 resume brief 및 수동 provider 전환 안내 전체는 미구현. §16.5는 이를 좁힌 안전한 slice일 뿐 Phase B 전체 완료가 아님 |
 | master §13 Phase C~E | Claude/Codex local read, opt-in API, 암호화 수동 quota 전달 | 직접 reset-credit 실행·자동 checkpoint sync·push·team dashboard 없음. credentials/외부 전송·동의/보존 계약 또는 제품 선택 선행 |
@@ -194,9 +194,9 @@ v1.2.0~v1.2.2 공개 자산을 확인했다. release의 `targetCommitish:main` �
    저장본 보존 assertion이 실패하는 것을 먼저 재현했다. renderer가 소비하는 내부 구조를
    저장 경계에서 검사한 뒤, 내부 오류 14종의 기존 화면/저장본 보존·손상 저장본 startup
    복구·optional 필드 없는 이전 v1 호환·정상 암호화 상호운용 회귀가 통과했다.
-2. **후속 로컬 코드:** R10 Codex root/계정 alias·stable notification key·출력 계약의
-   호환 설계가 남아 있다. Claude R6는 아래 §9.2~§9.3, 단일 프로필 Codex pace는 §9.5에서
-   구현했다. 다중 계정 미구현을 “외부 입력만 기다림”으로 바꾸지 않는다.
+2. **후속 로컬 코드:** R10의 Codex root/alias/표시 선택·stable notification key·호환 출력
+   subset은 아래 §9.6에서 구현했다. 시각적 history·Phase B resume brief 등은 여전히 별도
+   백로그다. 실제 계정 mapping/OS UI 성공을 fixture로 대체하지 않는다.
 3. **외부 입력:** 현재 후보 source를 설치해도 되는지 기기 소유자의 승인, 실제 Mac UI/
    sleep-wake 관찰, Windows tray·스크린리더 장비, 5명/10명 참가자와 동의·diary가 필요하다.
    Windows sender/모바일 설정·스토어/외부 전송/유료화 결정은 위 gate와 분리한다.
@@ -278,4 +278,25 @@ primary/secondary·reset 구간별 opaque key와 `{key,at,used}`만 별도 로�
 Claude history 보존·메뉴/developer/widget 호환을 검증했다. 전체 54 pass/292 assertions,
 bundle·syntax·격리 알림 dry-run·Pocket browser·diff 검증은 통과했다. release-verify 전체는
 installed SwiftBar source mismatch로 exit 1이다. 설치본·OS 권한·실계정·공개 desktop 자산은
-변경하지 않았다. 새 Engine/Windows CI 증거는 push 후 별도로 확인한다.
+변경하지 않았다. `065d868`의 Engine [37948130019](https://github.com/kendrick-na/tokenjuice/actions/runs/37948130019)·Windows [37948130013](https://github.com/kendrick-na/tokenjuice/actions/runs/37948130013)는 모두 success다.
+
+### 9.6 R10 수동 Codex 로컬 프로필 (2026-10-10)
+
+최대 8개 explicit root/별칭/안정 ID, 선택 CLI 및 macOS/Windows 메뉴를 추가했다. 별칭·
+순서 변경에도 ID를 유지하며 threshold/reset 키는 ID+역할, pace 키는 ID+역할+길이+reset을
+구분한다. 기존 `.codex` 기본 동작과 override는 유지한다. 잘못된 manifest/선택은 다른
+계정/default root로 fallback하지 않는다. root·인증 식별자·credential discovery/로그인
+전환을 추가하지 않았고, diagnostics에는 공개 별칭/ID 대신 index만 표시한다.
+
+legacy JSON/X header·Pocket export·Codex context는 선택 프로필을 유지하며 전체 quota는
+additive `codexAccounts[]`에 제공한다. Pocket quota 별칭으로 선택 계정을 식별할 수 있다.
+UI/UX 스킬의 선택 상태·오류 복구·native control 원칙을 적용해 표시 선택과 실제 로그인을
+분명히 구분했다. 자동 디자인 검색의 웹 랜딩/폰트 제안은 native 메뉴에 적용하지 않았다.
+
+5개 fixture/54 assertions로 선택/기존 config 보존·구버전 소비 경로·root 비노출·rename/
+reorder·동일 표시 이름의 창·profile별 pace/override·invalid config/선택 fail-closed·상태별
+알림 억제를 검증했다. 전체 engine 59 pass/346 assertions와 release-verify 자동 단계는
+통과했고 마지막 installed-source mismatch는 여전히 exit 1이다. Windows selftest에 native
+메뉴/안전한 argv/잘못된 ID 차단 회귀를 추가했다. 이 Mac에는 pystray가 없어 로컬 실행은
+미통과이며 Windows CI에서 따로 확인한다. 실제 계정/root mapping·신규 설치·OS presentation은
+pending이고 같은 root에서 실제 인증 계정만 바뀌는 경우는 자동 구분하지 않는다.

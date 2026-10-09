@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -476,17 +477,33 @@ class TrayApp:
 
         codex = self.data.get("codex") or []
         codex_status = self.data.get("codexStatus") or {}
-        if codex:
+        profiles = self.data.get("codexAccounts") or []
+        if not profiles and codex:
+            profiles = [{**codex_status, "account": "Codex", "items": codex, "selected": True}]
+        for profile in profiles:
+            if profile.get("id") == "default" and not profile.get("items"):
+                continue
             yield Menu.SEPARATOR
-            yield MenuItem("Codex", None, enabled=False)
-            if codex_status.get("state") and codex_status.get("state") != "fresh":
-                last = codex_status.get("lastSuccessAt") or codex_status.get("observedAt")
+            alias = profile.get("account") or "Codex"
+            label = "Codex" if alias == "Codex" else f"Codex {alias}"
+            yield MenuItem(label, None, enabled=False)
+            if len(profiles) > 1:
+                if profile.get("selected"):
+                    yield MenuItem("   Selected for X header and Pocket export", None, enabled=False)
+                elif re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,31}", profile.get("id") or ""):
+                    yield MenuItem(f"   Use {alias} — local display only, not login", self._select_codex_account(profile["id"]))
+            state = profile.get("state") or "unavailable"
+            if state != "fresh":
+                last = profile.get("lastSuccessAt") or profile.get("observedAt")
                 when = f"last success {fmt_ago(last)}" if last else "no successful reading"
-                state = codex_status.get("state")
                 yield MenuItem(f"   {state_display_label(state)} · {state_recovery_hint(state)} · {when}", None, enabled=False)
-            for i in codex:
+            if profile.get("reason") == "invalid_profiles":
+                yield MenuItem("   Fix codexAccounts IDs, names and absolute local roots in config.json", None, enabled=False)
+            for i in profile.get("items") or []:
                 r = round(100 - i.get("used", 0))
                 yield MenuItem(f"   {i.get('name')}  {bar_text(r)}  {r}% left", None, enabled=False)
+        if codex_status.get("reason") == "invalid_selection":
+            yield MenuItem("Codex selection unavailable — choose a configured local profile", None, enabled=False)
 
         for provider in self.data.get("providers") or []:
             yield Menu.SEPARATOR
@@ -576,6 +593,27 @@ class TrayApp:
 
     def _open_usage(self, _icon=None, _item=None):
         webbrowser.open("https://claude.ai/settings/usage")
+
+    def _select_codex_account(self, profile_id):
+        """A bound callback: profile order/alias changes do not change its ID."""
+        def select(_icon=None, _item=None):
+            if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,31}", profile_id or ""):
+                self.error = "Invalid local Codex profile ID."
+                return
+            bun, engine = find_bun(), find_engine()
+            if not bun or not engine:
+                self.error = "Could not find bun or the TokenJuice engine."
+                return
+            try:
+                subprocess.run(
+                    [bun, str(engine), f"--select-codex-account={profile_id}"],
+                    capture_output=True, text=True, encoding="utf-8", errors="replace",
+                    timeout=ENGINE_TIMEOUT, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), check=True,
+                )
+                self._poll_once()
+            except (OSError, subprocess.SubprocessError):
+                self.error = "Codex selection failed — check configured profile IDs; login was not changed."
+        return select
 
     def _quit(self, _icon=None, _item=None):
         self.stop.set()

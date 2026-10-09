@@ -105,6 +105,18 @@ function codexPaceSample({ at, primaryUsed = 10, secondaryUsed = 20, reset, seco
   writeFileSync(file, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
   return file;
 }
+function codexProfileSample(dir, options, ageMin = 0) {
+  const original = codexPaceSample(options);
+  const rows = readFileSync(original, "utf8").trim().split("\n").map((row) => JSON.parse(row));
+  rows[0].payload.model = `gpt-${dir.replace(/[^a-z]/g, "")}`;
+  const file = write(`${dir}/sessions/fixture.jsonl`, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
+  utimesSync(file, (Date.now() - ageMin * 60000) / 1000, (Date.now() - ageMin * 60000) / 1000);
+  return file;
+}
+const codexProfileList = () => [
+  { id: "personal", name: "Personal", configDir: "~/.codex-personal" },
+  { id: "work", name: "Work", configDir: "~/.codex-work" },
+];
 
 beforeEach(() => {
   home = mkdtempSync(path.join(os.tmpdir(), "tj-test-"));
@@ -690,6 +702,95 @@ test("Codex pace isolates reset periods and role keys even with identical displa
   const file = codexPaceSample({ at: now, reset, primaryUsed: 40, secondaryUsed: 50 });
   utimesSync(file, (now - 2 * 3600e3) / 1000, (now - 2 * 3600e3) / 1000);
   expect(json().codex.every((item) => item.forecast === null)).toBe(true);
+});
+
+test("Codex profiles keep the legacy view selected, export aliases safely and select without login", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200;
+  usage(200, okUsage(20, 20));
+  config({ api: true, codexAccounts: codexProfileList(), codexSelectedAccount: "work", notify: { enabled: false } });
+  codexProfileSample(".codex-personal", { at: now, reset, primaryUsed: 90 });
+  codexProfileSample(".codex-work", { at: now, reset, primaryUsed: 45 });
+  const output = json();
+  expect(output.codexAccounts.map((account) => [account.id, account.selected])).toEqual([["personal", false], ["work", true]]);
+  expect(output.codex[0].used).toBe(45);
+  expect(output.codexStatus.account).toBe("Work");
+  expect(output.sessions.filter((session) => session.platform === "codex").map((session) => session.model)).toEqual(["gpt-codexwork"]);
+  expect(JSON.stringify(output.codexAccounts)).not.toContain(home);
+  expect(run()).toContain("NOW · Codex Personal · 5-hour · 10% left");
+  expect(run()).toContain("param1=--select-codex-account=personal");
+  expect(run()).toContain("Selected for X header, Windows and Pocket export");
+  expect(JSON.parse(run("--widget-snapshot")).codex.items[0].name).toBe("Work · 5-hour");
+  expect(run("--select-codex-account=personal")).toContain("no login or credential changes");
+  expect(json().codex[0].used).toBe(90);
+  const settings = readFileSync(path.join(home, ".config/claude-codex-battery/config.json"), "utf8");
+  expect(JSON.parse(settings).notify.enabled).toBe(false);
+  expect(() => run("--select-codex-account=missing")).toThrow("engine exit 1");
+  expect(readFileSync(path.join(home, ".config/claude-codex-battery/config.json"), "utf8")).toBe(settings);
+  expect(renewCalls()).toEqual([]);
+  expect(notifications()).toEqual([]);
+});
+
+test("Codex profile notification keys survive reordering and renaming without cross-account suppression", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200, profiles = codexProfileList();
+  const settings = { api: false, codexAccounts: profiles, codexSelectedAccount: "work", notify: { enabled: true, threshold: 20 } };
+  config(settings);
+  for (const dir of [".codex-personal", ".codex-work"]) codexProfileSample(dir, { at: now, reset, minutes: 10080, primaryUsed: 99, secondaryUsed: 99 });
+  run(); run();
+  expect(notifications()).toHaveLength(4);
+  config({ ...settings, codexAccounts: [{ ...profiles[1], name: "Office" }, profiles[0]] });
+  run();
+  expect(notifications()).toHaveLength(4);
+  expect(json().codexStatus.account).toBe("Office");
+  const state = JSON.parse(readFileSync(path.join(home, ".cache/claude-codex-battery/notify-state.json"), "utf8"));
+  expect(Object.keys(state).filter((key) => key.startsWith("codex:")).sort()).toEqual(["codex:personal:primary", "codex:personal:secondary", "codex:work:primary", "codex:work:secondary"]);
+});
+
+test("Codex profile pace and overrides isolate identical windows while history stays opaque", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200;
+  config({ api: false, codexAccounts: codexProfileList(), codexForecast: { enabled: true }, notify: { enabled: true, threshold: 1, codexForecast: true, overrides: { "codex:personal:primary": { enabled: false } } } });
+  for (const dir of [".codex-personal", ".codex-work"]) codexProfileSample(dir, { at: now - 12 * 60000, reset });
+  json();
+  for (const dir of [".codex-personal", ".codex-work"]) codexProfileSample(dir, { at: now, reset, primaryUsed: 40, secondaryUsed: 50 });
+  const output = json();
+  expect(output.codexAccounts.flatMap((account) => account.items.map((item) => item.forecast.samples))).toEqual([2, 2, 2, 2]);
+  run(); run();
+  expect(notifications().filter((row) => row.includes("forecast alert"))).toHaveLength(3);
+  expect(notifications().some((row) => row.includes("Personal 5-hour"))).toBe(false);
+  const history = JSON.parse(run("--codex-forecast-history"));
+  expect(history.observations).toHaveLength(8);
+  expect(new Set(history.observations.map((row) => row.key)).size).toBe(4);
+  expect(JSON.stringify(history)).not.toMatch(/personal|work|configDir|sessions|gpt-/);
+  expect(JSON.stringify(history)).not.toContain(home);
+});
+
+test("invalid Codex manifests and selections fail closed without reading the healthy default account", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200, profiles = codexProfileList();
+  codexSession({ usedPercent: 99 });
+  for (const list of [[], {}, [profiles[0], profiles[0]], [profiles[0], { ...profiles[1], configDir: profiles[0].configDir }], [{ ...profiles[0], id: 1 }], [{ ...profiles[0], id: "default" }], [{ ...profiles[0], configDir: "relative" }], [{ ...profiles[0], name: "unsafe|bash=oops" }], Array.from({ length: 9 }, (_, index) => ({ id: `p${index}`, name: "P", configDir: `~/p${index}` }))]) {
+    config({ api: false, codexAccounts: list });
+    expect(json().codex).toEqual([]);
+    expect(json().codexStatus.reason).toBe("invalid_profiles");
+  }
+  config({ api: false, codexAccounts: profiles, codexSelectedAccount: "missing" });
+  codexProfileSample(".codex-personal", { at: now, reset, primaryUsed: 90 });
+  const output = json();
+  expect(output.codex).toEqual([]);
+  expect(output.codexStatus.reason).toBe("invalid_selection");
+  expect(output.codexAccounts.every((account) => !account.selected)).toBe(true);
+  expect(output.sessions.filter((session) => session.platform === "codex")).toEqual([]);
+  expect(run()).toContain("choose a configured local profile below");
+  expect(notifications()).toEqual([]);
+});
+
+test("Codex profiles preserve independent fresh, stale and unavailable states for alert gating", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200;
+  config({ api: false, codexAccounts: [...codexProfileList(), { id: "empty", name: "Empty", configDir: "~/.codex-empty" }], notify: { enabled: true, threshold: 20 } });
+  codexProfileSample(".codex-personal", { at: now, reset, primaryUsed: 99, secondaryUsed: 99 });
+  codexProfileSample(".codex-work", { at: now, reset, primaryUsed: 99, secondaryUsed: 99 }, 120);
+  expect(json().codexAccounts.map((account) => account.state)).toEqual(["fresh", "stale", "unavailable"]);
+  run();
+  expect(notifications()).toHaveLength(2);
+  expect(notifications().every((row) => row.includes("Personal"))).toBe(true);
 });
 
 test("--json and --text never send notifications", () => {

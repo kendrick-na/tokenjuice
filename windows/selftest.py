@@ -15,6 +15,7 @@ Exits non-zero with the failing assertion on the first problem.
 from __future__ import annotations
 
 import sys
+from unittest.mock import patch
 
 import tokenjuice_tray as t
 
@@ -136,9 +137,32 @@ def check_local_provider_menu() -> None:
     print("  local provider menu states OK")
 
 
+def check_codex_profiles() -> None:
+    """Additive profile contract and bound selection do not run a real engine."""
+    app = t.TrayApp()
+    app.data = {"codex": [{"name": "Weekly", "used": 25}], "codexAccounts": [
+        {"id": "personal", "account": "Personal", "state": "fresh", "selected": True, "items": [{"name": "Weekly", "used": 25}]},
+        {"id": "work", "account": "Work", "state": "stale", "selected": False, "items": []},
+    ]}
+    labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+    assert "Codex Personal" in labels and "Codex Work" in labels, labels
+    assert any("Selected for X header" in label for label in labels), labels
+    assert any("Use Work — local display only, not login" in label for label in labels), labels
+    assert any("업데이트 필요" in label for label in labels), labels
+    with patch.object(t, "find_bun", return_value="bun-fixture"), patch.object(t, "find_engine", return_value="engine-fixture.js"), patch.object(t.subprocess, "run") as invoke, patch.object(app, "_poll_once") as poll:
+        callback = app._select_codex_account("work")
+        callback()
+        assert invoke.call_args.args[0] == ["bun-fixture", "engine-fixture.js", "--select-codex-account=work"]
+        assert invoke.call_args.kwargs.get("shell", False) is False
+        poll.assert_called_once()
+        app._select_codex_account("bad;id")()
+        assert invoke.call_count == 1, "invalid ID invoked engine"
+    print("  Codex profiles and isolated selection OK")
+
+
 def main() -> int:
     print(f"tokenjuice self-test on {sys.platform}")
-    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_cost_menu, check_local_provider_menu):
+    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_cost_menu, check_local_provider_menu, check_codex_profiles):
         print(f"- {fn.__name__}")
         fn()
     print("all checks passed")

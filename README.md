@@ -486,9 +486,38 @@ Claude 설정을 켜도 Codex 기록은 자동 수집하지 않는다. fresh `ra
 Codex 알림도 `notify.codexForecast:true` 또는 `--notify-codex-forecast-on`으로 따로 켠다
 (`--notify-codex-forecast-off`로 해제). history 동의와 해당 창의 effective 알림 enabled도
 필요하다. JSON/text/widget 내보내기는 알림을 발화하지 않는다.
-`--codex-forecast-history`는 최근 7일의 `{key,at,used}`만 내보낸다. key는 창 역할·길이·reset
-구간의 불투명 해시이며 세션 경로·프롬프트·계정 식별자는 기록하지 않는다. 현재 단일 Codex
-프로필용이며 **계정 식별 또는 다중 Codex 계정 지원은 아니다**. 예측은 공식 잔여 시간 보장이 아니다.
+`--codex-forecast-history`는 최근 7일의 `{key,at,used}`만 내보낸다. key는 수동 프로필 ID와
+창 역할·길이·reset 구간을 구분하는 불투명 해시다. 세션 경로·프롬프트·계정 인증 식별자는
+기록하지 않는다. 예측은 공식 잔여 시간 보장이 아니다.
+
+### 여러 Codex 로컬 프로필 (수동 opt-in)
+
+각 계정의 Codex 로그를 이미 별도 폴더에 보관하고 있다면 `config.json`에 지정할 수 있다.
+이 기능은 프로필별 로컬 로그만 읽으며 **Codex 로그인이나 인증 계정을 전환하지 않는다**.
+자격증명·브라우저·이메일을 읽어 실제 계정을 자동 식별하지도 않는다.
+
+```json
+{
+  "codexAccounts": [
+    { "id": "personal", "name": "Personal", "configDir": "~/.codex-personal" },
+    { "id": "work", "name": "Work", "configDir": "~/.codex-work" }
+  ],
+  "codexSelectedAccount": "personal"
+}
+```
+
+기존 설정에 위 필드만 합친다. 최대 8개, 고유한 ID/로컬 root가 필요하다. 이름과 순서는
+바꿔도 ID를 유지해야 알림/history가 이어진다. **다른 계정을 담는 root로 바꿀 때는 새 ID를
+사용한다**. 같은 root 안에서 로그인만 바꾼 실제 계정들을 자동 구분하는 기능은 없다.
+설정이 없으면 기존 `~/.codex` 동작을 그대로 유지한다.
+
+macOS/Windows 메뉴는 각 프로필의 quota와 신뢰 상태를 표시한다. 메뉴의 프로필 선택이나
+`--select-codex-account=work`는 X header·기존 JSON `codex`/`codexStatus`·Pocket export·
+Codex session context를 위한 **표시 선택**만 저장한다. Pocket quota 이름에도 별칭을 넣는다.
+전체 quota는 추가된 JSON `codexAccounts[]`에 있고, Codex 알림은 각 프로필의 fresh 값에
+독립적으로 적용한다. per-window override는 `codex:personal:primary`/`secondary`처럼
+ID와 역할을 사용한다. 잘못된 manifest/선택 ID는 unavailable로 표시하고 다른 계정으로
+자동 대체하지 않는다. 실제 계정과 root의 연결은 사용자가 확인해야 한다.
 `sessionStatus`는 Claude/Codex의 마지막 로컬 로그를 읽어 작업 중·입력 대기·완료 같은
 상태를 **휴리스틱**으로 표시한다. 제공자나 에이전트의 공식 상태가 아니므로 기본값은 꺼짐이다.
 

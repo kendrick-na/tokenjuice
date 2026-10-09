@@ -16,8 +16,12 @@
 - Codex 단일 프로필의 로컬 pace history/예측과 소진 알림을 추가했다. Claude와 수집/알림
   opt-in을 각각 분리하고, fresh 이벤트 timestamp·알려진 미래 reset·충분한 관측을 요구한다.
   창 역할/길이/reset별 불투명 key, 중복 방지, 7일 history export와 메뉴/developer/widget
-  표시를 지원한다. session path·prompt·account ID를 history에 기록하지 않는다. 다중 Codex
-  계정이나 Windows native toast, 기존 설치본/공개 release asset 업데이트를 의미하지 않는다.
+  표시를 지원한다. session path·prompt·인증 account ID를 history에 기록하지 않는다.
+- Codex 수동 로컬 프로필 root·별칭·안정 ID와 표시 선택을 추가했다. macOS/Windows 메뉴에서
+  프로필별 신뢰 상태/선택을 표시하고 legacy JSON/Pocket에는 선택 계정을 유지한다. 전체
+  quota는 additive `codexAccounts[]`에 담고, 알림/pace는 ID와 창 역할로 분리한다. 잘못된
+  설정은 다른 계정으로 fallback하지 않는다. 인증 계정 자동 식별/로그인 전환·Windows
+  native toast·설치본/공개 release asset 업데이트를 의미하지 않는다.
 - Pocket 첫 화면에 대상 사용자(Claude Code·Codex를 자주 쓰는 사람)와 수동 스냅샷 방식,
   자동 동기화·앱스토어 미지원 상태를 명시했다.
 - 가져오기 직후 스냅샷 최신성을 함께 알리고, 암호화 번들의 암호 입력을 취소했을 때도

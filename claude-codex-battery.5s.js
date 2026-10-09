@@ -9,7 +9,7 @@
 // 배터리 숫자 = 남은 %. 초록 ≥50, 노랑 ≥20, 빨강 <20.
 
 import { execFileSync, execSync, spawn } from "node:child_process";
-import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, existsSync, appendFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, existsSync, appendFileSync, realpathSync } from "node:fs";
 import zlib from "node:zlib";
 import { createCipheriv, pbkdf2Sync, randomBytes, createHash } from "node:crypto";
 import os from "node:os";
@@ -643,6 +643,45 @@ function readConfig() {
   } catch { return {}; }
 }
 
+// Explicit local profiles, not login switching or credential discovery. A bad
+// manifest/selection must never silently show a different account's quota.
+function invalidCodexProfile(reason) { return { id: null, name: "Codex", configDir: null, reason }; }
+function loadCodexProfiles() {
+  const list = readConfig().codexAccounts;
+  if (list === undefined) return [{ id: "default", name: "Codex", configDir: path.join(HOME, ".codex"), legacy: true }];
+  if (!Array.isArray(list) || !list.length || list.length > 8) return [invalidCodexProfile("invalid_profiles")];
+  const ids = new Set(), roots = new Set(), profiles = [];
+  for (const entry of list) {
+    const dir = expandHomePath(entry?.configDir);
+    if (typeof entry?.id !== "string" || !/^[a-z0-9][a-z0-9_-]{0,31}$/.test(entry.id) || entry.id === "default"
+      || typeof entry.name !== "string" || !entry.name.trim() || entry.name.length > 64 || /[|\x00-\x1f\x7f]/.test(entry.name)
+      || typeof dir !== "string" || !path.isAbsolute(dir) || /[\x00-\x1f\x7f]/.test(dir)) return [invalidCodexProfile("invalid_profiles")];
+    const root = path.resolve(dir);
+    let canonical = root;
+    try { canonical = realpathSync(root); } catch {}
+    if (process.platform === "win32") canonical = canonical.toLowerCase();
+    if (ids.has(entry.id) || roots.has(canonical)) return [invalidCodexProfile("invalid_profiles")];
+    ids.add(entry.id); roots.add(canonical);
+    profiles.push({ id: entry.id, name: entry.name.trim(), configDir: root, legacy: false });
+  }
+  return profiles;
+}
+function selectedCodexProfile(profiles = loadCodexProfiles()) {
+  const selected = readConfig().codexSelectedAccount;
+  return selected == null ? profiles[0] : profiles.find((profile) => profile.id === selected) || invalidCodexProfile("invalid_selection");
+}
+function codexAccountLabel(reading) { return reading.profile?.legacy ? "Codex" : `Codex ${reading.profile?.name || "unknown"}`; }
+function publicCodexAccount(reading) {
+  return {
+    id: reading.profile?.id ?? null, account: reading.profile?.name ?? "Codex",
+    selected: reading.profile?.id === selectedProfile.id && !!selectedProfile.configDir,
+    items: reading.items, reason: reading.reason ?? null,
+    source: reading.source ?? "codex-jsonl", state: reading.state ?? "unavailable",
+    observedAt: reading.observedAt ?? null, lastSuccessAt: reading.lastSuccessAt ?? null,
+    kind: "quota", trust: trustBadge({ state: reading.state ?? "unavailable", source: "codex-jsonl" }),
+  };
+}
+
 // R18: pace is deliberately opt-in. We keep a compact, local-only series of
 // percentages; no prompt, token, account name, or credential is recorded.
 const FORECAST_HISTORY_FILE = path.join(CACHE_DIR, "quota-history.json");
@@ -708,12 +747,14 @@ function paceEstimate(observations, item) {
 }
 
 // Separate consent and file: do not extend existing Claude history opt-in.
-// Keys identify a provider window/period, never a session path or account.
+// Opaque keys identify a local profile/window/period, never a session path or
+// authenticated account identifier.
 const CODEX_FORECAST_HISTORY_FILE = path.join(CACHE_DIR, "codex-quota-history.json");
-function codexWindowKey(role, window) {
+function codexWindowKey(role, window, profile) {
   if (!Number.isInteger(window?.window_minutes) || window.window_minutes <= 0
     || !Number.isFinite(window.resets_at) || window.resets_at * 1000 <= Date.now()) return null;
-  return `cw_${createHash("sha256").update(`${role}:${window.window_minutes}:${window.resets_at}`).digest("hex")}`;
+  const scope = profile?.legacy ? role : `${profile?.id}:${role}`;
+  return `cw_${createHash("sha256").update(`${scope}:${window.window_minutes}:${window.resets_at}`).digest("hex")}`;
 }
 function readCodexForecastHistory() {
   try {
@@ -1041,8 +1082,9 @@ function walkJsonl(dir, out, depth = 0) {
   }
 }
 
-function getCodex() {
-  const sessDir = path.join(HOME, ".codex", "sessions");
+function getCodex(profile = selectedCodexProfile()) {
+  if (!profile.configDir) return { ok: false, items: [], reason: profile.reason, ...usageState({ state: "unavailable", source: "codex-jsonl" }) };
+  const sessDir = path.join(profile.configDir, "sessions");
   const files = [];
   walkJsonl(sessDir, files);
   files.sort((a, b) => b.mtime - a.mtime);
@@ -1060,13 +1102,13 @@ function getCodex() {
       if (rl.primary && rl.primary.used_percent != null) {
         items.push({
           name: rl.primary.window_minutes >= 10000 ? "Weekly" : "5-hour",
-          used: rl.primary.used_percent, resets: rl.primary.resets_at, paceKey: codexWindowKey("primary", rl.primary),
+          role: "primary", used: rl.primary.used_percent, resets: rl.primary.resets_at, paceKey: codexWindowKey("primary", rl.primary, profile),
         });
       }
       if (rl.secondary && rl.secondary.used_percent != null) {
         items.push({
           name: rl.secondary.window_minutes >= 10000 ? "Weekly" : "5-hour",
-          used: rl.secondary.used_percent, resets: rl.secondary.resets_at, paceKey: codexWindowKey("secondary", rl.secondary),
+          role: "secondary", used: rl.secondary.used_percent, resets: rl.secondary.resets_at, paceKey: codexWindowKey("secondary", rl.secondary, profile),
         });
       }
       if (items.length === 0) continue; // null 창은 건너뛰고 더 과거 기록 탐색
@@ -1332,8 +1374,10 @@ function readLatestCodexTokenSnapshot(lines) {
   return null;
 }
 function getCodexSessions() {
+  const profile = selectedCodexProfile();
+  if (!profile.configDir) return [];
   const files = [];
-  walkJsonl(path.join(HOME, ".codex", "sessions"), files);
+  walkJsonl(path.join(profile.configDir, "sessions"), files);
   files.sort((a, b) => b.mtime - a.mtime);
   const cutoff = Date.now() - 6 * 3600 * 1000;
   const sessions = [];
@@ -1623,6 +1667,17 @@ if (argv[0] === "--init-config") {
     process.exit(1);
   }
 }
+if (argv[0]?.startsWith("--select-codex-account=")) {
+  const id = argv[0].slice("--select-codex-account=".length);
+  const profile = loadCodexProfiles().find((entry) => entry.id === id && entry.configDir);
+  if (!profile) { console.error("Codex selection unchanged: choose a configured profile ID"); process.exit(1); }
+  try {
+    mkdirSync(CONFIG_DIR, { recursive: true });
+    writeFileSync(CONFIG_FILE, `${JSON.stringify({ ...readConfig(), codexSelectedAccount: id }, null, 2)}\n`);
+    console.log(`selected local Codex profile: ${profile.name} (no login or credential changes)`);
+    process.exit(0);
+  } catch { console.error("Could not save Codex profile selection"); process.exit(1); }
+}
 if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off", "--notify-forecast-on", "--notify-forecast-off", "--notify-codex-forecast-on", "--notify-codex-forecast-off"].includes(argv[0]) || argv[0]?.startsWith("--notify-threshold=") || argv[0]?.startsWith("--notify-reset-soon=")) {
   try {
     const patch = argv[0] === "--notify-on" ? { enabled: true }
@@ -1702,9 +1757,15 @@ for (let accountIndex = 0; accountIndex < claudes.length; accountIndex++) {
   const state = account.state ?? (account.items.length ? "fresh" : "unavailable");
   account.items = (account.items || []).map((item) => ({ ...item, forecast: forecastForItem(accountIndex, item, state) }));
 }
-const [codex, sessions, letsur, copilot, providers] = [getCodex(), getAllSessions(), getLetsur(), await getCopilotPremiumUsage(), getExternalProviders()];
-recordCodexForecastObservations(codex);
-codex.items = codex.items.map((item) => ({ ...item, forecast: codexForecastForItem(codex, item) }));
+const codexProfiles = loadCodexProfiles();
+const codexReadings = codexProfiles.map((profile) => ({ ...getCodex(profile), profile }));
+for (const reading of codexReadings) {
+  recordCodexForecastObservations(reading);
+  reading.items = reading.items.map((item) => ({ ...item, forecast: codexForecastForItem(reading, item) }));
+}
+const selectedProfile = selectedCodexProfile(codexProfiles);
+const codex = codexReadings.find((reading) => reading.profile.id === selectedProfile.id) || { ...getCodex(selectedProfile), profile: selectedProfile };
+const [sessions, letsur, copilot, providers] = [getAllSessions(), getLetsur(), await getCopilotPremiumUsage(), getExternalProviders()];
 const dark = isDarkMode();
 const asJson = argv.includes("--json");
 const asText = argv.includes("--text");
@@ -1728,8 +1789,10 @@ if (argv.includes("--developer")) {
       out.push(`  ${item.name}: used=${item.used}% reset=${item.resets ?? "unknown"} forecast=${f ? `samples=${f.samples}, pace=${f.usedPerHour}%/h, exhaustion=${f.exhaustionAt ? new Date(f.exhaustionAt).toISOString() : "unknown"}, beforeReset=${f.beforeReset}` : "unavailable"}`);
     }
   });
-  out.push(`Codex state=${codex.state ?? "unavailable"} source=${sourceLabel(codex.source || "codex-jsonl")} lastSuccess=${codex.lastSuccessAt ? new Date(codex.lastSuccessAt).toISOString() : "never"}`);
-  for (const item of codex.items) if (item.forecast) out.push(`  Codex ${item.name}: local pace estimate · samples=${item.forecast.samples} · pace=${item.forecast.usedPerHour}%/h`);
+  for (const reading of codexReadings) {
+    out.push(`${codexAccountLabel(reading)} state=${reading.state ?? "unavailable"} source=${sourceLabel(reading.source || "codex-jsonl")} lastSuccess=${reading.lastSuccessAt ? new Date(reading.lastSuccessAt).toISOString() : "never"}`);
+    for (const item of reading.items) if (item.forecast) out.push(`  ${codexAccountLabel(reading)} ${item.name}: local pace estimate · samples=${item.forecast.samples} · pace=${item.forecast.usedPerHour}%/h`);
+  }
   for (const session of sessions) {
     out.push(`session ${session.platform}/${session.name}/${session.id}: status=${session.status || "unknown"} model=${session.model || "unknown"} context=${Math.round(session.pct || 0)}% (${session.used}/${session.win}) mtime=${session.mtime ? new Date(session.mtime).toISOString() : "unknown"}`);
   }
@@ -1807,10 +1870,13 @@ function buildDiagnostics() {
     lines.push(`claude[${i}]: ${stateLabel(state)} · trust ${b.level} · ${sourceLabel(cl.source)} · last success ${last ? fmtAgo(last) : "never"}${retry ? ` · ${retry}` : ""}${cl.errorCode ? ` · http ${cl.errorCode}` : ""}${cl.reason ? ` · reason ${cl.reason}` : ""}`);
   });
   if (IS_MAC && apiModeEnabled()) lines.push(`claude login renewal: ${autoRenewEnabled() ? "auto" : "manual"} · ${renewStatusLine()} · cli ${findClaudeBin() ? "found" : "not found"}`);
-  if (codex.items.length || existsSync(path.join(HOME, ".codex"))) {
-    const last = codex.lastSuccessAt ?? codex.at;
-    lines.push(`codex: ${stateLabel(codex.state)} · trust ${trustBadge({ state: codex.state, source: codex.source }).level} · ${sourceLabel(codex.source || "codex-jsonl")} · last success ${last ? fmtAgo(last) : "never"}`);
-  }
+  codexReadings.forEach((reading, index) => {
+    if (reading.items.length || !reading.profile.legacy || existsSync(reading.profile.configDir)) {
+      const last = reading.lastSuccessAt ?? reading.at;
+      lines.push(`${reading.profile.legacy ? "codex" : `codex[${index}]`}: ${stateLabel(reading.state)} · trust ${trustBadge({ state: reading.state, source: "codex-jsonl" }).level} · ${sourceLabel("codex-jsonl")} · last success ${last ? fmtAgo(last) : "never"}${reading.reason ? ` · reason ${reading.reason}` : ""}`);
+    }
+  });
+  if (selectedProfile.reason) lines.push(`codex selection: ${selectedProfile.reason} · no fallback account`);
   if (copilot.enabled) {
     const last = copilot.lastSuccessAt ?? copilot.at;
     lines.push(`copilot: ${stateLabel(copilot.state)} · ${copilot.state === "fresh" ? "GitHub Premium-request spend" : copilot.reason || "unavailable"} · last success ${last ? fmtAgo(last) : "never"}${copilot.errorCode ? ` · http ${copilot.errorCode}` : ""}`);
@@ -1945,7 +2011,7 @@ function notificationEntries() {
     });
     for (const it of cl.items) out.push({ key: `claude:${i}:${it.name}`, label: `Claude ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, forecast: it.forecast, state });
   });
-  for (const it of codex.items) out.push({ key: `codex:${it.name}`, provider: "codex", forecastKey: it.paceKey ? `codex:forecast:${it.paceKey}` : null, label: `Codex ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, forecast: it.forecast, state: codex.state ?? "fresh" });
+  for (const reading of codexReadings) for (const it of reading.items) out.push({ key: reading.profile.legacy ? `codex:${it.name}` : `codex:${reading.profile.id}:${it.role}`, provider: "codex", forecastKey: it.paceKey ? `codex:forecast:${it.paceKey}` : null, label: `${codexAccountLabel(reading)} ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, forecast: it.forecast, state: reading.state ?? "fresh" });
   return out;
 }
 
@@ -1981,10 +2047,11 @@ function buildWidgetSnapshot() {
       items: (account.items || []).map(quota),
     })),
     codex: {
+      account: codex.profile?.name ?? "Codex",
       state: codex.state ?? "unavailable",
       source: codex.source ?? "codex-jsonl",
       lastSuccessAt: codex.lastSuccessAt ?? codex.at ?? null,
-      items: (codex.items || []).map(quota),
+      items: (codex.items || []).map((item) => quota({ ...item, name: codex.profile?.legacy ? item.name : `${codex.profile?.name} · ${item.name}` })),
     },
     providers: providers.map((provider) => ({
       id: provider.id, label: provider.label, state: provider.state ?? "unavailable",
@@ -2167,7 +2234,11 @@ if (asJson) {
     })),
     sessions: safeSessions.map((s) => ({ ...s, kind: "context" })),
     codex: codex.items,
+    codexAccounts: codexReadings.map(publicCodexAccount),
     codexStatus: {
+      account: codex.profile?.name ?? "Codex",
+      accountId: codex.profile?.id ?? null,
+      reason: codex.reason ?? null,
       source: codex.source ?? "codex-jsonl",
       sourceLabel: sourceLabel(codex.source || "codex-jsonl"),
       state: codex.state ?? (codex.items.length ? "fresh" : "unavailable"),
@@ -2235,9 +2306,12 @@ claudes.forEach((cl, accountIndex) => {
   // put the healthiest quota above the most depleted one.
   for (const item of cl.items || []) priorityCandidates.push({ score: Number(item.used), text: `NOW · ${accountLabel} · ${item.name} · ${Math.round(100 - Number(item.used))}% left` });
 });
-const codexState = codex.state ?? (codex.items.length ? "fresh" : "unavailable");
-if ((codex.items.length || existsSync(path.join(HOME, ".codex"))) && codexState !== "fresh" && codexState !== "fallback") priorityCandidates.push({ score: 300, text: `NOW · Codex · ${stateDisplayLabel(codexState)} · ${stateRecoveryHint(codexState)}` });
-for (const item of codex.items || []) priorityCandidates.push({ score: Number(item.used), text: `NOW · Codex · ${item.name} · ${Math.round(100 - Number(item.used))}% left` });
+for (const reading of codexReadings) {
+  const state = reading.state ?? "unavailable", label = codexAccountLabel(reading);
+  if ((reading.items.length || !reading.profile.legacy || existsSync(reading.profile.configDir)) && state !== "fresh" && state !== "fallback") priorityCandidates.push({ score: 300, text: `NOW · ${label} · ${stateDisplayLabel(state)} · ${reading.reason === "invalid_profiles" ? "fix codexAccounts in config.json" : stateRecoveryHint(state)}` });
+  for (const item of reading.items) priorityCandidates.push({ score: Number(item.used), text: `NOW · ${label} · ${item.name} · ${Math.round(100 - Number(item.used))}% left` });
+}
+if (selectedProfile.reason === "invalid_selection") priorityCandidates.push({ score: 301, text: "NOW · Codex selection unavailable · choose a configured local profile below" });
 for (const session of [...activeClaudeSessions, ...activeCodexSessions]) priorityCandidates.push({ score: Number(session.pct) || 0, text: `NOW · ${session.platform === "claude" ? "Claude" : "Codex"} context · ${Math.round(Number(session.pct) || 0)}% used · local estimate` });
 const priority = priorityCandidates.sort((a, b) => b.score - a.score)[0];
 // Pixel-battery header. Sleep/wake staleness is handled outside the plugin:
@@ -2363,14 +2437,19 @@ if (activeClaudeSessions.length) {
   });
 }
 
-// Codex section: only for people who actually have Codex. Someone who only uses
-// Claude should not carry a permanently empty "Codex — no data" row; the absence
-// of ~/.codex is the signal, since Codex creates it on first run.
-if (codex.items.length || existsSync(path.join(HOME, ".codex"))) {
+// Default remains hidden without Codex. Explicit profiles always show their
+// individual state. Selecting a profile changes local display, never login.
+for (const codex of codexReadings) {
+  if (!codex.items.length && codex.profile.legacy && !existsSync(codex.profile.configDir)) continue;
   out.push("---");
   const cxState = codex.state ?? (codex.items.length ? "fresh" : "unavailable");
   const cxBadge = trustBadge({ state: cxState, source: codex.source || "codex-jsonl" });
-  out.push(`Codex plan limits · account quota${codex.plan ? ` (${codex.plan})` : ""}  ${cxBadge.icon} ${cxBadge.level} | size=13 color=#8b949e`);
+  const selected = codex.profile.id === selectedProfile.id && !!selectedProfile.configDir;
+  out.push(`${codexAccountLabel(codex)} plan limits · account quota${codex.plan ? ` (${codex.plan})` : ""}  ${cxBadge.icon} ${cxBadge.level} | size=13 color=#8b949e`);
+  if (!codex.profile.legacy && codex.profile.configDir) {
+    out.push(`--${selected ? "Selected for X header, Windows and Pocket export" : "Use this local profile for X header, Windows and Pocket export"}${selected ? " | size=11 color=#8b949e" : ` | bash='${SELF}' param1=--select-codex-account=${codex.profile.id} terminal=false refresh=true`}`);
+    out.push("--Display selection only · does not change Codex login | size=11 color=#8b949e");
+  }
   out.push(`--${cxBadge.icon} ${cxBadge.text} · Codex writes these numbers into its own session log | size=11 color=#8b949e`);
   if (codex.items.length) {
     for (const i of codex.items) {
@@ -2390,9 +2469,9 @@ if (codex.items.length || existsSync(path.join(HOME, ".codex"))) {
       out.push(`⚠️ Codex ${stateLabel(codex.state)} · last success ${last ? fmtAgo(last) : "unknown"} | size=11 color=#ffcc00`);
     }
   } else {
-    out.push("No session data yet (shows after you run Codex) | size=11 color=#8b949e");
+    out.push(`${codex.reason === "invalid_profiles" ? "Invalid codexAccounts · fix unique IDs, names and absolute local roots in config.json" : "No session data yet (shows after you run Codex in this profile)"} | size=11 color=#8b949e`);
   }
-  if (activeCodexSessions.length) {
+  if (selected && activeCodexSessions.length) {
     out.push("---");
     out.push("Codex session context · per conversation, not quota  (■ = menu bar S) | size=13 color=#8b949e");
     { const b = trustBadge({ kind: "context" }); out.push(`--${b.icon} ${b.text} | size=11 color=#8b949e`); }

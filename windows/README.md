@@ -2,6 +2,14 @@
 
 Claude Code / Codex usage batteries in the Windows system tray.
 
+Explicit local Codex profiles can be configured with `codexAccounts` and
+`codexSelectedAccount` in the shared engine config; see the main README for
+the schema. The menu shows each profile's alias/state and lets you choose the
+profile used by the X icon and Pocket export. This changes display selection
+only, never Codex login or credentials. Invalid profile configuration/selection
+does not silently fall back to another account. Real account-to-root mapping
+and physical Windows UI acceptance still require manual verification.
+
 ```powershell
 .\install.ps1
 ```

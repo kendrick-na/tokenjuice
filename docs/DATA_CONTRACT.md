@@ -70,7 +70,8 @@ adapter 결과다. 항목은 `{ id, label, usageFile }`이며, 파일에는 `ite
 - Claude 한도: 로컬 usage cache, 사용자가 API 모드를 켠 경우 Anthropic usage endpoint,
   최근 Claude Desktop 기록 순으로 사용한다. API endpoint와 로컬 cache 스키마는 공개 안정
   계약이 아니므로 변경될 수 있다.
-- Codex 한도와 컨텍스트: 로컬 `~/.codex/sessions/**/*.jsonl` 기록에서 읽는다. 현재
+- Codex 한도와 컨텍스트: 기본 로컬 `~/.codex/sessions/**/*.jsonl` 또는 사용자가 명시한
+  프로필 root의 `sessions/**/*.jsonl` 기록에서 읽는다. 현재
   세션이 장시간 기록을 남기지 않으면 `stale`가 될 수 있다.
 - `429`의 `Retry-After`는 우선 준수한다. 없는 경우에도 최소 5분 대기한다.
 - Claude 로그인 갱신은 기본적으로 수동이다. 메뉴의 명시적 동작 또는
@@ -109,17 +110,18 @@ Claude pace 소진 예측은 `forecast.enabled:true`(history 수집)와 effectiv
 `local pace estimate`와 수동 next action으로 알린다. 임계치·reset-soon/forecast marker는
 서로 덮어쓰지 않는다.
 
-## Codex pace history / forecast (단일 프로필, 별도 opt-in)
+## Codex pace history / forecast (별도 opt-in)
 
 - `codexForecast.enabled:true`는 Codex history 수집 동의다. Claude의 `forecast.enabled`를
   상속하지 않는다. `codex-quota-history.json`에 version 1과 최대 320개 관측을 저장하고
   기록 시 8일 이전을 제거한다. `--codex-forecast-history`는 최근 7일을 별도 format
   `tokenjuice-codex-forecast-history-v1`로 내보낸다.
-- 관측은 `{key,at,used}`만 포함한다. key는 `cw_` + SHA-256(role/window_minutes/resets_at)이며
+- 관측은 `{key,at,used}`만 포함한다. key는 `cw_` + SHA-256(profile scope/role/window_minutes/resets_at)이며
   primary/secondary가 같은 표시 이름이어도 분리하고 reset 구간 변경 시 새 baseline을 만든다.
-  계정 인증 식별자가 아니다. 현재 고정 Codex root의 단일 프로필만 지원하며, 계정을 바꾼
-  기록들을 확실히 구별하는 다중 계정 계약은 R10에 남아 있다. 경로·prompt·account ID를
-  해시 입력 또는 history 필드로 수집하지 않는다.
+  계정 인증 식별자가 아니다. default 단일 프로필의 기존 key 입력은 유지하며, 명시적
+  프로필은 사용자가 지정한 local ID로 scope를 분리한다. history에는 이 ID·별칭도 평문
+  필드로 넣지 않는다. 경로·prompt·OAuth account ID는 해시 입력/필드로 수집하지 않는다.
+  같은 root 안에서 실제 로그인만 바뀐 기록들을 자동 인증 식별하지는 못한다.
 - fresh 상태와 최근 15분 이내의 명시적 타임존 포함 이벤트 timestamp, 숫자 used 0~100,
   양의 정수 window_minutes 및 알려진 미래 Unix-seconds reset이 모두 필요하다. 파일 mtime은
   pace 관측 timestamp를 대신하지 않는다. 누락·미래·오래된 timestamp와 불명/과거 reset은
@@ -133,6 +135,33 @@ Claude pace 소진 예측은 `forecast.enabled:true`(history 수집)와 effectiv
   CLI `--notify-codex-forecast-on/off`는 알림 정책만 변경한다. 최근·충분한 관측의 미래
   소진 시각이 알려진 reset보다 먼저일 때 opaque window/period별 한 번만 발화한다.
   JSON/text/widget/history export는 알림을 발화하지 않는다. Windows native toast는 미지원이다.
+
+## Codex 로컬 프로필 / 선택 계약 (R10 수동 subset)
+
+설정의 `codexAccounts`는 최대 8개의 `{id,name,configDir}` 배열이다. id는 고유한
+`[a-z0-9][a-z0-9_-]{0,31}`이며 `default`는 기존 동작용으로 예약한다. name은 길이 1~64의
+별칭이며 menu delimiter/제어 문자를 허용하지 않는다. root는 절대 경로 또는 `~/` 확장만
+허용하고, 중복 canonical root(symlink 포함)는 거절한다. 설정이 없으면 기존 `.codex`만
+읽는다. 자동 root/credential/account discovery는 추가하지 않는다.
+
+`codexSelectedAccount`가 없으면 첫 프로필을 선택한다. 명시한 ID가 없거나 manifest가
+잘못되면 `invalid_selection`/`invalid_profiles`, unavailable, 빈 legacy quota를 반환한다.
+임의 계정/default root로 fallback하지 않는다. 명시적인 CLI `--select-codex-account=<id>`와
+macOS/Windows 메뉴는 로컬 config의 선택 필드만 바꾸며 기존 설정을 보존한다. 로그인·
+credential·환경변수·실제 Codex 실행 설정은 바꾸지 않는다. 실패하면 선택을 그대로 둔다.
+
+v2의 `codex[]`·`codexStatus` 형식은 유지하고 선택 프로필을 담는다. `codexStatus`에
+account/accountId/reason을 추가하고, `codexAccounts[]`는 모든 프로필의 공개 ID/별칭,
+selected/items/state/source/observedAt/lastSuccessAt/reason/kind/trust를 제공한다. root는
+출력하지 않는다. diagnostics는 ID/별칭 대신 index만 표시한다. Codex context·project
+report는 선택 프로필만 포함한다. widget v1은 선택 계정만 담되 quota 이름에 별칭을
+붙인다. Pocket의 여러 Codex 계정 동시 표시/모바일 설정 변경은 이 계약에 포함되지 않는다.
+
+명시 프로필의 threshold/reset override key는 `codex:<id>:primary|secondary`, forecast
+dedup key는 불투명 paceKey다. 모든 프로필의 fresh quota를 대상으로 하며 reorder/rename으로
+키가 바뀌지 않는다. default 모드의 기존 `codex:<display name>` override는 그대로 유지한다.
+수동 ID는 실제 인증 계정의 보장이 아니다. root를 다른 계정용으로 재사용할 때는 새 ID가
+필요하고, 실제 Team/personal mapping과 OS UI 검증은 별도 acceptance다.
 
 ## 위젯 스냅샷 계약 v1
 
