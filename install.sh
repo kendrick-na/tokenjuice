@@ -64,7 +64,7 @@ run_doctor() {
     if diff <(tail -n +2 "$DOCTOR_PLUGIN") <(tail -n +2 "$SELF_DIR/$SOURCE_PLUGIN") >/dev/null 2>&1; then
       doctor_ok "설치된 플러그인이 현재 소스와 일치"
     else
-      doctor_fail "설치된 플러그인이 오래됨 — ./install.sh를 다시 실행하세요"
+      doctor_fail "설치된 플러그인이 현재 소스보다 오래됨 — 업데이트는 플러그인 교체·SwiftBar 실행·로그인/절전 에이전트 등록을 변경합니다. 원할 때만 CCB_YES=1 ./install.sh를 실행하세요"
     fi
   else
     doctor_fail "플러그인이 없습니다 — ./install.sh를 다시 실행하세요"
@@ -90,7 +90,7 @@ run_doctor() {
     dim "SwiftBar 메뉴바 아이콘이 보이지 않으면 SwiftBar 환경설정에서 Plugin Directory를 확인하세요."
   else
     bold "⚠️ 설치 진단에서 문제가 발견됐습니다"
-    dim "위 ❌ 항목의 다음 행동을 수행한 뒤 ./install.sh --doctor를 다시 실행하세요."
+    dim "doctor는 읽기 전용입니다. 위 ❌ 항목의 변경 작업은 기기 소유자가 결정한 뒤에만 수행하고, 그 뒤 ./install.sh --doctor를 다시 실행하세요."
   fi
   return "$DOCTOR_FAILED"
 }

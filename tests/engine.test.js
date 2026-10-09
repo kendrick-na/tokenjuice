@@ -124,6 +124,14 @@ test("read-only API guard overrides persisted API configuration", () => {
   expect(calls()).toBe(0);
 });
 
+test("macOS doctor stays read-only and labels an update as a deliberate change", () => {
+  const installer = readFileSync(path.join(ROOT, "install.sh"), "utf8");
+  expect(installer).toContain('CCB_DISABLE_API=1 bun "$SELF_DIR/$SOURCE_PLUGIN" --text');
+  expect(installer).toContain("doctor는 읽기 전용입니다");
+  expect(installer).toContain("CCB_YES=1 ./install.sh");
+  expect(installer).toContain("플러그인 교체·SwiftBar 실행·로그인/절전 에이전트 등록");
+});
+
 test("60s cache: a second render makes no new request", () => {
   usage(200, okUsage());
   run("--json"); run("--json");
