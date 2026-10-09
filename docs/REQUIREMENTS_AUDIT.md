@@ -81,7 +81,7 @@ tag commit에서 고정되어 있다.
 |---|---|---|
 | 5명 UX6/UX10 | 제품 담당자 + 참가자 5명 | `docs/VALIDATION_KIT.md` §1, synthetic demo, P01~P05 표 |
 | 10명 interview + 14일 diary | 제품 담당자 + 동의한 참가자 10명 | `docs/VALIDATION_KIT.md` §2, I01~I10, 최소 diary fields |
-| macOS notification/notch | macOS/notch 장비 보유자; notification은 격리 fixture 환경 담당자도 필요 | `docs/VALIDATION_KIT.md` §3. notch는 기존 UI가 있을 때만 관찰; 재사용 가능한 isolated fixture harness가 없어 notification은 harness 준비 전 실행 금지 |
+| macOS notification/notch | TokenJuice 담당자 + macOS/notch 장비 보유자 | `scripts/notification-smoke.sh` dry-run으로 contract를 먼저 검증; 실제 Notification Center/notch는 `docs/VALIDATION_KIT.md` §3에서 별도 관찰 |
 | Windows tray UI | v1.2.2 Windows 장비 보유자 | `docs/VALIDATION_KIT.md` §3, 기존 실행본의 icon·tooltip·menu 관찰 |
 | Windows toast | TokenJuice 구현 담당자 | 현 source에 native toast sender 없음; OS 실기기 gate 전에 기능·fixture 회귀 구현 |
 | native widget/Watch | 제품 의사결정자 + PWA usage/waitlist 데이터 | UX11 기준; 구현·결제는 보류 |

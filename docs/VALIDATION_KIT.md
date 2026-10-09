@@ -191,7 +191,7 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 ### 실행 순서
 
 1. **Mac:** 기기 소유자가 SwiftBar와 TokenJuice release 설치본이 이미 실행 중인지 확인한다. 새로 실행하거나 플러그인·권한·집중 모드를 변경하지 않는다. 앱/UI가 없으면 notch는 `pending: app/UI unavailable`이다.
-2. Notification 관찰은 별도의 synthetic fixture 전용 실행 환경(분리된 임시 HOME/config, provider credential 부재, 알림 출력만 기기에서 관찰)이 이미 준비되고 `CCB_TEST_USAGE_FIXTURE` 및 `CCB_TEST_NOTIFY_LOG` 사용법을 담당자가 확인한 경우에만 한다. 이 검증 키트는 OS 알림을 발화하는 재사용 가능한 harness/명령을 제공하지 않는다. 환경이 없으면 명령을 추측하거나 기본 프로필에서 실행하지 말고 `pending: isolated fixture harness unavailable`로 남긴다. 준비된 경우에만 threshold → 같은 상태 재실행(중복 억제) → recovery/reset → auth-expired/reconnect 순으로 한 시나리오씩 관찰한다. payload fixture 통과와 OS presentation은 별도 판정한다.
+2. Notification contract smoke는 macOS에서 `scripts/notification-smoke.sh`를 실행한다. 기본 모드는 분리된 임시 HOME/config, provider credential 부재, `CCB_TEST_USAGE_FIXTURE`, `CCB_TEST_NOTIFY_LOG`를 사용해 threshold → reset → reconnect를 각각 한 번씩 캡처하며 `osascript`를 호출하지 않는다. Linux/Windows에서는 명확히 skip한다. OS presentation은 이 harness의 통과와 별개로 pending이다. 실제 알림을 보려면 `--allow-os-notification`과 `TOKENJUICE_CONFIRM_OS_NOTIFICATION=I_UNDERSTAND_TOKENJUICE_WILL_NOTIFY`를 모두 명시해야 하며, 기기 소유자가 권한·집중 모드를 확인한 뒤 별도 실행해야 한다. 기본 프로필·credential·Keychain을 사용하지 않는다.
 3. **Windows:** 현재 toast 송신 기능이 없으므로 toast 테스트와 권한 조작은 하지 않는다. 기존 실행본이 있는 기기에서 tray icon·tooltip·menu만 관찰한다.
 4. 두 OS 모두 화면 캡처·알림 본문·계정 데이터를 수집하지 않는다. 실패는 defect ID와 OS major만 남긴다.
 
@@ -204,7 +204,7 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 |---|---|---|---|
 | UX6 5명 세션 | pending | 제품 담당자 + 참가자 5명 | §1 script와 P01~P05 표를 사용해 20분씩 진행 |
 | P0 10명 interview/diary | pending | 제품 담당자 + 동의한 참가자 10명 | §2 consent 후 I01~I10, D1~D14 기록 |
-| macOS notification/notch | pending | macOS 실기기 보유자 | §3: notch는 기존 UI가 있을 때만 관찰; notification은 isolated fixture harness가 준비된 경우에만 실행 |
+| macOS notification/notch | harness 자동 검증 완료 / 실기기 presentation pending | TokenJuice 담당자 + macOS 실기기 보유자 | `scripts/notification-smoke.sh` dry-run; 실제 Notification Center·notch는 §3에서 명시적으로 실행할 때만 관찰 |
 | Windows tray UI | pending | Windows 실기기 보유자 | §3: 기존 release exe의 tray icon·tooltip·menu만 관찰 |
 | Windows toast | blocked: implementation boundary | 제품·설치 경계 승인 + TokenJuice 구현 담당자 | event contract/격리 fixture를 먼저 설계하고, 승인된 sender 구현 후에만 OS 검증 |
 

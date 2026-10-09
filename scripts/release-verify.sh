@@ -18,8 +18,11 @@ pass "엔진 회귀 테스트"
 bun build claude-codex-battery.5s.js --target bun --outfile /tmp/tokenjuice-engine-release-check.js >/dev/null
 pass "Bun 번들"
 
-bash -n install.sh scripts/ensure-swiftbar-visible.sh scripts/release-verify.sh
+bash -n install.sh scripts/ensure-swiftbar-visible.sh scripts/notification-smoke.sh scripts/release-verify.sh
 pass "macOS 설치·복구 스크립트 문법"
+
+scripts/notification-smoke.sh
+pass "macOS 알림 contract dry-run"
 
 python3 -m py_compile windows/tokenjuice_tray.py windows/selftest.py
 pass "Windows Python 문법"
