@@ -78,6 +78,9 @@ def main() -> None:
             page.goto("http://127.0.0.1:4173", wait_until="networkidle")
             assert page.get_by_text("내 스냅샷 가져오기").is_visible()
             assert page.get_by_text("예시 화면 보기").is_visible()
+            assert page.get_by_text("Claude Code·Codex를 자주 쓰다 한도·컨텍스트 때문에 작업이 끊기는 사람을 위한 화면입니다.").is_visible()
+            assert page.get_by_text("수동 스냅샷 공개 베타", exact=True).is_visible()
+            assert page.get_by_text("자동 동기화나 앱스토어 배포는 아직 제공하지 않습니다.").is_visible()
             assert page.get_by_label("내 스냅샷 가져오기").count() == 1
             assert page.get_by_role("button", name="예시 화면 보기").is_visible()
             assert page.get_by_text("본문으로 건너뛰기").count() == 1
@@ -261,6 +264,15 @@ def main() -> None:
             assert dialogs[-1:] == ["prompt: 이 암호화 번들을 만들 때 사용한 암호를 입력하세요."], dialogs
             assert page.locator("#import-feedback").get_by_text("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.").is_visible()
             assert page.locator("#live-region").inner_text() == "가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요."
+
+            # Cancelling the passphrase prompt must resolve the in-progress
+            # message into a clear retry path and leave the existing data alone.
+            passphrase["value"] = None
+            page.locator("#snapshot-file").set_input_files(str(encrypted))
+            page.wait_for_timeout(200)
+            assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == before_failed_import
+            assert page.locator("#import-feedback").get_by_text("가져오기를 취소했습니다. 암호화 번들은 만든 때의 암호를 입력해야 열 수 있습니다.").is_visible()
+            assert page.locator("#live-region").inner_text() == "가져오기를 취소했습니다. 암호화 번들은 만든 때의 암호를 입력해야 열 수 있습니다."
 
             # A malformed file must produce the same nearby, recoverable error
             # without an alert and without replacing the existing snapshot.

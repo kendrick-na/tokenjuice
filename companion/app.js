@@ -225,7 +225,10 @@ fileInput.addEventListener("change", async () => {
     let snapshot = JSON.parse(await file.text());
     if (validBundle(snapshot)) {
       const passphrase = window.prompt("이 암호화 번들을 만들 때 사용한 암호를 입력하세요.");
-      if (!passphrase) return;
+      if (!passphrase) {
+        announce("가져오기를 취소했습니다. 암호화 번들은 만든 때의 암호를 입력해야 열 수 있습니다.", "caution");
+        return;
+      }
       snapshot = await decryptBundle(snapshot, passphrase);
     }
     if (!valid(snapshot)) throw new Error("invalid");

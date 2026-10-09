@@ -71,3 +71,6 @@ footer { display:flex; flex-wrap:wrap; align-items:center; gap:1rem; margin-top:
 .snapshot-toolbar button { padding:.35rem .55rem; }
 footer a, footer button { padding:.4rem .45rem; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; } }
+
+.snapshot-limit { max-width:34rem; margin:1rem 0 0; border-left:3px solid var(--amber); padding:.55rem .75rem; background:#ffcc7012; color:var(--muted); font-size:.78rem; line-height:1.55; }
+.snapshot-limit b { display:block; margin-bottom:.2rem; color:var(--amber); font:800 .62rem var(--mono); letter-spacing:.08em; }
