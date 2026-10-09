@@ -339,11 +339,14 @@ def state_display_label(state: str | None) -> str:
 
 def state_recovery_hint(state: str | None) -> str:
     return {
-        "fallback": "대체 경로에서 가져온 값",
-        "stale": "현재 값이 아니므로 숫자를 헤더에 표시하지 않음",
-        "auth_expired": "Claude Code에서 다시 로그인",
-        "rate_limited": "다음 확인 가능 시각까지 기다림",
-        "unavailable": "다음 수집 때 다시 확인",
+        # Keep this language aligned with Pocket: state is not a colour or a
+        # terse error code; it tells the user why a number can or cannot be
+        # trusted before suggesting a recovery action.
+        "fallback": "제공자 응답 대신 최근 로컬 기록을 읽은 값",
+        "stale": "마지막 성공 값 — 현재 값으로 가정하지 않음",
+        "auth_expired": "연결 자격이 만료됨 — Claude Code에서 다시 로그인",
+        "rate_limited": "다음 확인 가능 시각 전의 요청이 제한됨",
+        "unavailable": "확인 가능한 데이터가 없어 숫자를 숨김",
     }.get(state, "")
 
 
@@ -491,7 +494,7 @@ class TrayApp:
             state = provider.get("state") or "unavailable"
             yield MenuItem(f"{label} — local quota file", None, enabled=False)
             if state != "fresh":
-                yield MenuItem(f"   {state_display_label(state)} · 실시간 숫자 없음", None, enabled=False)
+                yield MenuItem(f"   {state_display_label(state)} · {state_recovery_hint(state)}", None, enabled=False)
             for item in provider.get("items") or []:
                 r = round(100 - item.get("used", 0))
                 yield MenuItem(f"   {item.get('name')}  {bar_text(r)}  {r}% left", None, enabled=False)

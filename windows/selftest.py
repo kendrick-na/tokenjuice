@@ -84,6 +84,8 @@ def check_degenerate() -> None:
     assert t.state_display_label("stale") == "업데이트 필요"
     assert t.state_display_label("auth_expired") == "다시 연결 필요"
     assert "다시 로그인" in t.state_recovery_hint("auth_expired")
+    for state in ("fallback", "stale", "auth_expired", "rate_limited", "unavailable"):
+        assert t.state_recovery_hint(state), f"no recovery explanation for {state}"
     stale = t.build_groups({"claude": [{"items": [{"used": 25}], "state": "rate_limited"}]})
     assert stale[0]["bars"] == [None], f"stale Claude value rendered as live: {stale}"
     stale_codex = t.build_groups({"codex": [{"used": 25}], "codexStatus": {"state": "stale"}})
@@ -130,7 +132,7 @@ def check_local_provider_menu() -> None:
     assert any("no token, cookie, command, or network access" in label for label in labels), labels
     app.data["providers"][0]["state"] = "stale"
     labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
-    assert any("업데이트 필요 · 실시간 숫자 없음" in label for label in labels), labels
+    assert any("업데이트 필요 · 마지막 성공 값 — 현재 값으로 가정하지 않음" in label for label in labels), labels
     print("  local provider menu states OK")
 
 
