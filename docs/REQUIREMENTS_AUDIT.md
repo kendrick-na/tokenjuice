@@ -22,17 +22,18 @@ Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 증거�
 Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 실제 설치 성공으로 대체하지 않는다.
 
 현재 공개 Pocket은 §9.9의 `4d326d3`/sw v11, desktop 자산은 immutable `v1.2.2`다.
-최신 로컬 후보에는 §9.10~§9.17의 관측 검사·실패 renderer 일치·Windows 수동 안내와 승인된 설치 반영을 추가했다. 아래 과거 커밋/테스트
+최신 로컬 후보에는 §9.10~§9.18의 관측 검사·실패 renderer 일치·Windows 수동 안내와 승인된 설치 반영을 추가했다. 아래 과거 커밋/테스트
 수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
 
-§9.16에서 승인된 플러그인 한 파일 갱신과 격리 실행·source/install cmp를 완료해 최신
-release-verify는 exit 0이다. 실제 메뉴바/실기기·사용자·스토어 gate는 계속 pending이다.
+§9.16~§9.17의 이전 설치 반영은 exit 0이었다. §9.18 새 후보의 설치 전 검증은
+source-install mismatch로 exit 1이며 후속 반영 결과를 별도 기록한다.
+실제 메뉴바/실기기·사용자·스토어 gate는 계속 pending이다.
 
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 78 pass/890 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; R13 CI·승인된 설치 반영 후 release-verify 전체 exit 0; 실제 UI pending |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 80 pass/1043 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; 새 후보 CI success·설치 전 release-verify exit 1(후속 결과 §9.18); 실제 UI pending |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -686,3 +687,46 @@ lastSuccessAt null fixture가 통과했다. 실제 app restart/refresh·config/c
 반영 후 release-verify 전체가 exit 0이다: 78 pass/890 assertions·engine/bundle/browser/
 문법/격리 알림/diff와 실제 설치본 일치까지 통과했다. §9.16 UI attach timeout의 실제
 메뉴바·클릭 패널·reload·sleep/wake acceptance 및 다른 외부 gate는 계속 pending이다.
+
+### 9.18 R2/R13 실패한 local quota 읽기의 성공 시각 분리 (2026-10-10)
+
+clean 13c3216=origin/main에서 master 1~19장·audit·UI/launch 계획을 다시 읽었다.
+이미 구현된 §9.17 chosen timestamp 검사를 반복하지 않고 기존 R2 마지막 성공 의미에
+어긋나는 독립 경로를 선택했다. 빈/필터 탈락 items가 invalid-file인데 lastSuccessAt을
+파일 관측으로 채우는 실패를 두 합성 fixture로 먼저 재현했다. 공통 usageState는 관측을
+성공으로 fallback하고 diagnostics도 lastSuccessAt null을 observedAt으로 대체했다.
+
+invalid-file에서는 성공 시각을 생성하지 않고 유효 관측만 observedAt에 남긴다. diagnostics는
+정규화된 provider.lastSuccessAt만 읽어 invalid-file/invalid_timestamp/unreadable-file을
+성공 없음으로 표시한다. 정상 quota의 fresh/stale/too-old 과거 성공, 15분/2시간·Number
+변환·mtime 선택·기존 항목 필터·다른 provider 독립성은 유지한다. 새 캐시/strict schema,
+credential/네트워크/사용자 설정·resume/history 계약은 추가하지 않았다.
+
+두 fixture/153 assertions는 missing/null/object/empty/필터 탈락 items와 1/121분,
+정상→실패 교체·정상 과거 성공·future/read-error 진단·JSON/widget·privacy·API/알림/
+history 무발화를 검증한다. 초기 테스트의 at/stale는 public provider JSON에 없는 필드여서
+그 기대만 제거한 뒤 실제 lastSuccessAt 실패를 확인했다. 로컬 전체 80 pass/1043 assertions,
+browser/bundle/문법/격리 알림/diff는 통과했다. 설치 반영 전 release-verify는 마지막
+source-install mismatch로 exit 1이며 아래에 CI·좁은 설치 반영 후 결과를 별도 기록한다.
+
+남은 구현을 대신 완료 처리하지 않는다. 다음 항목의 정확한 선행 입력은 다음과 같다.
+
+| 다음 항목 | 필요한 결정 또는 증거 |
+|---|---|
+| 전체 work-content resume | 사용자 입력 vs 로그 수집, 의도/최근 파일의 허용 필드·길이/schema, 경로 노출, 로컬 보존/삭제·동의 및 Pocket allowlist |
+| 시각적 7일 trend | history import 계약, 계정/reset 연결·검증·보존/삭제; 현재 quota를 시계열로 합성하지 않음 |
+| Usage Coach | 동의한 입력·설명 가능한 규칙/분모·오탐 기준, master §16.4/16.6의 10명 interview·14일 diary·행동 전환 근거 |
+| Windows toast / Pocket 설정 | 각각 앱 identity/shortcut 또는 WinRT 의존성과 이벤트 계약 / 데스크톱 설정 전송·동의·보안 계약 |
+| Mac/Windows 출시 acceptance | 실제 아이콘/패널·quota/trust·notch/tray·sleep/wake·root mapping, screen reader와 신규 5명 관찰 |
+| native/mobile/store·sync/team/payment | 플랫폼·개발자 계정·서명/제출 권한 및 데이터/암호화/보존/삭제·결제 경계 |
+
+SwiftBar CUA 재시도·restart/refresh 및 권한 변경으로 UI blocker를 우회하지 않는다.
+빈 사용자 결과를 성공으로 채우거나 현재 PWA를 스토어 출시라고 설명하지 않는다.
+
+소스 74157c242a79cda1b8a0acbe034483d2bc2eb336의 Engine
+[37965807140](https://github.com/kendrick-na/tokenjuice/actions/runs/37965807140)와 Windows
+[37965807177](https://github.com/kendrick-na/tokenjuice/actions/runs/37965807177)는 success다.
+macOS 새 두 fixture/80 pass/1043 assertions·Linux/Pocket browser/bundle 및 Windows
+engine/selftest/exe build/run/artifact를 확인했다. release는 tag가 없어 skipped이며
+Pages 변경 대상이 아니고 공개 Pocket 4d326d3/sw v11·desktop v1.2.2는 유지한다.
+승인된 좁은 설치 반영은 clean/synced checkpoint에서 백업·이전 본문 일치 확인 후 진행한다.
