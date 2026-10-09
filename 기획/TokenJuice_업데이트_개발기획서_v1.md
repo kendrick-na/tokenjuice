@@ -1506,6 +1506,11 @@ Windows 합성 메뉴/ICO selftest 및 release-verify 자동 단계는 통과, �
 전체 exit 1이다. 소스별 CI는 후속 기록한다. 실제 설치/기기/사용자/보안/스토어 gate와
 Pocket 4d326d3/sw v11·desktop v1.2.2는 유지한다. 의존성과 증거는 audit §9.14 참조.
 
+8f255fd의 Engine [37961548990](https://github.com/kendrick-na/tokenjuice/actions/runs/37961548990)·
+Windows [37961549103](https://github.com/kendrick-na/tokenjuice/actions/runs/37961549103)는
+success다. macOS 76 pass/829 assertions와 Windows 새 failure-menu selftest·exe build/run을
+확인했다. release는 skipped이며 Pages 재배포/실제 설치·사용자 검증으로 승격하지 않는다.
+
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
 스토어 심사 완료를 기다리지 않고 실제 피드백을 받기 위해 출시 채널을 분리한다. 현재 실행 계획과 체크리스트는 [`docs/LAUNCH_FEEDBACK_PLAN.md`](../docs/LAUNCH_FEEDBACK_PLAN.md)에 기록한다.

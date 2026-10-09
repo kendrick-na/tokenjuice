@@ -50,6 +50,11 @@ TokenJuice의 시각적 방향은 화려한 대시보드가 아니라 **작업�
 - [x] 각 오류 상태에 사용자가 실행할 수 있는 단일 복구 행동 제공 (`NEXT` 한 줄: stale/auth/rate-limit/missing-data; 원인 불명 unavailable은 행동을 제안하지 않음)
 - [ ] notch·Windows tray의 잘림과 시스템 글꼴 크기 실기기 확인
 
+2026-10-10 P0 원인 일치 보강: Codex malformed quota를 세션 없음으로 설명하지 않는다.
+Windows도 기본/legacy Codex의 invalid_quota·invalid_timestamp를 표시하고 실패 관측을
+마지막 성공으로 승격하지 않는다. 합성 메뉴 검증과 Engine 37961548990/Windows 37961549103
+CI는 success다. 원인 불명 오류의 로그인·시계 변경 CTA를 만들거나 실기기 체크를 완료하지 않았다.
+
 ### 설치·온보딩
 
 - [x] OS를 자동 감지해 잘못된 설치 명령을 안내하지 않음

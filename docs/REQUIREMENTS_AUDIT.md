@@ -22,7 +22,7 @@ Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 증거�
 Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 실제 설치 성공으로 대체하지 않는다.
 
 현재 공개 Pocket은 §9.9의 `4d326d3`/sw v11, desktop 자산은 immutable `v1.2.2`다.
-최신 로컬 엔진 후보에는 §9.10~§9.13의 Claude 표본/cache 및 Codex 파일 관측 검사를 추가했다. 아래 과거 커밋/테스트
+최신 로컬 엔진 후보에는 §9.10~§9.14의 Claude/Codex 관측 검사와 실패 원인·성공 시각 renderer 일치를 추가했다. 아래 과거 커밋/테스트
 수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
 
 ## 1. 단계별 완료 기준 감사
@@ -564,3 +564,16 @@ JSON/export 수집·알림·provider 조회는 바꾸지 않고 임의 로그인
 알림/diff 단계는 통과했다. 마지막 설치본 불일치로 전체 exit 1이며 설치를 실행하지 않았다.
 companion 파일은 변경하지 않아 Pages 재배포 대상이 아니고 Pocket 4d326d3/sw v11·
 immutable desktop v1.2.2는 유지한다. Windows 메뉴의 실제 OS 표시·사용자 이해는 별도다.
+
+다음 독립 검토 후보는 R3 Windows 인증 안내다. explain_no_limits는 자동 갱신을 설명하지만
+engine triggerClaudeTokenRefresh는 !IS_MAC에서 false이고 autoRenew도 명시적 opt-in이다.
+수집/로그인 경계를 넓히지 않고 이 안내를 실제 지원 기능과 일치시키는 합성 완료 테스트를
+검토할 수 있다. 미정 resume/history/Coach의 제품 결정을 대신하는 기능은 아니다.
+
+소스 8f255fda62eec7753bcd9f035f426b5959fcd3ca의 Engine
+[37961548990](https://github.com/kendrick-na/tokenjuice/actions/runs/37961548990)와 Windows
+[37961549103](https://github.com/kendrick-na/tokenjuice/actions/runs/37961549103)는 success다.
+Linux/macOS 엔진·bundle/Pocket browser, macOS 76 pass/829 assertions 및 Windows의 새
+failed-observation menu selftest·exe build/run/artifact를 확인했다. Engine watch 조회 중
+GitHub API 502가 한 번 있었으나 완료 결과/로그를 다시 읽어 success와 exact SHA를 확인했다.
+release는 tag가 없어 skipped이고 Pages 재배포 대상이 아니다. 설치/실기기 성공은 아니다.

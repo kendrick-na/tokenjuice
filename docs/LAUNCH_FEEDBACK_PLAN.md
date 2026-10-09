@@ -6,8 +6,9 @@
 ## 실행 체크포인트 — 2026-10-10
 
 - 공개 Pocket은 `4d326d3`/offline cache v11, desktop release는 immutable `v1.2.2`다.
-- 최신 엔진 후보는 Claude/Codex 잘못된 사용률·미래 관측 시각을 차단한다. 로컬 75개
-  테스트/825 assertions와 release-verify 자동 단계는 통과했으나 설치본 비교는 실패다.
+- 최신 엔진 후보는 Claude/Codex 잘못된 사용률·미래 관측 시각을 차단하고 오류 원인·성공
+  시각을 desktop renderer와 일치시킨다. 로컬 76개 테스트/829 assertions 및
+  release-verify 자동 단계는 통과했으나 설치본 비교는 실패다.
   소스/CI 통과를 노트북 표시 문제의 해결 또는 스토어 출시로 기록하지 않는다.
 - 다음 P0는 사용자 승인 후 기존 설치본 갱신·실행 → 사용자 노트북의 메뉴바/패널·
   quota/trust·절전 복귀 확인이다. 코드 mismatch만으로 미표시 원인을 확정하지 않는다.
