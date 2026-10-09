@@ -16,7 +16,7 @@
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, `tests/engine.test.js` 42 pass/217 expect, `scripts/release-verify.sh`, Engine CI `37886745999`, macOS notification dry-run | 실계정·OS notification presentation은 별도. 코드/자동 검증 완료; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, `tests/engine.test.js` 42 pass/217 expect, `scripts/release-verify.sh`, Engine CI `37886745999`, macOS notification dry-run | 신뢰성·진단 및 threshold/잔여량 회복 알림 구현. R6 리셋 임박·소진 예측 알림은 아직 미구현. 실계정·OS notification presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -30,11 +30,11 @@
 | R3 | 인증 만료를 명시 상태·사용자 실행 안내로 전환 | `autoRenew:false` 기본값; 명시적 `autoRenew:true`일 때만 401/403 이후 10분 제한 갱신; 메뉴 정책 표시와 `--renew-login`; `tests/engine.test.js` opt-in/opt-out/수동 실행 테스트 | 코드·자동 검증 완료. 0 model-call은 2026-10-05 Claude CLI 2.1.238 실측에 한정(버전 변경 시 재검증); 실제 계정 재로그인·Keychain 및 Claude Team/조직 정책 확인은 pending |
 | R4 | 429 Retry-After·backoff | `fetchClaudeUsage()`, 429 tests | 자동 검증 완료 |
 | R5 | wake refresh single debounce | `scripts/ensure-swiftbar-visible.sh`, wake helper test | 코드·fixture 완료; 실제 sleep/wake 장비는 pending |
-| R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect tests | macOS payload·sender 구현; 실제 Notification Center presentation pending. Windows native toast는 현재 패키징 경계에서 안전한 sender 미구현 blocker |
+| R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect tests | 부분 구현: threshold 교차·잔여량 회복·reconnect만 발화. 리셋 시각 임박 및 forecast 소진 예측은 발화 분기가 없음. forecast 표시(R18)는 알림 구현 증거가 아님. macOS presentation pending; Windows sender 미구현 |
 | R7 | official quota와 local context/cost 분리 | `kind` contract, session/context/cost tests, Pocket cards | 코드·자동 검증 완료 |
 | R8 | secret-free copyable diagnostics | `--diagnostics`, `--copy-diagnostics`, diagnostics privacy test | 자동 검증 완료; 실제 support workflow는 pending |
 | R9 | first-run onboarding/permission/keychain choice | `--init-config`, `guide.html`, starter config test | artifact·자동 검증 완료; 신규 사용자 comprehension pending |
-| R10 | multi-account aliases/status | `loadAccounts()`, multi-directory test, menu labels | 코드·fixture 완료; 실제 Team/personal 계정 사용성 pending |
+| R10 | multi-account aliases/status | `loadAccounts()`, multi-directory test, menu labels; Codex는 고정 `~/.codex/sessions` | 부분 구현: 여러 Claude 계정 별칭·각 cache만 검증. 여러 Codex 계정의 root/alias/선택/알림 키 계약은 아직 없음. 실제 Team/personal 계정 사용성도 pending |
 | R11 | Windows/macOS meaning/alarm parity | shared JS engine, Windows build `37885325588`, Engine CI `37885325573` | tray/build/contract 완료; macOS·Windows tray 실제 presentation pending. Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성이 필요해 현재 범위에서 blocked |
 | R12 | mobile companion/widget | Pocket import/export/offline/encrypted bundle browser test, Pages `37885325558` | PWA local export 완료; native widget/retention pending |
 | R13 | provider adapters | Copilot official-cost and local quota-file tests | 안전한 범위의 adapter 완료; extra provider policy/format validation pending |
@@ -118,7 +118,7 @@ detached child 로그보다 먼저 끝나는 재현 가능한 race가 드러났�
 조건 대기하도록 바꿨다. targeted test와 전체 `scripts/release-verify.sh`가 모두 통과했다
 (38 pass / 190 assertions 포함). 이는 테스트 안정화이지 갱신 구현 변경은 아니다.
 
-## 6. 2026-10-09 SwiftBar 실기기 관찰 시도
+## 7. 2026-10-09 SwiftBar 실기기 관찰 시도
 
 - 환경: notch 지원 Mac14,5 / macOS 15.6.1.
 - CUA 앱 inventory에서 SwiftBar가 노출되지 않았고, `SystemUIServer`는 실행 중이 아닌 것으로 보고됐다.
@@ -131,7 +131,7 @@ detached child 로그보다 먼저 끝나는 재현 가능한 race가 드러났�
 비활성으로 표시했다. 플러그인이 실제 자격증명을 읽을 가능성 때문에 앱 실행/플러그인 refresh는
 하지 않았다. 따라서 notch 상태는 여전히 pending이다.
 
-### 6.1 2026-10-09 설치 doctor 재검증
+### 7.1 2026-10-09 설치 doctor 재검증
 
 현재 작업 Mac에서 `./install.sh --doctor`를 읽기 전용으로 실행했다. Bun `1.3.14`, SwiftBar 설치,
 `tokenjuice-battery.5s.js` 존재, 설치본·소스 일치, SwiftBar 프로세스 실행, TokenJuice 엔진 실행 가능을
@@ -145,3 +145,59 @@ detached child 로그보다 먼저 끝나는 재현 가능한 race가 드러났�
 
 이 문서는 현 시점 코드 감사와 실행 준비 상태를 기록할 뿐, 목표 완료나 사용자 성공을
 선언하지 않는다.
+
+## 8. 전체 연결 문서·추가 백로그 대조 범위
+
+기획서 §6·§7·§13·§14·§15·§16·§17·§18·§19와 아래 연결 문서를
+현재 코드·fixture·태그 이력에 대조했다. 경쟁사 조사 문단의 과거 가격·리뷰·stars를 새로
+검증했다는 뜻은 아니며, 문서 체크박스가 자동 통과나 실기기 성공을 대신하지 않는다.
+
+| 문서/범위 | 구현된 범위 | 남은 범위·정확한 성격 |
+|---|---|---|
+| master §6 R1~R20·UX1~UX12, §7 종료 조건 | 위 §2~§3 매핑 | R6 예측/리셋 임박 발화, R10 다중 Codex 계정은 **미구현 코드**. R11 Windows toast는 설치 경계 결정 선행 |
+| master §13 Phase A trust | 로컬 source/last success/상태 분류 | 독립 provider-health/outage 수집 없음. HTTP failure를 provider outage로 단정하지 않음 |
+| master §13 Phase B continuity | context 80/90%, 프로젝트·브랜치 등 metadata checkpoint | 최근 파일·마지막 작업 의도를 담은 resume brief 및 수동 provider 전환 안내 전체는 미구현. §16.5는 이를 좁힌 안전한 slice일 뿐 Phase B 전체 완료가 아님 |
+| master §13 Phase C~E | Claude/Codex local read, opt-in API, 암호화 수동 quota 전달 | 직접 reset-credit 실행·자동 checkpoint sync·push·team dashboard 없음. credentials/외부 전송·동의/보존 계약 또는 제품 선택 선행 |
+| master §14~§15 디자인/Coach/P2 | urgent-first·state·local checkpoint·compact·export/statusline | 10초/30초 및 90%/80%/5%/30% 행동 지표 미측정. tool-call/file-read 분석·개인화 Coach·resume 효과는 미구현/행동 근거 대기 |
+| `docs/UI_UX_RELEASE_PLAN.md` | P0 화면·복구·설치 문구, 상세 접기, checkpoint CTA, 오래된 README 이미지 제거 | 7-day 시계열 UI·Pocket 설정 계약, 스크린리더/큰 글자/notch/tray 실기기 확인 |
+| `docs/LAUNCH_FEEDBACK_PLAN.md` | 공개 PWA·GitHub feedback 양식·doctor 경로 | 별도 노트북 핵심 경로, 5명 신규 설치, 10명 interview·14일 diary, 주간 이슈 분류와 10건 제보 미실행. 스토어/확장에는 현재 앱 패키지 없음 |
+| `docs/VALIDATION_KIT.md` | synthetic 시나리오·빈 기록표·조건/분모 정의·격리 알림 harness | 실제 참가자·동의·관찰 입력 필요. 빈 결과를 성공 수치로 채우지 않음 |
+| `docs/RELEASE_CHECKLIST.md` | 다음 후보용 사전 template | 과거 Pages 404/미등록 workflow 문단은 현재 상태가 아님. 다음 SHA별 CI 및 새 설치/제거/재시작 증거로 다시 판정 |
+| `docs/RELEASE_EVIDENCE.md` | 1.1.0 historical record | 32 tests·당시 설치본 일치·Pages 404는 현행 증거가 아님 |
+| `docs/DATA_CONTRACT.md`, `companion/README.md` | v2 engine/v1 export·manual encrypted transfer·가격표 조건 | 자동 sync/설정 쓰기/자격증명 수집 없음. Pocket의 기존 저장본 보존은 아래 새 회귀로 보강 |
+| `README.md`, `windows/README.md`, `CHANGELOG.md`, `AGENTS.md` | 설치·소스 복사/엔진 공유·업데이트/기능 경계 | clone/pull만으로 installed copy나 exe 갱신 안 됨. 실제 장비와 release 자산은 별도 버전. 설치·OS 알림·Keychain을 이번 테스트에서 실행하지 않음 |
+
+### 8.1 태그와 후속 업데이트를 분리한 판정
+
+| 기준 | 포함된 변경 | 포함되지 않은 증거 |
+|---|---|---|
+| `v1.2.0` / `cf74513c0c886e5a31af2c8ecb7c5f9ccb9a9ff5` | 신뢰 상태·기본 threshold/reset·Claude 다중 계정·opt-in forecast/session 상태·snapshot/bundle·Windows renderer | 이후 main의 상세 NOW/WHY/NEXT·context checkpoint·7-day history/statusline·window override/reconnect·접근성 개선 없음 |
+| `v1.2.1` / `f1a17763ab0ee004f7d6379f1ca03006def75163` | context checkpoint/history/developer/statusline·알림 override/reconnect·guide·대비 보정까지 | 이후 1.2.2 접근성 보강, 최신 공개 베타 복구/compact/menu/disclosure 개선 없음 |
+| `v1.2.2` / `12efce26b5eb6dafcb6aaf64f92ef7804ef1b487` | 375px/desktop·큰 글자·keyboard/ARIA·44px·reduced-motion 보강 | 이후 main의 doctor/피드백/신뢰 문구·compact legend·menu NOW/단일 NEXT·80/90 CTA·Pocket 상세 접기·이번 손상 파일 수정 없음 |
+| 이후 main / Pocket | 위 후속 소스 변경. 실제 Pages 배포는 해당 SHA의 workflow success로만 확인 | 새 태그/exe/설치본을 자동 생성하지 않으며 OS 실기기나 사용자 성공을 증명하지 않음 |
+
+`git show`로 태그 소스와 `git log v1.2.0..HEAD`를 대조하고 `gh release list/view`로
+v1.2.0~v1.2.2 공개 자산을 확인했다. release의 `targetCommitish:main` 대신 실제 태그가
+가리키는 위 commit을 기준으로 한다.
+
+## 9. 이번 안전 수정 및 후속 착수 큐
+
+1. **이번 구현: Pocket 손상 파일 데이터 보존.** 기존 `valid()`는 envelope만 검사했고
+   `load()`가 render 전에 Local Storage를 덮어썼다. 정상 envelope의 `claude:[null]`로
+   저장본 보존 assertion이 실패하는 것을 먼저 재현했다. renderer가 소비하는 내부 구조를
+   저장 경계에서 검사한 뒤, 내부 오류 14종의 기존 화면/저장본 보존·손상 저장본 startup
+   복구·optional 필드 없는 이전 v1 호환·정상 암호화 상호운용 회귀가 통과했다.
+2. **후속 로컬 코드:** R6 리셋 임박/소진 예측 알림의 명시적 opt-in·중복 방지·fresh-only
+   정책/fixture를 설계하고, R10은 Codex root/계정 alias·stable notification key·출력 계약의
+   호환 설계부터 진행한다. 미구현을 “외부 입력만 기다림”으로 바꾸지 않는다.
+3. **외부 입력:** 현재 후보 source를 설치해도 되는지 기기 소유자의 승인, 실제 Mac UI/
+   sleep-wake 관찰, Windows tray·스크린리더 장비, 5명/10명 참가자와 동의·diary가 필요하다.
+   Windows sender/모바일 설정·스토어/외부 전송/유료화 결정은 위 gate와 분리한다.
+
+기획서의 C/S/X 설명도 실제 출력에 맞게 `C=Claude quota`, `S=local session context`,
+`X=Codex quota`로 정정했다. S를 Codex나 작업 잔여 시간으로 오해하는 설계 예시는 제거했다.
+
+이번 수정의 `scripts/release-verify.sh`: engine 42 pass/217 assertions, Bun bundle,
+shell/Python syntax, 격리 notification dry-run, 확장된 Pocket browser regression 및
+`git diff --check`는 통과했다. 마지막 installed SwiftBar source mismatch로 전체 exit 1이며,
+설치 파일·OS 권한·실계정은 변경하지 않았다. 새 CI/Pages 결과는 push 이후 별도로 확인한다.

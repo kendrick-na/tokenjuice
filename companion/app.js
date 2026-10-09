@@ -38,8 +38,34 @@ function timeText(value, prefix = "리셋") {
   const date = new Date(normalized);
   return Number.isNaN(date.getTime()) ? `${prefix} 시각 없음` : `${prefix} ${date.toLocaleString("ko-KR", { month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit" })}`;
 }
+function record(value) { return value !== null && typeof value === "object" && !Array.isArray(value); }
+function optionalText(value) { return value == null || typeof value === "string"; }
+function optionalTime(value) { return value == null || (Number.isFinite(value) && value >= 0); }
+function validItem(item) {
+  if (!record(item) || typeof item.name !== "string" || !Number.isFinite(item.used) || item.used < 0 || item.used > 100) return false;
+  const forecast = item.forecast;
+  return forecast == null || (record(forecast) && forecast.kind === "local_pace_estimate"
+    && typeof forecast.beforeReset === "boolean" && optionalTime(forecast.exhaustionAt));
+}
+function validPayload(payload) {
+  return record(payload) && Object.hasOwn(stateCopy, payload.state)
+    && [payload.account, payload.label, payload.source, payload.sourceLabel].every(optionalText)
+    && [payload.observedAt, payload.lastSuccessAt, payload.retryAt].every(optionalTime)
+    && Array.isArray(payload.items) && payload.items.every(validItem);
+}
+function validSession(session) {
+  return record(session) && session.kind === "context" && ["claude", "codex"].includes(session.platform)
+    && Number.isFinite(session.pct) && session.pct >= 0
+    && [session.name, session.branch, session.model, session.status].every(optionalText);
+}
 function valid(snapshot) {
-  return snapshot && snapshot.contractVersion === 1 && snapshot.transport === "local_export_only" && Array.isArray(snapshot.claude) && snapshot.codex;
+  // Validate everything the renderer consumes before committing a replacement.
+  // providers/sessions remain optional for older v1 exports.
+  return record(snapshot) && snapshot.contractVersion === 1 && snapshot.transport === "local_export_only"
+    && Number.isFinite(snapshot.generatedAt) && snapshot.generatedAt > 0
+    && Array.isArray(snapshot.claude) && snapshot.claude.every(validPayload) && validPayload(snapshot.codex)
+    && (snapshot.providers === undefined || (Array.isArray(snapshot.providers) && snapshot.providers.every(validPayload)))
+    && (snapshot.sessions === undefined || (Array.isArray(snapshot.sessions) && snapshot.sessions.every(validSession)));
 }
 function bytes(value) { return Uint8Array.from(atob(value || ""), (char) => char.charCodeAt(0)); }
 function validBundle(bundle) {
@@ -214,7 +240,11 @@ function updateTransport(demo = false) {
     ? "예시 데이터"
     : navigator.onLine ? "로컬 전용" : "오프라인 · 저장된 스냅샷";
 }
-function load(snapshot) { localStorage.setItem(KEY, JSON.stringify(snapshot)); render(snapshot); }
+function load(snapshot) {
+  if (!valid(snapshot)) throw new Error("invalid");
+  localStorage.setItem(KEY, JSON.stringify(snapshot));
+  render(snapshot);
+}
 function demoSnapshot() {
   const now = Date.now();
   return { contractVersion: 1, generatedAt: now, transport: "local_export_only", claude: [{ account: "Claude", state: "fresh", source: "local example", lastSuccessAt: now, items: [{ name: "5-hour", used: 38, resets: new Date(now + 2 * 3600e3).toISOString() }, { name: "Weekly", used: 61, resets: new Date(now + 3 * 86400e3).toISOString() }] }], codex: { state: "rate_limited", source: "local example", retryAt: now + 38 * 60e3, items: [] }, providers: [] };
@@ -241,7 +271,14 @@ fileInput.addEventListener("change", async () => {
 $("#replace").addEventListener("click", () => fileInput.click());
 $("#preview-demo").addEventListener("click", () => render(demoSnapshot(), { demo: true }));
 $("#clear").addEventListener("click", () => { localStorage.removeItem(KEY); location.reload(); });
-try { const snapshot = JSON.parse(localStorage.getItem(KEY)); if (valid(snapshot)) render(snapshot); } catch { localStorage.removeItem(KEY); }
+try {
+  const stored = localStorage.getItem(KEY);
+  if (stored !== null) {
+    const snapshot = JSON.parse(stored);
+    if (valid(snapshot)) render(snapshot);
+    else localStorage.removeItem(KEY);
+  }
+} catch { localStorage.removeItem(KEY); }
 window.addEventListener("online", () => updateTransport());
 window.addEventListener("offline", () => updateTransport());
 updateTransport();

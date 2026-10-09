@@ -22,14 +22,14 @@ TokenJuice의 다음 승부처는 지원 AI를 많이 늘리는 것이 아니라
 - 2026년 Product Hunt 신제품 흐름은 단순 quota 표시를 넘어 세션 상태·승인 요청·완료 알림·컨텍스트·비용까지 묶는 “AI agent command center”로 확장되고 있다.
 - 시장의 약점은 공통적이다. Claude·Cursor·Codex의 사용량 경로가 공식 공개 API가 아니거나 CLI/브라우저 세션에 의존하고, 토큰 만료·429·수면 복귀·계정 선택 오류가 쉽게 “0%” 또는 오래된 숫자로 보인다.
 - TokenJuice는 설치본을 이미 보유하고, Claude Team과 Codex를 한 메뉴바에서 읽으며, Windows 트레이 버전까지 있다는 점이 강점이다.
-- 구현 기준으로 v1.1·v1.2 핵심과 R12/R19/R20의 로컬 기반을 완료했다. v2.0에는 암호화 수동 전달을 구현했다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성 결정 전까지 `implementation boundary` blocker다.
+- v1.1·v1.2의 신뢰성 엔진과 R12/R19/R20의 로컬 기반은 구현했지만 전체 요구사항 완료는 아니다. R6 리셋 임박·소진 예측 알림과 R10 다중 Codex 계정은 미구현이다. 암호화 수동 전달은 자동 sync가 아니다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성 결정 전까지 `implementation boundary` blocker다.
 
 ### 1.1 2026-10-08 구현 추적
 
 | 범위 | 구현 증거 | 상태 |
 |---|---|---|
-| R1~R8, R15~R16 | 상태 계약, Retry-After, 수동 기본 로그인 갱신, wake debounce, 비밀값 없는 진단, fixture 회귀 테스트 | 구현·자동 검증 완료 |
-| R9~R11, R17~R18 | 안전한 starter config, 멀티 계정 별칭, Windows renderer, opt-in 세션 상태·pace forecast | 구현·자동 검증 완료; 최신 Engine `37881044425`, Windows `37881044414` 성공 |
+| R1~R8, R15~R16 | 상태 계약, Retry-After, 수동 기본 로그인 갱신, wake debounce, 비밀값 없는 진단, fixture 회귀 테스트 | R6는 부분 구현: threshold·잔여량 회복 알림만 있고 리셋 임박·예측 소진 알림은 없음. 나머지는 자동 검증 범위 내 구현; 실제 기기 acceptance는 별도 |
+| R9~R11, R17~R18 | 안전한 starter config, Claude 멀티 계정 별칭, Windows renderer, opt-in 세션 상태·pace forecast | R10 다중 Codex 계정과 R11 Windows toast는 미구현. Engine `37881044425`, Windows `37881044414` 성공은 구현된 범위의 과거 CI 기록 |
 | R12 | 자격증명 없는 로컬 스냅샷 export와 TokenJuice Pocket PWA import | 구현·브라우저 자동 검증 완료 |
 | R13 | GitHub Copilot 공식 비용 adapter + 명시적 local quota-file adapter | 구현·fixture/PWA 검증 완료; Cursor/Antigravity는 쿠키 수집 없이 안전한 exporter 파일로만 연결 |
 | R14 | 선택적 암호화 수동 전달 bundle(PBKDF2 + AES-GCM), 자동 sync 없음 | 구현·엔진/PWA 상호운용 자동 검증 완료; CloudKit 자동 sync는 별도 제품 결정 |
@@ -977,9 +977,9 @@ NEXT    그래서 지금 사용자가 할 한 가지 행동은 무엇인가?
 DETAIL  세션·프로젝트·히스토리·비용·진단은 어디서 보는가?
 ```
 
-예시: `● C 72% · fresh   ● S 81% · 24m left   ◐ X 44% · reset 2h`
+설계 예시: `● C 72% left · fresh   ● S 81% used · local context   ● X 44% left · reset 2h`
 
-C/S/X는 기존 배터리 메타포를 유지하되 신규 사용자에게 암호처럼 보일 수 있으므로 첫 실행과 설정에 legend를 제공한다. `C=Claude`, `S=Codex`, `X=기타 provider/agent`이며 상태 점과 텍스트는 fresh/fallback/stale/error를 함께 표시한다.
+C/S/X는 기존 배터리 메타포를 유지하되 신규 사용자에게 암호처럼 보일 수 있으므로 legend를 제공한다. 실제 엔진의 의미는 `C=Claude 계정 quota`, `S=로컬 세션 context 사용률`, `X=Codex 계정 quota`다. S를 Codex나 남은 작업 시간으로 해석하지 않는다. compact 클릭 패널에 이 의미와 상태 라벨을 표시하며 fresh/fallback/stale/auth/rate-limit/unavailable을 구분한다. 위 한 줄은 정보 위계의 설계 예시이지 현재 메뉴바 픽셀을 그대로 복사한 화면 증거가 아니다.
 
 ### 14.4 상태 디자인과 신뢰 UX
 
@@ -1307,15 +1307,15 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 코드·자동 검증 완료 / 외부 gate 대기 | 최신 `42 pass`·`217 expect()` 엔진 회귀; release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
-| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 코드·CI 완료 / 실기기·신규 설치 대기 | `6cacedb` Engine `37886745999`, Windows `37886745975` 성공; 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
+| v1.1 신뢰성 엔진·알림·진단 | 알림 부분 구현 / 자동 검증·외부 gate 분리 | `42 pass`·`217 expect()` 엔진 회귀; R6 리셋 임박·소진 예측 알림 미구현. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
+| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 멀티 계정·표시 구현 / Codex 멀티 계정·Windows toast 미구현 | `6cacedb` Engine `37886745999`, Windows `37886745975` 성공은 구현된 코드 범위만 증명. 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
 | UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `6cacedb`: 375px detail disclosure, Enter keyboard, 44px target browser test; Engine/Windows/Publish `37886745999`/`37886745975`/`37886745971` 성공. 스크린리더·실기기 notch/tray·실사용자 5명은 pending |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
 | UX8 알림 센터/설정 UX | 데스크톱 로컬 설정 구현 / Pocket 제품·보안 결정 대기; OS presentation·Windows toast 승인 대기 | 기존 local per-target threshold/reset와 계정 reconnect 알림은 엔진 fixture로 검증. `016a60a`: Pocket snapshot에는 설정 override가 없고 Mac config.json을 쓰는 경로도 없으므로 모바일 설정 적용은 전송·동의·제품·보안 설계가 선행돼야 함. 알림 설정과 실제 인증 갱신은 별개. Windows native toast는 identity/shortcut 또는 WinRT 의존성 결정 필요 |
 | UX9 메뉴바 상세 패널/compact | 코드·build 완료 / 설치본·실기기 검증 대기 | compact 출력·NOW 우선순위·단일 복구·checkpoint CTA의 엔진 회귀와 Windows CI 통과. 현재 release-verify의 SwiftBar 설치본 비교는 불일치. notch/tray 잘림·가독성과 실제 sleep/wake는 `docs/VALIDATION_KIT.md` §3 실기기 gate |
-| UX10 랜딩/설치 경로 | 코드·배포 완료 / 사용자 검증 대기 | `6cacedb` Pages `37886745971` 성공. `17d02c8`은 README의 두 구버전 이미지를 historical example로 표시하고 파일은 보존; 최신 UI 또는 immutable v1.2.2 화면 증거로 취급하지 않음. 신규 사용자 5명 검증은 pending |
+| UX10 랜딩/설치 경로 | 코드·배포 완료 / 사용자 검증 대기 | `6cacedb` Pages `37886745971` 성공. `6245fad`에서 README의 두 구버전 inline 이미지를 제거하고 현재 Pocket 링크로 대체; 원본 파일 보존. 현재 Pocket 화면과 immutable v1.2.2 desktop 화면은 별개. 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | local history export 구현 / 제품 우선순위 근거 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 diary 실행 순서, 분모/판정 기준 보완; 시각적 trend·Usage Coach는 행동 전환 데이터와 의사결정 전까지 보류 |
 | P1 작은 화면·checkpoint·설정 | 안전한 로컬 subset 완료 / history·제품·보안 gate 대기 | `679f079` 80%/90% 로컬 checkpoint 내보내기 CTA; `6cacedb` 상태·NEXT를 유지하고 상세만 접는 Pocket disclosure. trend/Usage Coach는 실제 시계열 snapshot 계약·10명 interview·14일 diary 근거 대기; `016a60a` Pocket 설정 경계는 제품·보안 결정 전 gated |
 | P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture를 포함한 현재 42개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
@@ -1354,6 +1354,23 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
 | light/dark contrast 범위 | 현재 제품이 dark token set임을 `color-scheme: dark`로 고정하고, dark 및 light preference 에뮬레이션 양쪽에서 ink/muted/faint/teal 대 panel-2 대비 `>=4.5:1` 검사 | 별도 light theme는 구현 대상이 아니므로 light palette acceptance는 pending이 아니라 제품 범위 밖 |
 | UX8 OS notification | 엔진 fixture가 account reconnect opt-in, auth_expired transition 단일 발화, stale/unavailable/429 제외, threshold/reset 이유와 retry 시각을 검증; `CCB_TEST_NOTIFY_LOG`로 payload만 확인 | 실제 macOS Notification Center·Windows toast 표시, 권한·방해금지·스케줄링 |
 | UX9 compact/notch | compact override와 Windows 공통 엔진·CI 검증 통과; 현재 SwiftBar 설치본 비교는 불일치 | 설치본 갱신과 실제 notch/tray에서 icon clipping·가독성 확인 필요 |
+
+### 17.2 전체 백로그 재대조와 버전 경계
+
+전체 대조표는 [`docs/REQUIREMENTS_AUDIT.md`](../docs/REQUIREMENTS_AUDIT.md) §8~§9에 기록한다.
+§6 R1~R20·UX1~UX12, §7 버전별 종료 조건, §13 Phase A~E, §14 디자인 지표,
+§15 P0/P1/P2, §16 현재 착수 범위 및 §18~§19의 연결 문서를 모두 대조했다.
+
+- `v1.2.0` 태그는 `cf74513`이다. 현재 main의 NOW/WHY/NEXT, metadata checkpoint,
+  history/statusline, 계정 reconnect·window override, 접근성·복구 개선은 이후 커밋이다.
+- `v1.2.2` desktop 자산은 `12efce2`에 고정돼 있다. 현재 main이나 Pocket 변경을 이미
+  내려받은 exe/SwiftBar 설치본에 자동 반영됐다고 설명하지 않는다.
+- 남은 일은 외부 gate만이 아니다. R6 예측/리셋 임박 알림과 R10 다중 Codex 계정은
+  별도 코드 백로그다. Phase B의 작업 의도·최근 파일을 담은 resume brief도 metadata-only
+  checkpoint로 대체 완료 처리하지 않는다. §16.5의 개인정보·자동 전환 금지 경계를 유지한다.
+- 이번 최소 안전 수정은 Pocket 손상 파일 가져오기였다. 내부 구조 오류 14종의 기존
+  화면·저장본 보존, 구버전 v1 호환, 손상된 저장본 복구와 정상 암호화 상호운용을
+  브라우저로 검증했다. 이를 Mac 설치·스토어 출시 완료로 승격하지 않는다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

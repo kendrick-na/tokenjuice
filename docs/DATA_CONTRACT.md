@@ -100,6 +100,13 @@ Windows 트레이와 모든 후속 위젯은 `contractVersion: 2`를 확인해�
 - 후속 모바일/위젯은 이 파일을 읽을 수 있지만, 전송·동기화 기능은 별도 암호화·동의 설계
   없이는 추가하면 안 된다.
 
+Pocket은 저장 전에 v1 envelope뿐 아니라 계정·provider의 상태와 `items[]`, quota의
+숫자형 `used`(0~100), 선택적 forecast/context 구조도 검사한다. `generatedAt`은 양의
+Unix milliseconds 숫자다. `providers`·`sessions`가 없는 이전 v1 export도 허용한다.
+평문 파일과 복호화한 번들에 동일한 검사를 적용하며, 잘못된 파일은 기존 Local Storage와
+화면을 바꾸지 않는다. 시작 시 이미 손상된 저장본이 있으면 그 저장본만 제거하고 빈 상태로
+복구한다. 이 검사는 파일 형식 검사이지 실제 provider 데이터의 진위를 보장하는 인증은 아니다.
+
 ## 암호화 기기 간 전달 번들 v1
 
 `TOKENJUICE_SYNC_PASSPHRASE`를 현재 실행 환경에만 제공한 뒤

@@ -307,6 +307,50 @@ def main() -> None:
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == before_failed_import
             assert page.locator("#import-feedback").get_by_text("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.").is_visible()
 
+            # A correct envelope is not enough: nested malformed data used to
+            # overwrite storage before rendering failed. Preserve both the
+            # persisted snapshot and the visible dashboard on every rejection.
+            accounts_before = page.locator("#accounts").inner_html()
+            priority_before = page.locator("#priority-card").inner_text()
+            invalid_patches = [
+                {"claude": [None]},
+                {"codex": "not an account"},
+                {"providers": {}},
+                {"providers": [None]},
+                {"claude": [{**SNAPSHOT["claude"][0], "items": {"length": 1}}]},
+                {"codex": {**SNAPSHOT["codex"], "items": [None]}},
+                {"claude": [{**SNAPSHOT["claude"][0], "items": [{"name": "5-hour", "used": None}]}]},
+                {"claude": [{**SNAPSHOT["claude"][0], "items": [{"name": "5-hour", "used": "35"}]}]},
+                {"claude": [{**SNAPSHOT["claude"][0], "items": [{"name": "5-hour", "used": -1}]}]},
+                {"claude": [{**SNAPSHOT["claude"][0], "items": [{"name": "5-hour", "used": 101}]}]},
+                {"claude": [{**SNAPSHOT["claude"][0], "items": [{"name": "5-hour", "used": 35, "forecast": "estimate"}]}]},
+                {"sessions": [None]},
+                {"sessions": [{**SNAPSHOT["sessions"][0], "pct": "84"}]},
+                {"generatedAt": None},
+            ]
+            for index, patch in enumerate(invalid_patches):
+                malformed.write_text(json.dumps({**fresh_snapshot, **patch}), encoding="utf-8")
+                page.locator("#snapshot-file").set_input_files(str(malformed))
+                page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+                assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == before_failed_import, (index, patch)
+                assert page.locator("#accounts").inner_html() == accounts_before, (index, patch)
+                assert page.locator("#priority-card").inner_text() == priority_before, (index, patch)
+                assert page.locator("#import-feedback").get_by_text("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.").is_visible()
+
+            # Previously saved corrupt data must not crash on next startup.
+            page.evaluate("snapshot => localStorage.setItem('tokenjuice.widget-snapshot.v1', JSON.stringify(snapshot))", {**fresh_snapshot, "providers": {}})
+            page.reload(wait_until="networkidle")
+            assert page.locator("#empty-state").is_visible()
+            assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") is None
+            # Older v1 exports without the optional context/provider additions
+            # are still importable; stricter validation is not a new contract.
+            legacy_snapshot = {key: value for key, value in fresh_snapshot.items() if key not in ("providers", "sessions")}
+            legacy_path = Path(directory) / "legacy-widget-snapshot.json"
+            legacy_path.write_text(json.dumps(legacy_snapshot), encoding="utf-8")
+            page.locator("#snapshot-file").set_input_files(str(legacy_path))
+            page.get_by_text("Personal").wait_for()
+            assert json.loads(page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')")) == legacy_snapshot
+
             # The valid bundle must work even after an earlier failed attempt.
             page.evaluate("localStorage.clear()")
             page.reload(wait_until="networkidle")
