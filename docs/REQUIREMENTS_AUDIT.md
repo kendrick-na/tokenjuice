@@ -83,7 +83,7 @@ tag commit에서 고정되어 있다.
 | 10명 interview + 14일 diary | 제품 담당자 + 동의한 참가자 10명 | `docs/VALIDATION_KIT.md` §2, I01~I10, 최소 diary fields |
 | macOS notification/notch | TokenJuice 담당자 + macOS/notch 장비 보유자 | `scripts/notification-smoke.sh` dry-run으로 contract를 먼저 검증; 실제 Notification Center/notch는 `docs/VALIDATION_KIT.md` §3에서 별도 관찰 |
 | Windows tray UI | v1.2.2 Windows 장비 보유자 | `docs/VALIDATION_KIT.md` §3, 기존 실행본의 icon·tooltip·menu 관찰 |
-| Windows toast | TokenJuice 구현 담당자 | 현 source에 native toast sender 없음; OS 실기기 gate 전에 기능·fixture 회귀 구현 |
+| Windows toast | 제품·설치 경계 결정자 + TokenJuice 구현 담당자 | 현재는 `blocked: implementation boundary`. 앱 identity/AUMID·Start Menu shortcut 또는 WinRT 의존성 선택과 event contract/격리 fixture 승인이 먼저다. 그 결정 이후에만 sender 회귀와 OS 실기기 presentation gate를 연다 |
 | native widget/Watch | 제품 의사결정자 + PWA usage/waitlist 데이터 | UX11 기준; 구현·결제는 보류 |
 | CloudKit/team/webhook/payment | 제품·보안·법무 의사결정자 | 현재 구현하지 않으며 정책 결정 후 별도 설계 |
 

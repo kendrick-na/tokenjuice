@@ -162,7 +162,8 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
   앱 복귀만 본다.
 - macOS 엔진은 `osascript display notification` 경로를 사용한다. 현재 Windows tray 소스
   `windows/tokenjuice_tray.py`에는 native toast/notification 송신 구현이 없다. Windows toast는
-  기기 검증 대기가 아니라 기능 미구현 blocker이며, tray icon·tooltip·menu만 별도 검증할 수 있다.
+  앱 identity/AUMID·Start Menu shortcut 또는 WinRT 의존성 선택 전까지 implementation-boundary
+  blocker이며, tray icon·tooltip·menu만 별도 검증할 수 있다.
 
 ### macOS
 
@@ -177,7 +178,7 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 ### Windows
 
 - [ ] 기존 실기기 실행본에서 tray icon·tooltip·menu의 상태와 다음 행동을 확인
-- [ ] Windows toast/notification은 기능 구현 전까지 `blocked: not implemented`로 기록. 미구현을 기기 pass로 바꾸지 않음
+- [ ] Windows toast/notification은 identity/설치 경계 결정 전까지 `blocked: implementation boundary`로 기록. 미구현을 기기 pass로 바꾸지 않음
 
 ### 수동 결과표 (빈 양식)
 
