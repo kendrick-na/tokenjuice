@@ -1318,7 +1318,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | UX10 랜딩/설치 경로 | 코드·배포 완료 / 사용자 검증 대기 | `6cacedb` Pages `37886745971` 성공. `6245fad`에서 README의 두 구버전 inline 이미지를 제거하고 현재 Pocket 링크로 대체; 원본 파일 보존. 현재 Pocket 화면과 immutable v1.2.2 desktop 화면은 별개. 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | local history export 구현 / 제품 우선순위 근거 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 diary 실행 순서, 분모/판정 기준 보완; 시각적 trend·Usage Coach는 행동 전환 데이터와 의사결정 전까지 보류 |
 | P1 작은 화면·checkpoint·설정 | 안전한 로컬 subset 완료 / history·제품·보안 gate 대기 | `679f079` 80%/90% 로컬 checkpoint 내보내기 CTA; `6cacedb` 상태·NEXT를 유지하고 상세만 접는 Pocket disclosure. trend/Usage Coach는 실제 시계열 snapshot 계약·10명 interview·14일 diary 근거 대기; `016a60a` Pocket 설정 경계는 제품·보안 결정 전 gated |
-| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture를 포함한 현재 42개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
+| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture를 포함한 현재 51개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자 지표와 provider 안전·정책 검증 필요; 의사결정 전 구현 보류 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
@@ -1377,17 +1377,18 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   수정했다. 해당 실패 run을 공개 배포 성공으로 취급하지 않는다.
 - 이어서 R6 reset-soon을 별도 opt-in으로 구현했다. 기본 0(꺼짐), 전역/윈도별 1~60분,
   local CLI/menu 제어, fresh·미래 reset 조건, 동일 reset 중복 방지와 threshold 상태 보존을
-  fixture 4개로 검증했다. 현재 전체 46 tests/238 assertions 통과; OS 실기기·Windows
+  fixture 4개로 검증했다. 이 단계 당시 전체 46 tests/238 assertions 통과; OS 실기기·Windows
   sender와 소진 예측 알림은 미완료다. Pocket 설정 전송/설치본 변경은 하지 않았다.
 - `f1ed2c6` reset-soon의 Engine `37944170751`·Windows `37944170598` 성공 후 Claude
   local forecast 알림을 추가했다. history 동의와 알림 동의 분리, fresh/최근 관측/충분한
   표본·알려진 reset 전 소진 조건, window override, 구간별 중복 방지와 수동 next action을
-  fixture 3개로 검증했다. 현재 전체 49 tests/252 assertions 통과. Codex pace 예측은 없고
+  fixture 3개로 검증했다. 이 단계 당시 전체 49 tests/252 assertions 통과. Codex pace 예측은 없고
   Windows sender·실기기/사용자 acceptance는 별도 gate다.
 - P0 menu NOW의 quota 위험 정렬 역전도 수정했다. `used`는 제공자 사용률인데 이전
   점수는 `100-used`라 여유 있는 창을 먼저 표시했다. 위험 점수를 used로 바꾸고 remaining
   표시와 trust 경고 우선순위는 유지했다. Claude 다중 창·Codex 고사용률·context 경쟁 및
   stale/unavailable 우선순위 회귀를 추가해 현재 51 tests/259 assertions가 통과했다.
+- 최신 desktop 소스 후보 `6f7184b`의 Engine [37945674193](https://github.com/kendrick-na/tokenjuice/actions/runs/37945674193)·Windows [37945674232](https://github.com/kendrick-na/tokenjuice/actions/runs/37945674232)는 모두 success다. Pocket 배포는 `49a012f`이며 이번 engine/tests 변경은 Pages 필터 대상이 아니다. 새 desktop 태그·설치본·실기기 결과를 생성하지 않았다. 다음 코드는 Codex 다중 계정/안정 계정 키·pace history의 기존 consumer 호환 계약부터 진행한다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

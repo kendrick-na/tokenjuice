@@ -12,6 +12,11 @@
 성공했다. 이는 GitHub Pages의 PWA 소스 배포 증거이며, immutable macOS/Windows release asset이나
 실기기 acceptance를 대체하지 않는다.
 
+최신 desktop **소스 후보**는 `6f7184b2c36b01ffd579605ac784a7bf111b3da5`다.
+Engine verification `37945674193`·Windows build `37945674232`는 모두 success다.
+이후 audit/기획서 문서-only 변경은 해당 CI 필터나 Pages 배포를 다시 실행하지 않는다.
+desktop release asset/설치본은 갱신하지 않았고, Pocket 배포는 계속 `49a012f`다.
+
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
@@ -227,7 +232,8 @@ fresh-only·ISO/Unix reset 처리·중복 방지·threshold 상태 보존을 구
 4개/21 assertions와 전체 46 tests/238 assertions가 통과했다. 정상 timestamp 변경,
 설정 꺼짐/잘못된 설정·과거/불명/먼 reset, stale/401/429, read-only export 무발화를
 검증했다. 전체 release-verify는 자동 단계 통과 후 installed-source mismatch로 exit 1이다.
-실제 설치·OS 발화/권한을 변경하지 않았으며 forecast 소진 예측 알림은 여전히 미구현이다.
+실제 설치·OS 발화/권한을 변경하지 않았다. 이 reset-soon 단계 당시 forecast 소진 예측
+알림은 미구현이었으며, 다음 §9.3에서 Claude 범위를 이어서 구현했다.
 
 ### 9.3 R6 Claude forecast 최소 구현
 
@@ -250,3 +256,9 @@ Claude 여러 창·Codex 98% 사용·높은 context·stale local cache·HTTP 실
 현재 local release-verify는 engine 51 pass/259 assertions, browser·bundle·syntax·격리
 notification 단계 통과 후 installed-source mismatch로 exit 1이다. 새 NOW 소스가
 현재 SwiftBar 설치본 또는 v1.2.2 자산에 이미 반영됐다고 주장하지 않는다.
+
+수정 커밋 `6f7184b`의 Engine `37945674193` 및 Windows `37945674232`는 모두
+success임을 확인했다. 이번 engine/tests 변경은 Pages push paths 대상이 아니며, 성공한
+Pocket 배포는 `49a012f`/`37943107852` 그대로다. 참가자 결과나 OS presentation 기록을
+새로 생성하지 않았다. 다음 독립 코드 백로그는 Codex 다중 계정/안정적인 계정 키와 Codex
+pace history이며, 그 계약을 기존 v2 consumer와 호환되도록 먼저 설계해야 한다.
