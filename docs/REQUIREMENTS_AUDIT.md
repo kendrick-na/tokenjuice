@@ -71,7 +71,7 @@ Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 �
 | UX10 | value/install/privacy/OS/FAQ/release landing | `guide.html`, Pages CI `37885325558`, Pages HTTP 200 | artifact/deploy pass; new-user 5-person gate pending |
 | UX11 | choose native mobile platform only after PWA usage/waitlist evidence | PWA exists; no native implementation | intentionally pending; requires usage/waitlist evidence |
 | UX12 | validate free/paid boundary before payments | no payment/cloud code; strategy docs | intentionally pending; requires product/pricing/privacy decision |
-| P0 | Work Continuity Slice | Pocket decision hierarchy, metadata checkpoint, trust/context separation | code/test pass; user behavior gate pending |
+| P0 | Work Continuity Slice | Pocket decision hierarchy, metadata checkpoint + read-only 재개 상세/import/copy/text download, trust/context separation | 안전한 metadata subset code/test pass; 의미 있는 작업 요약/파일 복원·user behavior gate는 미완료 |
 | P1 | Usage Coach/history/compact surfaces | history export, developer evidence, statusline, forecast, 80%/90% local checkpoint handoff, `6cacedb` small-screen disclosure browser test | safe local subset implemented; coach/trend requires a real history/export contract and behavior evidence; Pocket settings are product/security-gated |
 | P2 | developer integrations/widgets/providers | JSON/history/statusline/local adapter/manual bundle | webhook/native widget/Watch/extra policy-gated connectors pending |
 
@@ -165,7 +165,7 @@ detached child 로그보다 먼저 끝나는 재현 가능한 race가 드러났�
 |---|---|---|
 | master §6 R1~R20·UX1~UX12, §7 종료 조건 | 위 §2~§3 매핑 | R6 Claude/Codex 예측/reset-soon, R10 Codex 수동 로컬 프로필 subset 구현. 인증 계정/root mapping과 새 설치/OS UI는 별도 검증. R11 Windows toast는 설치 경계 결정 선행 |
 | master §13 Phase A trust | 로컬 source/last success/상태 분류 | 독립 provider-health/outage 수집 없음. HTTP failure를 provider outage로 단정하지 않음 |
-| master §13 Phase B continuity | context 80/90%, 프로젝트·브랜치 등 metadata checkpoint | 최근 파일·마지막 작업 의도를 담은 resume brief 및 수동 provider 전환 안내 전체는 미구현. §16.5는 이를 좁힌 안전한 slice일 뿐 Phase B 전체 완료가 아님 |
+| master §13 Phase B continuity | context 80/90%, 프로젝트·브랜치 metadata checkpoint와 파일 다시 열기/재개 안내 copy/text download | 최근 파일·마지막 작업 의도를 담은 resume brief 및 수동 provider 전환 안내 전체는 미구현. §16.5는 이를 좁힌 안전한 slice일 뿐 Phase B 전체 완료가 아님 |
 | master §13 Phase C~E | Claude/Codex local read, opt-in API, 암호화 수동 quota 전달 | 직접 reset-credit 실행·자동 checkpoint sync·push·team dashboard 없음. credentials/외부 전송·동의/보존 계약 또는 제품 선택 선행 |
 | master §14~§15 디자인/Coach/P2 | urgent-first·state·local checkpoint·compact·export/statusline | 10초/30초 및 90%/80%/5%/30% 행동 지표 미측정. tool-call/file-read 분석·개인화 Coach·resume 효과는 미구현/행동 근거 대기 |
 | `docs/UI_UX_RELEASE_PLAN.md` | P0 화면·복구·설치 문구, 상세 접기, checkpoint CTA, 오래된 README 이미지 제거 | 7-day 시계열 UI·Pocket 설정 계약, 스크린리더/큰 글자/notch/tray 실기기 확인 |
@@ -314,8 +314,9 @@ pending이고 같은 root에서 실제 인증 계정만 바뀌는 경우는 자�
    확정한 진단이 아니라 최신 후보 설치 여부를 확인하는 gate다.
 2. **설치 후 P0:** 메뉴바 아이콘/패널, 실제 quota와 trust, 잘린 notch, 재시작/절전 복귀를
    실제 노트북에서 확인한다. Codex 프로필의 실제 계정/root mapping도 사용자와 확인한다.
-3. **코드 백로그:** 시각적 7-day history와 Phase B resume workflow는 별도 계약/구현이
-   남아 있다. metadata checkpoint/history export만으로 전체를 완료 처리하지 않는다.
+3. **코드 백로그:** 시각적 7-day history와 Phase B 전체 resume workflow는 별도 계약/구현이
+   남아 있다. §9.9의 metadata 재개 상세를 추가했지만 작업 의도/최근 파일을 복원하거나
+   history/Coach의 행동 근거 게이트를 해소한 것은 아니다.
 4. **제품·권한 선택:** Windows native toast의 identity/설치 경계, 자동 sync/모바일 설정의
    보안 경계, 스토어/확장 배포 플랫폼·개발자 계정·제출 권한을 결정한다. 현재 PWA를
    App Store/Google Play/확장프로그램 출시로 설명하지 않는다.
@@ -346,3 +347,34 @@ Pocket 브라우저 검증은 통과했다. release-verify는 마지막 installe
 트레이 selftest·exe 빌드/실행까지 success다. release job은 tag가 없어 skipped다. companion
 변경이 없어 Pages 재배포 대상이 아니며 공개 PWA `49a012f`와 desktop asset `v1.2.2`는
 유지된다. §9.7의 출시 게이트는 유지한다.
+
+### 9.9 승인된 metadata-only resume 기능 (2026-10-10)
+
+clean main `599858f`=origin/main과 `9afc509`의 Engine/Windows success를 preflight로
+재확인했다. 전체 master 및 연결 UI 계획의 gate를 재대조했다. 시각적 trend/Usage Coach는
+시계열 계약·10명 interview·14일 diary/우선순위 결정이 선행되므로 그 gate를 변경하지 않았다.
+선택한 기능은 §16.5에 승인된 metadata-only checkpoint의 로컬 읽기/재개 상세다.
+
+Pocket에서 기존 checkpoint를 다시 열어 프로젝트·브랜치·이전 모델·생성 시점을 확인하고,
+고정된 사용자 체크리스트와 함께 명시적으로 복사/텍스트 저장한다. 파일 생성 CTA도 같은
+reader 검사 후 다운로드/상세 열기를 수행한다. 64 KiB 제한·타입/범위/문자 검사·field whitelist·
+invalid import 시 기존 안내/한도 보존·클립보드 거절 시 수동 복사 대체·메모리 지우기를
+구현했다. unknown/topic/code/nextAction은 표시/복사하지 않는다. Mac config/원격 API·로그인·
+실계정·자동 요약/세션 실행·자동 sync는 추가하지 않았다. 원본 인증/메타데이터의 비민감성은
+보증하지 않고 파일 생성 시각을 현재 관측 시각으로 해석하지 않는다.
+
+frontend-design·ui-ux-pro-max로 기존 Calm Operations Console의 tokens/fonts와 접힌 상세를
+유지하고 16px 재개 본문·44px 이상 조작·명시적 label/status/focus·좁은 화면 줄바꿈을 적용했다.
+webapp-testing의 headless browser에서 실제 다운로드→다시 열기, 독립 import, 13종 invalid
+구조+oversize, unknown 필드 비노출·text-only 렌더, optional metadata와 100% 초과 추정치,
+copy 성공/거절·다운로드·지우기·reload 비보관·offline·375px/landscape/desktop/200% 글자·
+키보드 링·dark token 대비/reduced motion을 검증했다. 합성 fixture 화면 2장도 시각 확인했다.
+
+새 large-text dashboard 검사는 기존 헤더 nowrap overflow(375px에 scrollWidth 457px)를
+먼저 재현했다. context/account flex 헤더에 wrap을 적용해 해소했다. 포커스 테스트는 selector가
+focus-visible에 매치돼도 computed outline이 아직 0인 갱신 race를 확인하고 actual focus/outline
+조건을 기다려 검사한다. 실제 OS 글자 확대·screen reader·노트북 UI 검증으로 승격하지 않는다.
+로컬 release-verify의 engine 62 pass/422 assertions와 자동 browser/bundle/syntax/dry-run은
+통과했고 마지막 installed-source mismatch는 exit 1이다. 생성 실패 테스트의 visible feedback/
+sr-only 중복 locator는 기존 패턴대로 feedback 영역으로 한정한 후 전체 자동 단계를 다시
+통과했다. 원격 CI/Pages는 push 단계에서 확인한다. 공개 desktop asset v1.2.2 및 기기 설치본은 유지한다.

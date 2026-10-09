@@ -84,3 +84,30 @@ footer a, footer button { padding:.4rem .45rem; }
 .install-steps strong { display:block; color:var(--ink); font-size:.8rem; }
 .install-steps code { display:block; margin-top:.18rem; color:var(--amber); font:600 .7rem/1.45 var(--mono); overflow-wrap:anywhere; }
 .recovery-link { margin:1rem 0 0; border-top:1px solid #ffffff18; padding-top:.9rem; }
+
+/* Resume stays in DETAIL, below the live decision flow. Imported metadata
+   uses the same calm tokens but never a fresh/good badge or quota meter. */
+.context-head,.account-head { flex-wrap:wrap; }
+.context-head>div,.account-head>div { min-width:0; overflow-wrap:anywhere; }
+.resume-panel { margin:1rem 0 1.5rem; border:1px solid var(--line); border-radius:6px; background:var(--panel); }
+.resume-panel>summary { min-height:48px; padding:1rem; cursor:pointer; color:var(--ink); font-weight:700; line-height:1.5; }
+.resume-panel>summary span { display:block; margin-top:.25rem; color:var(--teal); font:.75rem/1.5 var(--mono); }
+.resume-body { min-width:0; padding:0 1rem 1rem; }
+.resume-limit,.resume-feedback,.resume-source { color:var(--muted); font-size:1rem; line-height:1.6; overflow-wrap:anywhere; }
+.resume-feedback:empty { display:none; }
+.resume-feedback { border-left:3px solid var(--teal); padding-left:.75rem; }
+.resume-body h2 { margin:1.5rem 0 .75rem; font:700 1.6rem/1.2 var(--serif); }
+.resume-warning { padding:.75rem; border-left:3px solid var(--amber); color:var(--amber); font-size:1rem; line-height:1.5; background:#ffcc7012; }
+.resume-metadata { display:grid; grid-template-columns:minmax(0,1fr); gap:.25rem; font-size:1rem; line-height:1.5; }
+.resume-metadata dt { margin-top:.75rem; color:var(--muted); }
+.resume-metadata dd { margin:0; color:var(--ink); overflow-wrap:anywhere; }
+.resume-body label { display:block; margin-top:1.5rem; font-size:1rem; font-weight:700; line-height:1.5; }
+.resume-body textarea { width:100%; min-width:0; max-width:100%; margin-top:.5rem; resize:vertical; border:1px solid var(--line); border-radius:4px; padding:.75rem; background:var(--canvas); color:var(--ink); font:1rem/1.6 var(--mono); white-space:pre-wrap; overflow-wrap:anywhere; }
+.resume-body textarea:focus-visible,.resume-body h2:focus { outline:3px solid var(--lime); outline-offset:3px; }
+.resume-actions { display:flex; flex-wrap:wrap; gap:.75rem; }
+.resume-actions button { min-height:48px; max-width:100%; padding:.75rem; border:1px solid var(--line); border-radius:4px; background:var(--panel-2); color:var(--teal); font-size:1rem; line-height:1.5; }
+.resume-actions #resume-copy { color:var(--lime); }
+.resume-panel button:hover { border-color:var(--teal); }
+.resume-panel button:active { background:var(--canvas); }
+.resume-panel button:disabled { cursor:wait; opacity:.65; }
+@media (min-width:40rem) { .resume-metadata { grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:.75rem 1rem; }.resume-metadata dt { margin:0; } }

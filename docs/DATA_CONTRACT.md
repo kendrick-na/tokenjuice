@@ -198,6 +198,26 @@ Pocket quota 카드의 잔여량·progressbar·forecast는 `fresh` 또는 명시
 `auth_expired`, `rate_limited`, `unavailable`에서는 숫자를 숨기고 상태·복구 안내와
 마지막 성공 정보를 유지한다.
 
+## Pocket metadata-only checkpoint / 재개 안내
+
+기존 context CTA가 내보내는 `tokenjuice-checkpoint-v1` 파일을 Pocket의 독립적인
+`저장한 작업 이어가기` 상세에서 다시 열 수 있다. quota snapshot v1은 변경하지 않는다.
+64 KiB 이하의 JSON, `privacy: "metadata_only"`, claude/codex platform, 양의 유한하고
+Date로 해석 가능한 `createdAt`, context의 유한한 비음수 `used`/`pct`와 양의 `window`
+또는 null을 검사한다. optional project/branch/model/status는 null 또는 제어 문자 없는
+256자 이하 문자열이다. context pct >100도 로컬 추정치로 보존한다.
+
+읽는 필드만 새 객체로 복사하며 unknown/topic/code/nextAction을 표시·복사하지 않는다.
+유효하지 않은 파일은 기존 안내/한도 저장본을 유지한다. 새 checkpoint 생성도 같은
+검사를 통과해야 다운로드한다. createdAt은 파일 생성 시각이며 현재 상태의 관측 시각이
+아니다. 원본의 진위를 인증하지 않고 저장 메타데이터를 live quota/현재 context로 표시하지 않는다.
+
+재개 안내는 이 메타데이터와 사용자 확인 체크리스트만 담는다. 작업 의도·최근 파일·
+브랜치 내용·프롬프트·코드 복원이나 자동 세션 실행/전환은 없다. checkpoint는 화면 메모리만
+사용하고 새로고침하면 사라진다. 명시적 복사/다운로드 외 네트워크 전송·Mac config 변경·
+자동 sync는 없다. 화면에서 지우기는 메모리만 지우고 스냅샷/원본 파일/클립보드는 보존한다.
+Phase B의 의미 있는 resume brief 전체 및 실제 재개 시간 단축은 여전히 별도 백로그/검증이다.
+
 ## 암호화 기기 간 전달 번들 v1
 
 `TOKENJUICE_SYNC_PASSPHRASE`를 현재 실행 환경에만 제공한 뒤

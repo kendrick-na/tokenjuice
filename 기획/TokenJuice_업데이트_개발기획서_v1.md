@@ -1310,7 +1310,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `62 pass`·`422 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 및 수동 Codex 프로필 구현 / 실계정·OS 검증 대기 | Codex explicit root/alias/ID/표시 선택·stable notification/history key 구현. `862d50f` Engine `37950615407`·Windows `37950615519`, Windows 호환 수정 `70abf9e`의 `37950833358`는 success. 실제 Windows/macOS UI와 신규 설치는 validation kit pending. Windows toast 미구현 |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
-| P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
+| P0 context checkpoint | metadata-only 생성/재개 상세 코드 구현·browser 검증 / 전체 resume·사용자 검증 대기 | 기존 다운로드에 checkpoint 다시 열기·메타데이터 확인·재개 안내 복사/텍스트 저장·오류 보존·메모리 전용 보관을 추가. 작업 의도/최근 파일 복원이나 실제 resume 행동 전환 완료가 아니며 `docs/VALIDATION_KIT.md` diary gate 유지 |
 | UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `6cacedb`: 375px detail disclosure, Enter keyboard, 44px target browser test; Engine/Windows/Publish `37886745999`/`37886745975`/`37886745971` 성공. 스크린리더·실기기 notch/tray·실사용자 5명은 pending |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
 | UX8 알림 센터/설정 UX | 데스크톱 로컬 설정 구현 / Pocket 제품·보안 결정 대기; OS presentation·Windows toast 승인 대기 | 기존 local per-target threshold/reset와 계정 reconnect 알림은 엔진 fixture로 검증. `016a60a`: Pocket snapshot에는 설정 override가 없고 Mac config.json을 쓰는 경로도 없으므로 모바일 설정 적용은 전송·동의·제품·보안 설계가 선행돼야 함. 알림 설정과 실제 인증 갱신은 별개. Windows native toast는 identity/shortcut 또는 WinRT 의존성 결정 필요 |
@@ -1366,7 +1366,7 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
 - `v1.2.2` desktop 자산은 `12efce2`에 고정돼 있다. 현재 main이나 Pocket 변경을 이미
   내려받은 exe/SwiftBar 설치본에 자동 반영됐다고 설명하지 않는다.
 - 남은 일은 외부 gate만이 아니다. Codex pace와 R10 수동 로컬 프로필 subset은 아래에서
-  구현했으나 시각적 history·전체 resume workflow는 별도 코드 백로그다. Phase B의 작업 의도·최근 파일을 담은 resume brief도 metadata-only
+  구현했으나 시각적 history·전체 resume workflow는 별도 코드 백로그다. metadata-only 재개 상세는 아래에서 추가했지만 Phase B의 작업 의도·최근 파일을 담은 resume brief도 metadata-only
   checkpoint로 대체 완료 처리하지 않는다. §16.5의 개인정보·자동 전환 금지 경계를 유지한다.
 - 이번 최소 안전 수정은 Pocket 손상 파일 가져오기였다. 내부 구조 오류 14종의 기존
   화면·저장본 보존, 구버전 v1 호환, 손상된 저장본 복구와 정상 암호화 상호운용을
@@ -1425,6 +1425,19 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   마지막 설치본 불일치로 exit 1이며 설치/실행·OS 권한·실계정은 건드리지 않았다. 코드
   `9afc509`의 Engine [37952669054](https://github.com/kendrick-na/tokenjuice/actions/runs/37952669054)는 Linux/macOS/Pocket browser까지, Windows [37952668998](https://github.com/kendrick-na/tokenjuice/actions/runs/37952668998)는 engine/selftest/exe 빌드·실행까지 success다. release job은 tag가 없어 skipped이며 Pages 재배포 대상이 아니다. 공개 PWA `49a012f`와 desktop asset `v1.2.2`는 유지된다. 모든 provider 스키마/실기기 정확성이나 새 release/PWA 배포 완료를
   뜻하지 않는다. 상세 증거는 [`docs/REQUIREMENTS_AUDIT.md` §9.8](../docs/REQUIREMENTS_AUDIT.md#98-r1r15-codex-malformed-사용률-안전-실패-2026-10-10)에 기록했다.
+
+- 2026-10-10 다음 로컬 기능으로 §16.5의 metadata-only checkpoint 다시 열기/재개 상세를
+  구현했다. 한도 스냅샷 없이도 기존 JSON을 열어 프로젝트·브랜치·이전 모델·생성 시점을
+  확인하고 고정 사용자 체크리스트를 복사/텍스트 저장한다. unknown/topic/code/nextAction
+  whitelist 제외, 손상/oversize 파일의 기존 안내/스냅샷 보존, 클립보드 거절 대체 경로,
+  화면 메모리 전용·지우기·reload 비보관을 제공한다. 현재 한도/컨텍스트나 작업 내용 요약을
+  표시하는 것이 아니며 실제 파일/작업 의도는 직접 확인한다. snapshot 계약/Mac 설정은
+  바꾸지 않았고 자동 세션 실행/전환·sync·요약도 없다. frontend-design·ui-ux-pro-max와
+  webapp-testing으로 접힌 DETAIL 구조·기존 tokens/fonts·375px/landscape/desktop·200% 글자·
+  키보드·copy/download·오프라인을 구현/검증하고 합성 화면을 시각 확인했다. 기존 헤더의
+  large-text overflow도 재현해 줄바꿈으로 수정했다. 시각적 7-day trend/Usage Coach의 계약·
+  diary/우선순위 gate와 Phase B 전체 resume, 설치/실기기·사용자 gate는 유지한다. 상세 증거는
+  [`docs/REQUIREMENTS_AUDIT.md` §9.9](../docs/REQUIREMENTS_AUDIT.md#99-승인된-metadata-only-resume-기능-2026-10-10)에 기록했다. 원격 CI/Pages는 push 후 별도 확인한다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

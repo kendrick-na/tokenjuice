@@ -41,6 +41,8 @@ def contrast_ratio(foreground: str, background: str) -> float:
 
 def assert_no_horizontal_overflow(page) -> None:
     dimensions = page.evaluate("({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth })")
+    if dimensions["scrollWidth"] > dimensions["innerWidth"]:
+        dimensions["overflowing"] = page.locator("body *:visible").evaluate_all("els => els.map(el => ({tag: el.tagName, id: el.id, class: el.className, width: el.getBoundingClientRect().width, right: el.getBoundingClientRect().right})).filter(el => el.right > window.innerWidth)")
     assert dimensions["scrollWidth"] <= dimensions["innerWidth"], dimensions
 
 
@@ -57,6 +59,150 @@ def assert_theme_contrast(page) -> None:
     }""")
     for foreground in ("--ink", "--muted", "--faint", "--teal"):
         assert contrast_ratio(theme[foreground], theme["--panel-2"]) >= 4.5, (foreground, theme)
+
+
+def check_resume(browser, directory: str) -> None:
+    page = browser.new_page(viewport={"width": 375, "height": 812})
+    errors: list[str] = []
+    requests = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on("request", lambda request: requests.append(request))
+    page.goto("http://127.0.0.1:4173", wait_until="networkidle")
+    summary = page.locator("#resume-panel > summary")
+    summary.focus()
+    page.keyboard.press("Enter")
+    assert page.locator("#resume-panel").get_attribute("open") is not None
+    assert page.get_by_role("button", name="checkpoint 파일 열기").is_visible()
+    assert page.locator("#resume-content").is_hidden()
+    checkpoint = {"format": "tokenjuice-checkpoint-v1", "privacy": "metadata_only",
+                  "createdAt": 1791390000000, "platform": "codex", "project": "tokenjuice",
+                  "branch": "feature/" + "long-branch-" * 15, "model": "coding-model", "status": None,
+                  "context": {"used": 168000, "window": 200000, "pct": 84},
+                  "topic": "SECRET_PROMPT", "code": "SECRET_CODE", "nextAction": "SECRET_ACTION"}
+    checkpoint_path = Path(directory) / "checkpoint.json"
+    checkpoint_path.write_text(json.dumps(checkpoint), encoding="utf-8")
+    page.locator("#checkpoint-file").set_input_files(str(checkpoint_path))
+    page.locator("#resume-content").wait_for(state="visible")
+    assert page.locator("#empty-state").is_visible()  # independent of a live snapshot
+    assert page.evaluate("document.activeElement.id") == "resume-title"
+    assert page.get_by_text("저장 당시 메타데이터 · 현재 한도나 컨텍스트가 아닙니다").is_visible()
+    assert page.locator("#resume-metadata").get_by_text("84% 사용 · 로컬 추정", exact=True).is_visible()
+    assert "2026" in page.locator("#resume-source").inner_text()
+    original_brief = page.locator("#resume-brief").input_value()
+    assert "작업 내용 요약 아님" in original_brief and "현재 값 아님" in original_brief
+    assert "tokenjuice" in original_brief and checkpoint["branch"] in original_brief
+    assert all(secret not in original_brief for secret in ("SECRET_PROMPT", "SECRET_CODE", "SECRET_ACTION"))
+    assert page.evaluate("localStorage.length") == 0
+    # Clipboard API is isolated inside this browser, never the host clipboard.
+    page.evaluate("Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {writeText: async text => {window.__copiedResume = text;}}})")
+    page.get_by_role("button", name="재개 안내 복사", exact=True).click()
+    page.wait_for_function("window.__copiedResume !== undefined")
+    assert page.evaluate("window.__copiedResume") == original_brief
+    page.evaluate("Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {writeText: async () => {throw new Error('denied');}}})")
+    page.get_by_role("button", name="재개 안내 복사", exact=True).click()
+    page.get_by_text("클립보드에 접근할 수 없습니다.", exact=False).wait_for()
+    assert page.locator("#resume-brief").evaluate("el => el.selectionEnd - el.selectionStart") == len(original_brief)
+    with page.expect_download() as download_info:
+        page.get_by_role("button", name="텍스트 저장", exact=True).click()
+    assert download_info.value.suggested_filename == "tokenjuice-resume.txt"
+    assert Path(download_info.value.path()).read_text(encoding="utf-8").rstrip() == original_brief
+    # Import errors retain both the resume and any separately stored quota.
+    snapshot_path = Path(directory) / "resume-quota-snapshot.json"
+    snapshot_path.write_text(json.dumps(SNAPSHOT), encoding="utf-8")
+    page.locator("#snapshot-file").set_input_files(str(snapshot_path))
+    page.locator("#dashboard").wait_for(state="visible")
+    stored_snapshot = page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')")
+    invalids = [[], {**checkpoint, "format": "unknown"}, {**checkpoint, "privacy": "raw"},
+                {**checkpoint, "createdAt": "1791390000000"}, {**checkpoint, "createdAt": 1e20},
+                {**checkpoint, "platform": "unknown"}, {**checkpoint, "branch": "bad\nbranch"},
+                {**checkpoint, "project": {}}, {**checkpoint, "context": None},
+                {**checkpoint, "context": {"used": "168000", "window": 200000, "pct": 84}},
+                {**checkpoint, "context": {"used": -1, "window": 200000, "pct": 84}},
+                {**checkpoint, "context": {"used": 168000, "window": 0, "pct": 84}},
+                {**checkpoint, "context": {"used": 168000, "window": 200000, "pct": -1}}]
+    invalid_path = Path(directory) / "invalid-checkpoint.json"
+    for invalid in invalids:
+        invalid_path.write_text(json.dumps(invalid), encoding="utf-8")
+        page.locator("#checkpoint-file").set_input_files(str(invalid_path))
+        page.wait_for_function("document.querySelector('#checkpoint-file').value === ''")
+        assert "열 수 없는 checkpoint" in page.locator("#resume-feedback").inner_text()
+        assert page.locator("#resume-brief").input_value() == original_brief
+        assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == stored_snapshot
+    invalid_path.write_text(json.dumps(checkpoint) + " " * 65536, encoding="utf-8")
+    page.locator("#checkpoint-file").set_input_files(str(invalid_path))
+    page.wait_for_function("document.querySelector('#checkpoint-file').value === ''")
+    assert "64 KiB 이하" in page.locator("#resume-feedback").inner_text()
+    assert page.locator("#resume-brief").input_value() == original_brief
+    # Don't generate a file that the new reader cannot reopen.
+    invalid_session_snapshot = json.loads(json.dumps(SNAPSHOT))
+    invalid_session_snapshot["sessions"][0]["branch"] = "bad\nbranch"
+    snapshot_path.write_text(json.dumps(invalid_session_snapshot), encoding="utf-8")
+    page.locator("#snapshot-file").set_input_files(str(snapshot_path))
+    page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+    failed_exports = []
+    page.on("download", lambda download: failed_exports.append(download.suggested_filename))
+    page.get_by_role("button", name="메타데이터 checkpoint 저장", exact=False).click()
+    page.locator("#import-feedback").get_by_text("checkpoint를 만들 수 없습니다.", exact=False).wait_for()
+    assert not failed_exports
+    assert page.locator("#resume-brief").input_value() == original_brief
+    snapshot_path.write_text(json.dumps(SNAPSHOT), encoding="utf-8")
+    page.locator("#snapshot-file").set_input_files(str(snapshot_path))
+    page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+    # Text-only rendering, missing optional metadata, and over-100 estimates.
+    safe = {**checkpoint, "project": "<img src=x onerror=alert(1)>", "branch": None, "model": None,
+            "context": {"used": 0, "window": None, "pct": 105}}
+    checkpoint_path.write_text(json.dumps(safe), encoding="utf-8")
+    page.locator("#checkpoint-file").set_input_files(str(checkpoint_path))
+    page.wait_for_function("document.querySelector('#checkpoint-file').value === ''")
+    assert page.locator("#resume-metadata img").count() == 0
+    assert "<img" in page.locator("#resume-metadata").inner_text()
+    assert "브랜치: 정보 없음" in page.locator("#resume-brief").input_value()
+    assert "105%" in page.locator("#resume-brief").input_value()
+    # Small screen, landscape, desktop, large type and keyboard focus.
+    for width, height in ((375, 812), (812, 375), (1280, 900)):
+        page.set_viewport_size({"width": width, "height": height})
+        assert_no_horizontal_overflow(page)
+    page.set_viewport_size({"width": 375, "height": 812})
+    page.add_style_tag(content="html { font-size: 200% !important; }")
+    assert_no_horizontal_overflow(page)
+    page.emulate_media(reduced_motion="reduce", color_scheme="light")
+    assert_theme_contrast(page)
+    for control in ("resume-copy", "resume-download", "resume-clear", "resume-brief"):
+        page.locator(f"#{control}").focus()
+        page.keyboard.press("Tab")
+        page.keyboard.press("Shift+Tab")
+        # :focus-visible may be matched before its painted style is updated.
+        page.wait_for_function("id => {const el = document.getElementById(id); return document.activeElement === el && parseFloat(getComputedStyle(el).outlineWidth) >= 2;}", arg=control)
+        focus = page.locator(f"#{control}").evaluate("el => ({id: el.id, active: document.activeElement.id, visible: el.matches(':focus-visible'), outline: parseFloat(getComputedStyle(el).outlineWidth)})")
+        if focus["outline"] < 2:
+            focus["rules"] = page.locator(f"#{control}").evaluate("el => Array.from(document.styleSheets).flatMap(sheet => Array.from(sheet.cssRules)).filter(rule => rule.selectorText && el.matches(rule.selectorText)).map(rule => rule.cssText)")
+        assert focus["outline"] >= 2, focus
+    assert all(target["height"] >= 44 for target in visible_target_heights(page))
+    screenshot_dir = os.environ.get("TOKENJUICE_TEST_SCREENSHOT_DIR")
+    if screenshot_dir:
+        checkpoint_path.write_text(json.dumps(checkpoint), encoding="utf-8")
+        page.reload(wait_until="networkidle")
+        page.locator("#checkpoint-file").set_input_files(str(checkpoint_path))
+        page.locator("#resume-content").wait_for(state="visible")
+        page.locator("#resume-panel").screenshot(path=str(Path(screenshot_dir) / "resume-mobile.png"))
+        page.set_viewport_size({"width": 1280, "height": 900})
+        page.locator("#resume-panel").screenshot(path=str(Path(screenshot_dir) / "resume-desktop.png"))
+        page.set_viewport_size({"width": 375, "height": 812})
+    page.get_by_role("button", name="화면에서 지우기", exact=True).click()
+    assert page.locator("#resume-content").is_hidden()
+    assert page.locator("#resume-brief").input_value() == ""
+    assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == stored_snapshot
+    # New module is precached; reading a local checkpoint needs no network.
+    page.evaluate("navigator.serviceWorker.ready")
+    page.reload(wait_until="networkidle")
+    page.context.set_offline(True)
+    page.reload(wait_until="domcontentloaded")
+    assert page.locator("#resume-content").is_hidden()  # no persistent checkpoint
+    page.locator("#checkpoint-file").set_input_files(str(checkpoint_path))
+    page.locator("#resume-content").wait_for(state="visible")
+    assert all(request.method == "GET" and request.post_data is None for request in requests)
+    assert not errors, errors
+    page.close()
 
 
 def main() -> None:
@@ -208,6 +354,8 @@ def main() -> None:
             assert checkpoint_payload["format"] == "tokenjuice-checkpoint-v1"
             assert checkpoint_payload["privacy"] == "metadata_only"
             assert "topic" not in json.dumps(checkpoint_payload)
+            assert page.locator("#resume-content").is_visible()
+            assert "프로젝트: tokenjuice" in page.locator("#resume-brief").input_value()
             assert page.locator("#empty-state").is_hidden()
             page.reload(wait_until="networkidle")
             assert page.get_by_text("Personal").is_visible()
@@ -410,6 +558,7 @@ def main() -> None:
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") is None
             assert page.get_by_text("내 스냅샷 가져오기").is_visible()
             assert not errors, errors
+            check_resume(browser, directory)
             browser.close()
 
 

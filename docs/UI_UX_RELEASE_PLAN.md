@@ -64,6 +64,7 @@ TokenJuice의 시각적 방향은 화려한 대시보드가 아니라 **작업�
 - [ ] 7일 trend와 pace forecast를 quota 카드와 분리
 - [ ] account/provider별 reset·threshold·reconnect 설정 화면 — gated: Pocket snapshot 계약은 설정 override를 제외하며, 모바일에서 Mac `config.json`을 수정하면 local-only/읽기 전용 경계를 침범함. 데스크톱의 기존 local per-target 명령만 유지하고 제품·보안 결정 전에는 Pocket 설정을 추가하지 않음.
 - [x] session context 80%/90% 단계별 checkpoint CTA (80% checkpoint 권장, 90% 새 세션 전환 준비; 클릭 시 로컬 스냅샷만 내보냄)
+- [x] metadata-only checkpoint 다시 열기·재개 안내 복사/텍스트 저장 — 현재 상태와 구분, 독립 상세·메모리 전용·오류 보존·클립보드 대체 경로. 작업 의도/최근 파일을 복원하는 전체 resume brief와 효과 검증은 미완료.
 - [x] 작은 화면에서 핵심 카드만 먼저 보이고 상세는 접기 (상태·NEXT는 항상 표시, 출처·마지막 성공은 키보드 가능한 disclosure)
 - [ ] keyboard, VoiceOver/TalkBack, reduced motion, dynamic text 실기기 점검
 - [x] 스크린샷과 실제 화면이 다른 문서 예시 제거 (README의 `docs/demo.gif`·`docs/screenshot.png` inline 참조 제거; 원본 파일 보존; 영문·한국어 본문에서 현재 Pocket 링크와 수동 snapshot/예시 데이터 구분 안내)
@@ -71,6 +72,15 @@ TokenJuice의 시각적 방향은 화려한 대시보드가 아니라 **작업�
 2026-10-09 검증: README의 두 이미지 참조는 검색 결과 0건이며 원본 파일은 Git에 그대로 남아 있다. Pocket 링크는 HTTP 200을 반환했다. `scripts/release-verify.sh`의 엔진 42 pass/217 assertions, 브라우저·번들·스크립트·알림 dry-run 단계는 통과했다. 마지막 SwiftBar 설치본 불일치로 전체 결과는 exit 1이며 실기기 gate를 유지한다. README와 이 문서는 Engine/Windows/Pages push path filter 대상이 아니므로 문서 반영이 새 PWA 배포를 뜻하지 않는다.
 
 남은 미체크 항목은 7일 trend의 실제 시계열 snapshot 계약·행동 근거, Pocket 설정의 제품·보안 결정, notch/tray·스크린리더·큰 글자 실기기 확인이다. 사용자 5명 테스트·10명 인터뷰·14일 diary와 설치본 검증은 `docs/LAUNCH_FEEDBACK_PLAN.md` 및 `docs/VALIDATION_KIT.md`의 외부 gate로 계속 추적한다.
+
+2026-10-10 추가: 기획 §16.5의 metadata-only 범위에서 `저장한 작업 이어가기` 상세를
+구현했다. frontend-design·ui-ux-pro-max의 정보 위계/점진적 공개/44px/키보드/큰 글자 원칙을
+적용하되 기존 로컬 폰트와 dark token set을 유지했다. 기본 NOW는 바꾸지 않고 가져온
+checkpoint의 시점·한계를 설명하며, 화면 메모리만 사용한다. 자동 요약·생산성 평가·설정
+전송·자동 provider 전환은 없다. webapp-testing으로 375px·landscape·desktop·200% 글자·
+reduced motion·dark token 대비·copy/download/clipboard 거절·오류 보존·오프라인을 검사하고
+모바일/desktop 합성 fixture 캡처를 시각 확인했다. 기존 context/account 헤더의 큰 글자
+overflow도 재현 후 flex 줄바꿈으로 수정했다. VoiceOver/TalkBack·실기기·사용자 효과는 pending이다.
 
 ## 5. 출시 전 UX 검증 시나리오
 

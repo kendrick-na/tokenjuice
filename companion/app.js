@@ -1,3 +1,5 @@
+import { initResume, normalizeCheckpoint } from "./resume.js";
+const showResume = initResume();
 const KEY = "tokenjuice.widget-snapshot.v1";
 const SYNC_FORMAT = "tokenjuice-sync-v1";
 const SNAPSHOT_REEXPORT_AFTER_MS = 30 * 60 * 1000;
@@ -141,12 +143,18 @@ function saveCheckpoint(risk) {
     status: session.status || null,
     nextAction: risk.next,
   };
+  try { normalizeCheckpoint(checkpoint); }
+  catch {
+    announce("checkpoint를 만들 수 없습니다. 프로젝트·브랜치 메타데이터와 컨텍스트 숫자가 유효한 스냅샷을 다시 가져오세요.", "danger");
+    return;
+  }
   const url = URL.createObjectURL(new Blob([`${JSON.stringify(checkpoint, null, 2)}\n`], { type: "application/json" }));
   const link = document.createElement("a");
   link.href = url;
   link.download = `tokenjuice-checkpoint-${session.name || "session"}.json`;
   link.click();
   URL.revokeObjectURL(url);
+  showResume(checkpoint, "화면 스냅샷에서 만든 checkpoint");
 }
 function renderContext(snapshot) {
   const card = $("#context-card");
