@@ -206,6 +206,6 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 | P0 10명 interview/diary | pending | 제품 담당자 + 동의한 참가자 10명 | §2 consent 후 I01~I10, D1~D14 기록 |
 | macOS notification/notch | pending | macOS 실기기 보유자 | §3: notch는 기존 UI가 있을 때만 관찰; notification은 isolated fixture harness가 준비된 경우에만 실행 |
 | Windows tray UI | pending | Windows 실기기 보유자 | §3: 기존 release exe의 tray icon·tooltip·menu만 관찰 |
-| Windows toast | blocked: not implemented | TokenJuice 구현 담당자 | OS 검증 전에 sender 구현과 자동 fixture 회귀 필요 |
+| Windows toast | blocked: implementation boundary | 제품·설치 경계 승인 + TokenJuice 구현 담당자 | event contract/격리 fixture를 먼저 설계하고, 승인된 sender 구현 후에만 OS 검증 |
 
 이 문서는 프로토콜 준비 완료를 뜻할 뿐, 실제 검증 통과를 뜻하지 않는다.

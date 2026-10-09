@@ -1,7 +1,11 @@
-# TokenJuice 릴리스 증거 매트릭스
+# TokenJuice 릴리스 증거 매트릭스 (historical)
 
 확인일: 2026-10-08
 대상: `1.1.0` 출시 후보 작업트리(아직 커밋·push·태그·배포 전)
+
+> 이 문서는 1.1.0 당시의 historical record다. 현재 v1.2.2의 출시·CI·PWA·요구사항
+> 판정은 `docs/REQUIREMENTS_AUDIT.md`와 `docs/VALIDATION_KIT.md`를 기준으로 한다.
+> 아래의 1.1.0 수치, Pages 404, 원격 SHA, 미등록 workflow를 현재 상태로 해석하지 않는다.
 
 이 문서는 [출시 체크리스트](RELEASE_CHECKLIST.md)의 각 판단을 어떤 증거가 뒷받침하는지
 정리한다. `자동 통과`는 해당 테스트의 범위 안에서만 통과를 뜻하며, 실제 Windows·새 설치

@@ -28,12 +28,12 @@ tag commit에서 고정되어 있다.
 | R3 | 인증 만료를 명시 상태·사용자 실행 안내로 전환 | `autoRenew:false` 기본값; 명시적 `autoRenew:true`일 때만 401/403 이후 10분 제한 갱신; 메뉴 정책 표시와 `--renew-login`; `tests/engine.test.js` opt-in/opt-out/수동 실행 테스트 | 코드·자동 검증 완료. 0 model-call은 2026-10-05 Claude CLI 2.1.238 실측에 한정(버전 변경 시 재검증); 실제 계정 재로그인·Keychain 및 Claude Team/조직 정책 확인은 pending |
 | R4 | 429 Retry-After·backoff | `fetchClaudeUsage()`, 429 tests | 자동 검증 완료 |
 | R5 | wake refresh single debounce | `scripts/ensure-swiftbar-visible.sh`, wake helper test | 코드·fixture 완료; 실제 sleep/wake 장비는 pending |
-| R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect tests | macOS payload·sender 구현; 실제 Notification Center presentation pending. Windows tray에는 toast sender가 없어 toast는 코드 미구현 blocker |
+| R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect tests | macOS payload·sender 구현; 실제 Notification Center presentation pending. Windows native toast는 현재 패키징 경계에서 안전한 sender 미구현 blocker |
 | R7 | official quota와 local context/cost 분리 | `kind` contract, session/context/cost tests, Pocket cards | 코드·자동 검증 완료 |
 | R8 | secret-free copyable diagnostics | `--diagnostics`, `--copy-diagnostics`, diagnostics privacy test | 자동 검증 완료; 실제 support workflow는 pending |
 | R9 | first-run onboarding/permission/keychain choice | `--init-config`, `guide.html`, starter config test | artifact·자동 검증 완료; 신규 사용자 comprehension pending |
 | R10 | multi-account aliases/status | `loadAccounts()`, multi-directory test, menu labels | 코드·fixture 완료; 실제 Team/personal 계정 사용성 pending |
-| R11 | Windows/macOS meaning/alarm parity | shared JS engine, Windows build `37812922103`, tagged build `37813141076` | tray/build/contract 완료; macOS·Windows tray 실제 presentation pending. Windows toast는 소스에 sender가 없어 구현·자동회귀 전까지 blocked |
+| R11 | Windows/macOS meaning/alarm parity | shared JS engine, Windows build `37880424218`, Engine CI `37880424276` | tray/build/contract 완료; macOS·Windows tray 실제 presentation pending. Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성이 필요해 현재 범위에서 blocked |
 | R12 | mobile companion/widget | Pocket import/export/offline/encrypted bundle browser test, Pages `37812922149` | PWA local export 완료; native widget/retention pending |
 | R13 | provider adapters | Copilot official-cost and local quota-file tests | 안전한 범위의 adapter 완료; extra provider policy/format validation pending |
 | R14 | optional sync | passphrase-only AES-GCM manual bundle test | manual local transfer 완료; CloudKit/automatic sync intentionally pending |
@@ -55,7 +55,7 @@ tag commit에서 고정되어 있다.
 | UX5 | consumer Pocket empty/demo/import/offline/re-export flow | Pocket browser test, service worker/offline, checkpoint/privacy assertions | 코드·browser 완료; phone PWA/device acceptance pending |
 | UX6 | contrast, 44px, keyboard, screen reader, 375px/desktop/dark/reduced motion | `tests/companion.test.py`, `docs/VALIDATION_KIT.md` §1/§3 | machine criteria pass; screen reader and 5-person gate pending |
 | UX7 | local-labeled forecast/action language | forecast tests and Pocket “리셋 전 소진 예상” assertion | code pass; diary/action conversion pending |
-| UX8 | per-account/window threshold/reset/reconnect and reason/next time | notification policy/override/reconnect tests; `CCB_TEST_NOTIFY_LOG` | macOS engine contract·sender pass; OS presentation pending. Windows tray source에는 toast sender가 없어 OS test 이전에 기능 구현 필요 |
+| UX8 | per-account/window threshold/reset/reconnect and reason/next time | notification policy/override/reconnect tests; `CCB_TEST_NOTIFY_LOG` | macOS engine contract·sender pass; OS presentation pending. Windows toast는 현재 `pystray`/Pillow 패키징만으로는 안전하게 구현할 수 없어 기능·설치 경계 결정 전까지 blocked |
 | UX9 | detailed menu/tray panel and compact/notch safety | menu output, compact test, Windows CI, installed source match | code/build pass; physical notch and OS visual pending |
 | UX10 | value/install/privacy/OS/FAQ/release landing | `guide.html`, Pages CI `37812922149`, Pages HTTP 200 | artifact/deploy pass; new-user 5-person gate pending |
 | UX11 | choose native mobile platform only after PWA usage/waitlist evidence | PWA exists; no native implementation | intentionally pending; requires usage/waitlist evidence |
@@ -86,6 +86,14 @@ tag commit에서 고정되어 있다.
 | Windows toast | TokenJuice 구현 담당자 | 현 source에 native toast sender 없음; OS 실기기 gate 전에 기능·fixture 회귀 구현 |
 | native widget/Watch | 제품 의사결정자 + PWA usage/waitlist 데이터 | UX11 기준; 구현·결제는 보류 |
 | CloudKit/team/webhook/payment | 제품·보안·법무 의사결정자 | 현재 구현하지 않으며 정책 결정 후 별도 설계 |
+
+## 6. 2026-10-09 Windows native toast feasibility
+
+- `windows/tokenjuice_tray.py`의 현재 배포 경계는 `pystray`와 `Pillow`뿐이며, 설치기는 Python 의존성과 사용자 Startup shortcut만 관리한다.
+- Windows unpackaged toast는 앱 identity/AUMID와 Start Menu shortcut 등록이 필요하거나 별도 WinRT toast 패키지가 필요하다. 이는 현재 설치·패키징·권한 경계를 바꾸거나 새 외부 의존성을 추가한다.
+- 기존 엔진의 notification contract는 `CCB_TEST_NOTIFY_LOG`로 격리할 수 있지만, Windows OS 발화를 tray renderer가 안전하게 재사용할 이벤트 계약은 아직 없다. 이를 복제해 Python에서 다시 판단하면 macOS 엔진과 중복·불일치 위험이 생긴다.
+- 따라서 이번 감사에서는 native toast를 구현하지 않았다. 기존 tray icon·tooltip·menu는 유지하며, Windows toast는 제품·설치 경계를 명시적으로 승인하고 event contract/fixture를 설계한 뒤 별도 작업으로 진행한다.
+- 실제 Windows toast를 발화하거나 권한·설정을 변경하지 않았다. 현재 판정은 `blocked: implementation boundary`, 실기기 presentation은 별도 pending gate다.
 
 ### 제품·보안 의사결정 gate (코드 자동화와 분리)
 
