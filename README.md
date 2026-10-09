@@ -17,6 +17,9 @@ Shows your Claude Code / Codex usage limits *and* your live session context wind
 
 ![demo](docs/demo.gif)
 
+> Historical menu-bar example only. This GIF predates the current NOW/WHY/NEXT,
+> recovery, and checkpoint UI; it is not evidence of the current release.
+
 <p align="center">
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-black">
   <img alt="runtime" src="https://img.shields.io/badge/runtime-bun-black?logo=bun">
@@ -25,6 +28,8 @@ Shows your Claude Code / Codex usage limits *and* your live session context wind
 
 <p align="center">
   <img alt="dropdown" src="docs/screenshot.png" width="440">
+
+  <p><em>Historical SwiftBar dropdown example only; current menu wording and layout are verified by the automated engine tests, not this image.</em></p>
   <br><sub>Click the battery for a full breakdown — per-limit resets and every active session's context window.</sub>
 </p>
 
