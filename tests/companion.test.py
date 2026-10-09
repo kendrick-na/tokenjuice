@@ -210,6 +210,8 @@ def main() -> None:
             assert page.get_by_text("공개 베타", exact=True).is_visible()
             assert page.get_by_text("설치하고 메뉴바 확인").is_visible()
             assert page.get_by_text("./install.sh --doctor", exact=True).count() == 2
+            page.get_by_text("피드백에 어떤 정보를 보내면 되나요?", exact=True).click()
+            assert page.get_by_text("bun claude-codex-battery.5s.js --copy-diagnostics", exact=True).is_visible()
             targets = visible_target_heights(page)
             assert min(target["height"] for target in targets) >= 44, targets
             page.goto("http://127.0.0.1:4173/", wait_until="networkidle")

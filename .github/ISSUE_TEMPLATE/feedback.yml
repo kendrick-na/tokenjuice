@@ -6,6 +6,7 @@ body:
     attributes:
       value: |
         비밀번호, API 키, OAuth 토큰, 프롬프트, 코드, 개인 식별 정보는 입력하지 마세요.
+        macOS/Windows 데스크톱 문제라면 `bun claude-codex-battery.5s.js --copy-diagnostics` 결과만 붙여넣어 주세요. 이 명령은 비밀값을 포함하지 않도록 설계됐습니다.
   - type: dropdown
     id: type
     attributes:
@@ -37,6 +38,16 @@ body:
     id: diagnostics
     attributes:
       label: 비밀값 없는 진단 정보
-      description: 가능하면 TokenJuice의 진단 명령 결과에서 토큰·프롬프트·코드를 제거한 뒤 붙여넣으세요.
+      description: 가능하면 `bun claude-codex-battery.5s.js --copy-diagnostics`의 결과를 그대로 붙여넣으세요. 다른 로그는 토큰·프롬프트·코드가 없는지 먼저 확인하세요.
     validations:
       required: false
+  - type: dropdown
+    id: regression
+    attributes:
+      label: 이전에는 작동했나요?
+      options:
+        - 처음 설치/처음 사용
+        - 이전에는 작동했지만 최근부터 안 됨
+        - 잘 모르겠음
+    validations:
+      required: true

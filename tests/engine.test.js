@@ -15,6 +15,7 @@ const ROOT = path.resolve(import.meta.dir, "..");
 const ENGINE = path.join(ROOT, "claude-codex-battery.5s.js");
 const HELPER = path.join(ROOT, "scripts", "ensure-swiftbar-visible.sh");
 const SECRET_PROMPT = "TOPSECRET_PROMPT_TEXT_42";
+const SECRET_EMAIL = "private.user@example.test";
 
 let home, fx, copilotFx;
 
@@ -88,7 +89,7 @@ function codexSession({ usedPercent = 40, ageMin = 1, complete = false } = {}) {
 
 function claudeSession(model = "claude-test") {
   write(".claude/projects/-tmp-demo/aaaa1111.jsonl", [
-    JSON.stringify({ type: "user", cwd: "/tmp/demo-proj", message: { role: "user", content: SECRET_PROMPT } }),
+    JSON.stringify({ type: "user", cwd: "/tmp/demo-proj", message: { role: "user", content: `${SECRET_PROMPT} ${SECRET_EMAIL}` } }),
     JSON.stringify({ type: "assistant", cwd: "/tmp/demo-proj", message: { model, usage: { input_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 50000 } } }),
   ].join("\n") + "\n");
 }
@@ -612,7 +613,10 @@ test("diagnostics and every output stay free of prompt text", () => {
   usage(200, okUsage());
   claudeSession();
   const outs = [run(), run("--json"), run("--text"), run("--diagnostics")];
-  for (const o of outs) expect(o).not.toContain(SECRET_PROMPT);
+  for (const o of outs) {
+    expect(o).not.toContain(SECRET_PROMPT);
+    expect(o).not.toContain(SECRET_EMAIL);
+  }
   const d = outs[3];
   expect(d).toContain("claude[0]: fresh · trust live");
   expect(d).toContain("config: api=true");
