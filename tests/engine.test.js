@@ -113,6 +113,7 @@ test("fresh API reading is live and provider-reported", () => {
   expect(c.source).toBe("api");
   expect(c.kind).toBe("quota");
   expect(c.trust.level).toBe("live");
+  expect(run()).toContain("NOW · Claude · 5-hour · 80% left");
   expect(c.items.map((i) => i.used)).toEqual([20, 40]);
   expect(typeof c.lastSuccessAt).toBe("number");
   expect(j.contractVersion).toBe(2);
