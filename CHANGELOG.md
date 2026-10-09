@@ -7,6 +7,10 @@
 
 ### 변경
 
+- 손상된 Codex 사용량을 세션 없음으로 안내하지 않는다. Windows에서도 Claude/Codex의
+  사용률·관측 시각 실패를 설명하고 기본 프로필 오류를 표시하며, 실패 observedAt을
+  마지막 성공으로 표시하지 않는다. 원인 불명 오류에 자동 로그인/복구를 추가하지 않는다.
+
 - Codex quota 파일의 미래/불명 mtime을 reset 추론·성공·과거 fallback 전에 차단한다.
   `invalid_timestamp` 안내와 정상 파일 관측 뒤 회복, 프로필 격리 및 1시간 기준을 유지한다.
   session context·pace event timestamp 계약이나 실제 설치본을 바꾼 것은 아니다.

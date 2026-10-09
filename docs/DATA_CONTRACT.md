@@ -221,6 +221,13 @@ dedup key는 불투명 paceKey다. 모든 프로필의 fresh quota를 대상으�
 
 ## 위젯 스냅샷 계약 v1
 
+데스크톱 renderer는 실패의 observedAt을 lastSuccessAt으로 표시하지 않는다. 명시적인
+lastSuccessAt null은 성공 없음이며 legacy 객체에 lastSuccessAt이 없는 경우에만 at을
+기존 성공 시각으로 읽을 수 있다. malformed quota/관측 실패는 기존 invalid_quota 또는
+invalid_timestamp reason을 안내한다. Windows 기본 Codex 프로필도 이 실패를 숨기지 않고,
+단순 데이터 미생성은 기존 숨김 정책을 유지한다. JSON/widget envelope나 새 자동 복구
+명령은 추가하지 않는다. 원인 미정인 경우 로그인·시계 변경을 해결책으로 추측하지 않는다.
+
 `--widget-snapshot`은 자격증명 없이 표시 가능한 quota 상태만 JSON으로 출력한다.
 `--export-widget-snapshot`은 같은 내용을 로컬 cache의 `widget-snapshot.json`에 명시적으로
 쓴다. 이 기능은 로컬 export만 하며 네트워크·CloudKit·계정 동기화를 수행하지 않는다.

@@ -29,7 +29,7 @@ Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 �
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 75 pass/825 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 76 pass/829 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -530,3 +530,37 @@ tag가 없어 release는 skipped이며 Pages 변경 대상이 아니다. 문서/
 변경이나 기기/사용자 검증 완료를 뜻하지 않는다. 설치 승인에 기대지 않고 다음 독립 코드
 후보는 audit의 계약/consumer·재현 가능성을 확인한 뒤 착수한다. 미정 reset/시계/보안 계약을
 임의로 보완해 전체 완료로 선언하지 않는다.
+
+### 9.14 P0 원인 표시와 실패 관측의 renderer 일치 (2026-10-10)
+
+clean 535e8b9=origin/main에서 master §13.5/§15.4/§16.4~16.5, DATA_CONTRACT 및 UI 계획을
+대조했다. 우선순위가 높은 미구현 항목의 실제 선행 조건은 다음과 같다.
+
+- 전체 resume: 의도/최근 파일을 사용자 입력 또는 로그 중 어디서 얻을지, 허용 필드·길이·
+  의미·schema version, 프로젝트 경로의 노출/전송, 저장 위치·보존/삭제·동의 및 Pocket에
+  허용할 범위를 정해야 한다. 현재 계약은 metadata_only whitelist만 허용하고 이 내용은
+  제외한다. prompt/code 자동 요약·폴더 스캔·새 저장 형식으로 대신 구현하지 않는다.
+- history/trend: 이미 opt-in 7일 local JSON export는 존재하지만 Pocket snapshot v1에
+  시계열 import/계정·reset 구간 연결·범위/오류 검증·보관/삭제 계약은 없다. 실제 시계열을
+  현재 quota처럼 재구성하거나 데모 차트로 완성이라 하지 않는다.
+- Coach: 수집 범위/동의와 설명 가능한 규칙의 입력·분모·false-alert 기준 및 master
+  §16.4/16.6의 interview/diary·행동 전환 우선순위 검증이 필요하다. 원시 tool-call/file-read
+  수집·생산성 점수·자동 전환을 추가하지 않는다. 설치/사용자 승인에 묶여 기다리지 않고
+  명시적인 완료 테스트가 있는 R2/R11/UX 신뢰 원인 표시를 다음 독립 slice로 선택했다.
+
+systematic-debugging으로 Mac Codex malformed quota가 No session data yet로 안내되는
+실패와 Windows의 실패 observedAt→last success, 기본 Codex 실패 profile 숨김을 재현했다.
+renderer의 원인 분기 누락과 성공 시각 fallback, 빈 기본 프로필의 무조건 숨김이 원인이었다.
+기존 reason을 표시하고 explicit lastSuccessAt null을 보존한다. legacy at fallback만 유지하며
+실패 없는 빈 기본 Codex는 계속 숨긴다. 이전 legacy codexStatus 단독 failure도 표시한다.
+JSON/export 수집·알림·provider 조회는 바꾸지 않고 임의 로그인/시계 보정 NEXT도 만들지 않는다.
+
+엔진 fixture 1개/4 assertions와 Windows menu selftest의 합성 실패 두 종류·legacy 상태·
+기존 stale 성공·빈 기본 프로필 보존을 추가했다. 임시 venv의 PYSTRAY_BACKEND=dummy로
+아이콘/ICO·메뉴 selftest가 통과했으며 실제 tray/SwiftBar를 실행하지 않았다. 전체 자동
+검증과 소스별 CI는 후속 기록하며 설치/기기/사용자/보안/스토어 게이트는 pending이다.
+
+전체 로컬 76 pass/829 assertions와 release-verify 자동 엔진/bundle/브라우저/문법/격리
+알림/diff 단계는 통과했다. 마지막 설치본 불일치로 전체 exit 1이며 설치를 실행하지 않았다.
+companion 파일은 변경하지 않아 Pages 재배포 대상이 아니고 Pocket 4d326d3/sw v11·
+immutable desktop v1.2.2는 유지한다. Windows 메뉴의 실제 OS 표시·사용자 이해는 별도다.

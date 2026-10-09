@@ -315,6 +315,10 @@ def explain_no_limits(reason: str | None, state: str | None = None) -> list[str]
             "retry-after is respected automatically",
             "last successful value is marked stale",
         ]
+    if reason == "invalid_quota":
+        return ["잘못된 사용량 형식으로 숫자를 표시하지 않습니다"]
+    if reason == "invalid_timestamp":
+        return ["사용량 기록 시각을 확인할 수 없어 숫자를 표시하지 않습니다"]
     if reason == "needs-api":
         return [
             "limits need API mode",
@@ -423,7 +427,8 @@ class TrayApp:
             items = acc.get("items") or []
             state = acc.get("state") or ("stale" if acc.get("stale") else ("fresh" if items else "unavailable"))
             if state != "fresh":
-                last = acc.get("lastSuccessAt") or acc.get("observedAt")
+                # observedAt may describe a failed read, never a success.
+                last = acc.get("lastSuccessAt") if "lastSuccessAt" in acc else acc.get("at")
                 when = f"last success {fmt_ago(last)}" if last else "no successful reading"
                 source = acc.get("sourceLabel") or acc.get("source") or "unknown source"
                 retry = acc.get("retryAt")
@@ -478,10 +483,11 @@ class TrayApp:
         codex = self.data.get("codex") or []
         codex_status = self.data.get("codexStatus") or {}
         profiles = self.data.get("codexAccounts") or []
-        if not profiles and codex:
-            profiles = [{**codex_status, "state": codex_status.get("state", "fresh"), "account": "Codex", "items": codex, "selected": True}]
+        quota_failure_reasons = ("invalid_quota", "invalid_timestamp")
+        if not profiles and (codex or codex_status.get("reason") in quota_failure_reasons):
+            profiles = [{**codex_status, "state": codex_status.get("state", "fresh" if codex else "unavailable"), "account": "Codex", "items": codex, "selected": True}]
         for profile in profiles:
-            if profile.get("id") == "default" and not profile.get("items"):
+            if profile.get("id") == "default" and not profile.get("items") and profile.get("reason") not in quota_failure_reasons:
                 continue
             yield Menu.SEPARATOR
             alias = profile.get("account") or "Codex"
@@ -494,11 +500,14 @@ class TrayApp:
                     yield MenuItem(f"   Use {alias} — local display only, not login", self._select_codex_account(profile["id"]))
             state = profile.get("state") or "unavailable"
             if state != "fresh":
-                last = profile.get("lastSuccessAt") or profile.get("observedAt")
+                last = profile.get("lastSuccessAt") if "lastSuccessAt" in profile else profile.get("at")
                 when = f"last success {fmt_ago(last)}" if last else "no successful reading"
                 yield MenuItem(f"   {state_display_label(state)} · {state_recovery_hint(state)} · {when}", None, enabled=False)
             if profile.get("reason") == "invalid_profiles":
                 yield MenuItem("   Fix codexAccounts IDs, names and absolute local roots in config.json", None, enabled=False)
+            elif profile.get("reason") in quota_failure_reasons:
+                for line in explain_no_limits(profile.get("reason"), state):
+                    yield MenuItem(f"   {line}", None, enabled=False)
             for i in profile.get("items") or []:
                 r = round(100 - i.get("used", 0))
                 yield MenuItem(f"   {i.get('name')}  {bar_text(r)}  {r}% left", None, enabled=False)

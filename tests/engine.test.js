@@ -1158,6 +1158,16 @@ test("invalid Codex quota is isolated per profile and valid 0/100 boundaries rem
   expect(output.codex.map((item) => item.used)).toEqual([0, 100]);
 });
 
+test("Codex malformed quota panel explains failure instead of claiming no session", () => {
+  config({ api: false });
+  codexSession({ usedPercent: "99" });
+  const menu = run();
+  expect(menu).toContain("잘못된 사용량 형식으로 숫자를 표시하지 않습니다");
+  expect(menu).not.toContain("No session data yet");
+  expect(menu).not.toContain("% left");
+  expect(json().codexStatus.lastSuccessAt).toBeNull();
+});
+
 test("--json and --text never send notifications", () => {
   config({ api: true, notify: { enabled: true, threshold: 20 } });
   usage(200, okUsage(99, 99));

@@ -2547,7 +2547,7 @@ for (const codex of codexReadings) {
       out.push(`⚠️ Codex ${stateLabel(codex.state)} · last success ${last ? fmtAgo(last) : "unknown"} | size=11 color=#ffcc00`);
     }
   } else {
-    out.push(`${codex.reason === "invalid_profiles" ? "Invalid codexAccounts · fix unique IDs, names and absolute local roots in config.json" : codex.reason === "invalid_timestamp" ? "사용량 기록 시각을 확인할 수 없어 숫자를 표시하지 않습니다" : "No session data yet (shows after you run Codex in this profile)"} | size=11 color=#8b949e`);
+    out.push(`${codex.reason === "invalid_profiles" ? "Invalid codexAccounts · fix unique IDs, names and absolute local roots in config.json" : codex.reason === "invalid_quota" ? "잘못된 사용량 형식으로 숫자를 표시하지 않습니다" : codex.reason === "invalid_timestamp" ? "사용량 기록 시각을 확인할 수 없어 숫자를 표시하지 않습니다" : "No session data yet (shows after you run Codex in this profile)"} | size=11 color=#8b949e`);
   }
   if (selected && activeCodexSessions.length) {
     out.push("---");

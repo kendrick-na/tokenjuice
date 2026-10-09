@@ -104,6 +104,35 @@ def check_tooltip() -> None:
     print(f"  tooltip {len(tip)} chars (limit 127), blank groups omitted")
 
 
+def check_failed_observation_menu() -> None:
+    """A failed read must not become last success or disappear as no session."""
+    app = t.TrayApp()
+    for reason, message in (("invalid_quota", "잘못된 사용량 형식"), ("invalid_timestamp", "사용량 기록 시각")):
+        failure = {"state": "unavailable", "reason": reason, "items": [],
+                   "observedAt": 1000, "lastSuccessAt": None, "source": "local"}
+        app.data = {"claude": [{"account": "Claude", **failure}], "codex": [],
+                    "codexAccounts": [{"id": "default", "account": "Codex", **failure}]}
+        labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+        assert sum(message in label for label in labels) == 2, labels
+        assert sum("no successful reading" in label for label in labels) == 2, labels
+        assert not any("last success" in label for label in labels), labels
+        assert not any("no usage data yet" in label or "% left" in label for label in labels), labels
+        app.data = {"claude": [], "codex": [], "codexStatus": failure}
+        labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+        assert any(message in label for label in labels), labels
+    app.data = {"claude": [{"items": [], "state": "stale", "lastSuccessAt": 1000, "observedAt": 2000}], "codex": []}
+    labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+    assert any("last success" in label for label in labels), labels
+    app.data = {"claude": [{"items": [], "state": "stale", "at": 1000}], "codex": [],
+                "codexAccounts": [{"id": "work", "state": "stale", "at": 1000, "items": []}]}
+    labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+    assert sum("last success" in label for label in labels) == 2, labels
+    app.data = {"claude": [], "codex": [], "codexAccounts": [{"id": "default", "items": []}]}
+    labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+    assert not any(label == "Codex" for label in labels), labels
+    print("  failed observations remain visible without invented success")
+
+
 def check_cost_menu() -> None:
     """A monetary Copilot report must never become a quota-looking battery."""
     app = t.TrayApp()
@@ -166,7 +195,7 @@ def check_codex_profiles() -> None:
 
 def main() -> int:
     print(f"tokenjuice self-test on {sys.platform}")
-    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_cost_menu, check_local_provider_menu, check_codex_profiles):
+    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_failed_observation_menu, check_cost_menu, check_local_provider_menu, check_codex_profiles):
         print(f"- {fn.__name__}")
         fn()
     print("all checks passed")
