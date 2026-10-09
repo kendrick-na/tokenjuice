@@ -1371,6 +1371,10 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
 - 이번 최소 안전 수정은 Pocket 손상 파일 가져오기였다. 내부 구조 오류 14종의 기존
   화면·저장본 보존, 구버전 v1 호환, 손상된 저장본 복구와 정상 암호화 상호운용을
   브라우저로 검증했다. 이를 Mac 설치·스토어 출시 완료로 승격하지 않는다.
+- 이어서 stale/auth/rate-limit/unavailable 카드의 과거 quota 숫자와 forecast를 숨겼다.
+  Claude/Codex/local-provider 12가지 상태 조합과 fresh/fallback 표시 유지 회귀를 추가했다.
+  `bff96e7` Pages 테스트의 암호화 처리 race도 완료 조건 대기와 느린 복호화 회귀로
+  수정했다. 해당 실패 run을 공개 배포 성공으로 취급하지 않는다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

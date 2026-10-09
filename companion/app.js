@@ -107,7 +107,9 @@ function metric(item) {
 }
 function card(name, payload, kind) {
   const status = copyFor(payload);
-  const itemMarkup = payload.items?.length ? payload.items.map(metric).join("") : "<p class=\"empty-card\">표시할 quota가 없습니다. 이 값은 숨긴 상태가 더 안전합니다.</p>";
+  const displayable = ["fresh", "fallback"].includes(payload.state);
+  const itemMarkup = displayable && payload.items?.length ? payload.items.map(metric).join("")
+    : `<p class="empty-card">${displayable ? "표시할 quota가 없습니다." : "최신 한도를 확인할 수 없어 잔여량 숫자를 숨겼습니다."} 이 값은 숨긴 상태가 더 안전합니다.</p>`;
   const source = payload.sourceLabel || payload.source || "데이터 경로 정보 없음";
   const observedAt = payload.lastSuccessAt || payload.observedAt;
   return `<article class="account ${kind}"><header class="account-head"><div><span class="account-name">${escapeHtml(name)}</span></div><span class="state ${status.tone}">${status.label}</span></header>${itemMarkup}<p class="recovery"><b>다음 행동</b>${status.action}${payload.retryAt ? ` ${timeText(payload.retryAt, "다음 확인")}.` : ""}</p><details class="account-detail"><summary>데이터 신뢰·마지막 성공 보기</summary><div><p class="source">${escapeHtml(source)}</p><p class="state-explainer"><b>데이터 상태</b>${status.meaning}</p><p class="last-success">${observedAt ? timeText(observedAt, "마지막 성공") : "마지막 성공 시각 없음"}</p></div></details></article>`;

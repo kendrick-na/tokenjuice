@@ -201,3 +201,16 @@ v1.2.0~v1.2.2 공개 자산을 확인했다. release의 `targetCommitish:main` �
 shell/Python syntax, 격리 notification dry-run, 확장된 Pocket browser regression 및
 `git diff --check`는 통과했다. 마지막 installed SwiftBar source mismatch로 전체 exit 1이며,
 설치 파일·OS 권한·실계정은 변경하지 않았다. 새 CI/Pages 결과는 push 이후 별도로 확인한다.
+
+### 9.1 이어서 수정한 Pocket 신뢰 상태와 CI race
+
+- stale export에 과거 `items[]`가 남으면 카드가 이를 `65% 남음`으로 표시하는 것을
+  browser assertion 실패로 재현했다. payload의 신뢰 상태와 무관하게 `map(metric)`을
+  실행하던 것이 원인이다. 이제 fresh/fallback만 수치를 표시하며 stale/auth/rate-limit/
+  unavailable은 이유·복구·last-success를 유지하고 과거 숫자와 forecast를 숨긴다.
+  Claude/Codex/local-provider 12가지 차단 상태 및 fresh/fallback 유지 회귀를 추가했다.
+- `bff96e7` Engine `37942483714`와 Windows `37942483804`는 성공했지만 Pages
+  `37942483656`는 wrong-passphrase 검사에서 실패했다. 300ms 고정 대기 후 아직
+  복호화가 끝나지 않은 메시지를 검사한 race이며 코드 import 결과 실패가 아니다.
+  테스트를 input reset 완료 조건으로 바꾸고 복호화를 600ms 늦추는 회귀를 추가했다.
+  실패한 run을 배포 성공으로 표시하거나 조건 없이 rerun하지 않았다.

@@ -107,6 +107,11 @@ Unix milliseconds 숫자다. `providers`·`sessions`가 없는 이전 v1 export�
 화면을 바꾸지 않는다. 시작 시 이미 손상된 저장본이 있으면 그 저장본만 제거하고 빈 상태로
 복구한다. 이 검사는 파일 형식 검사이지 실제 provider 데이터의 진위를 보장하는 인증은 아니다.
 
+Pocket quota 카드의 잔여량·progressbar·forecast는 `fresh` 또는 명시적으로 라벨링한
+`fallback`에서만 표시한다. export에 과거 `items[]`가 남아 있더라도 `stale`,
+`auth_expired`, `rate_limited`, `unavailable`에서는 숫자를 숨기고 상태·복구 안내와
+마지막 성공 정보를 유지한다.
+
 ## 암호화 기기 간 전달 번들 v1
 
 `TOKENJUICE_SYNC_PASSPHRASE`를 현재 실행 환경에만 제공한 뒤

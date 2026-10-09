@@ -250,6 +250,40 @@ def main() -> None:
             page.locator("#snapshot-file").set_input_files(str(fresh_path))
             page.locator("#snapshot-age-warning").wait_for(state="hidden")
 
+            # A failed/stale provider can retain its last known numbers in the
+            # export. These must not look like current remaining quota in any
+            # account card, nor show a forecast derived from the old sample.
+            state_labels = {
+                "stale": "업데이트 필요", "auth_expired": "다시 연결 필요",
+                "rate_limited": "제공자 제한 중", "unavailable": "확인할 수 없음",
+            }
+            state_path = Path(directory) / "state-widget-snapshot.json"
+            for state, label in state_labels.items():
+                for kind in ("claude", "codex", "provider"):
+                    state_snapshot = json.loads(json.dumps(fresh_snapshot))
+                    payload = state_snapshot["claude"][0] if kind == "claude" else state_snapshot["codex"] if kind == "codex" else state_snapshot["providers"][0]
+                    payload.update(state=state, items=SNAPSHOT["claude"][0]["items"])
+                    state_path.write_text(json.dumps(state_snapshot), encoding="utf-8")
+                    page.locator("#snapshot-file").set_input_files(str(state_path))
+                    page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+                    account = page.locator(f".account.{kind}")
+                    assert account.locator(".state").inner_text() == label, (kind, state)
+                    assert account.locator(".metric").count() == 0, (kind, state)
+                    assert "% 남음" not in account.inner_text(), (kind, state)
+                    assert account.locator(".forecast").count() == 0, (kind, state)
+                    assert account.locator(".recovery").is_visible(), (kind, state)
+            # Fresh and explicitly labelled fallback samples remain visible.
+            for state in ("fresh", "fallback"):
+                state_snapshot = json.loads(json.dumps(fresh_snapshot))
+                state_snapshot["claude"][0]["state"] = state
+                state_path.write_text(json.dumps(state_snapshot), encoding="utf-8")
+                page.locator("#snapshot-file").set_input_files(str(state_path))
+                page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+                assert page.locator(".account.claude .metric").count() == 1
+                assert page.locator(".account.claude").get_by_text("65%").is_visible()
+            page.locator("#snapshot-file").set_input_files(str(fresh_path))
+            page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+
             # Export with the real Bun engine and import it through the browser
             # WebCrypto path. This proves the two implementations interoperate.
             engine_home = Path(directory) / "engine-home"
@@ -278,12 +312,21 @@ def main() -> None:
               return JSON.parse(new TextDecoder().decode(plaintext)).transport;
             }""", {"bundle": bundle, "passphrase": "pocket test passphrase"})
             assert decrypted_transport == "local_export_only"
+            # Simulate slower browser crypto deterministically. Waiting a fixed
+            # 300ms used to inspect the "checking" message on the Pages runner.
+            page.evaluate("""() => {
+              const decrypt = crypto.subtle.decrypt.bind(crypto.subtle);
+              crypto.subtle.decrypt = async (...args) => {
+                await new Promise(resolve => setTimeout(resolve, 600));
+                return decrypt(...args);
+              };
+            }""")
             # A failed decryption must not replace the snapshot the user was
             # already viewing. This is both a privacy and a recovery guard.
             before_failed_import = page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')")
             passphrase["value"] = "wrong passphrase"
             page.locator("#snapshot-file").set_input_files(str(encrypted))
-            page.wait_for_timeout(300)
+            page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == before_failed_import
             assert dialogs[-1:] == ["prompt: 이 암호화 번들을 만들 때 사용한 암호를 입력하세요."], dialogs
             assert page.locator("#import-feedback").get_by_text("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.").is_visible()
@@ -293,7 +336,7 @@ def main() -> None:
             # message into a clear retry path and leave the existing data alone.
             passphrase["value"] = None
             page.locator("#snapshot-file").set_input_files(str(encrypted))
-            page.wait_for_timeout(200)
+            page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == before_failed_import
             assert page.locator("#import-feedback").get_by_text("가져오기를 취소했습니다. 암호화 번들은 만든 때의 암호를 입력해야 열 수 있습니다.").is_visible()
             assert page.locator("#live-region").inner_text() == "가져오기를 취소했습니다. 암호화 번들은 만든 때의 암호를 입력해야 열 수 있습니다."
@@ -303,7 +346,7 @@ def main() -> None:
             malformed = Path(directory) / "malformed.json"
             malformed.write_text('{"not":"a tokenjuice snapshot"}', encoding="utf-8")
             page.locator("#snapshot-file").set_input_files(str(malformed))
-            page.wait_for_timeout(200)
+            page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == before_failed_import
             assert page.locator("#import-feedback").get_by_text("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.").is_visible()
 
@@ -356,14 +399,14 @@ def main() -> None:
             page.reload(wait_until="networkidle")
             passphrase["value"] = "pocket test passphrase"
             page.locator("#snapshot-file").set_input_files(str(encrypted))
-            page.wait_for_timeout(500)
+            page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
             assert page.get_by_text("Claude", exact=True).is_visible(), {"dialogs": dialogs, "errors": errors, "body": page.locator("body").inner_text()}
             assert page.get_by_text("65%").is_visible()
             assert dialogs[-1:] == ["prompt: 이 암호화 번들을 만들 때 사용한 암호를 입력하세요."], dialogs
 
             # The advertised deletion action must remove the browser-local copy.
             page.get_by_text("이 기기에서 삭제").click()
-            page.wait_for_timeout(100)
+            page.locator("#empty-state").wait_for(state="visible")
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") is None
             assert page.get_by_text("내 스냅샷 가져오기").is_visible()
             assert not errors, errors
