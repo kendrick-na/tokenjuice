@@ -425,3 +425,13 @@ provider reset/관측 시각 검사다. 이번 utilization 수정으로 모든 �
 전체 resume는 의도/최근 파일·동의/보존 계약, trend/Coach는 시계열 계약·10명 interview/
 14일 diary, Pocket 설정/Windows toast/스토어는 제품·보안/배포 결정을 각각 기다린다.
 5명 설치/사용성·실기기·screen reader 및 실제 작업 재개 효과는 여전히 pending이다.
+
+코드 `8c3989532f08c63f37449ff61356c78c3a73a1db`의 Engine
+[37957418843](https://github.com/kendrick-na/tokenjuice/actions/runs/37957418843)는 Linux/macOS
+엔진·bundle 및 Pocket browser까지 success, Windows
+[37957418881](https://github.com/kendrick-na/tokenjuice/actions/runs/37957418881)는 engine 회귀·
+트레이 selftest·exe build/run·artifact upload까지 success다. release job은 tag가 없어
+skipped다. companion 변경이 없어 Pages push filter 대상이 아니며 PWA `4d326d3`와
+desktop asset `v1.2.2`는 유지한다. 공개 sw v11과 resume.js의 로컬/HTTP SHA-256
+`9f7276165052f679d8c697f4996d98f1443f11167e859029fd2767f70a57220c` 일치를 다시 확인했다.
+CI 성공·public HTTP 확인을 실제 설치/노트북·resume 효과로 승격하지 않는다.

@@ -1448,6 +1448,11 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
 다음은 Claude Desktop fh/sd·reset/시각 검증이다. 전체 Phase B resume, 시각적 trend/Coach,
 기기/사용자/스토어 gate를 이 신뢰성 수정으로 대체 완료하지 않는다. 상세는
 [`docs/REQUIREMENTS_AUDIT.md` §9.10](../docs/REQUIREMENTS_AUDIT.md#910-r1r15-claude-utilization-안전-실패-2026-10-10) 참조.
+`8c39895`의 Engine [37957418843](https://github.com/kendrick-na/tokenjuice/actions/runs/37957418843)·
+Windows [37957418881](https://github.com/kendrick-na/tokenjuice/actions/runs/37957418881)는 모두
+success이며 Windows exe build/run도 통과했다. tag가 없어 release job은 skipped다.
+이번 engine-only 변경은 Pages 배포 대상이 아니다. 공개 Pocket `4d326d3`/sw v11의
+HTTP/module hash를 다시 확인했으며 immutable desktop v1.2.2와 실제 설치본은 유지한다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
