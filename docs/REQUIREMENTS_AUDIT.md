@@ -22,7 +22,7 @@ Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 증거�
 Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 실제 설치 성공으로 대체하지 않는다.
 
 현재 공개 Pocket은 §9.9의 `4d326d3`/sw v11, desktop 자산은 immutable `v1.2.2`다.
-최신 로컬 후보에는 §9.10~§9.15의 관측 검사·실패 renderer 일치와 Windows 수동 인증 안내를 추가했다. 아래 과거 커밋/테스트
+최신 로컬 후보에는 §9.10~§9.17의 관측 검사·실패 renderer 일치·Windows 수동 안내와 승인된 설치 반영을 추가했다. 아래 과거 커밋/테스트
 수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
 
 §9.16에서 승인된 플러그인 한 파일 갱신과 격리 실행·source/install cmp를 완료해 최신
@@ -32,7 +32,7 @@ release-verify는 exit 0이다. 실제 메뉴바/실기기·사용자·스토어
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 78 pass/890 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; 새 R13 후보 자동 단계 통과·설치본 반영 전 전체 exit 1; 실제 UI pending |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 78 pass/890 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; R13 CI·승인된 설치 반영 후 release-verify 전체 exit 0; 실제 UI pending |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -668,3 +668,21 @@ non-numeric observedAt의 mtime 선택을 보존한다. raw schema/used/reset의
 현재 후보의 전체 로컬 78 pass/890 assertions와 release-verify 자동 engine/bundle/browser/
 문법/격리 알림/diff는 통과했다. 새 엔진 6줄이 아직 설치본에 없으므로 마지막 일치 검사로
 전체 exit 1이며 CI 확인 후 승인된 좁은 반영으로 다시 검증한다. 실제 앱은 restart/refresh하지 않는다.
+
+소스 af7bdee1def01a1a97aac110e3532820d5425f78의 Engine
+[37964228771](https://github.com/kendrick-na/tokenjuice/actions/runs/37964228771)와 Windows
+[37964228526](https://github.com/kendrick-na/tokenjuice/actions/runs/37964228526)는 success다.
+macOS 새 두 fixture/78 pass/890 assertions·Linux/Pocket browser/bundle과 Windows
+engine/selftest/exe build/run/artifact를 확인했다. release는 skipped이며 Pages 변경 대상이 아니다.
+
+설치본이 정확히 이전 78f6d53의 본문과 일치함을 set -euo pipefail/cmp로 확인한 뒤
+app-support에 두 번째 recoverable backup(전체 hash 00f54c1a…1c739)을 확보했다.
+기존 TokenJuice 플러그인에 승인된 6줄 diff만 반영하고 권한/owner/group·Bun shebang을
+보존했다. 새 설치 전체 SHA-256은 d6b945610e0ba4a762b31713c1e421227813def7de2c572502fdf29b78cba5ed,
+본문 SHA-256은 0fcbf1dd9f5d26ad66fb0f06bd57fb516487dc040863edef6f98fbc123f54a62다.
+source/install cmp 및 임시 HOME·API 차단으로 설치 실행 파일의 invalid_timestamp/items[]/
+lastSuccessAt null fixture가 통과했다. 실제 app restart/refresh·config/credential/권한은 변경하지 않았다.
+
+반영 후 release-verify 전체가 exit 0이다: 78 pass/890 assertions·engine/bundle/browser/
+문법/격리 알림/diff와 실제 설치본 일치까지 통과했다. §9.16 UI attach timeout의 실제
+메뉴바·클릭 패널·reload·sleep/wake acceptance 및 다른 외부 gate는 계속 pending이다.

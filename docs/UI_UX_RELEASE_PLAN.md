@@ -96,6 +96,10 @@ overflow도 재현 후 flex 줄바꿈으로 수정했다. VoiceOver/TalkBack·�
 CUA가 SwiftBar에 attach할 수 없어 실제 메뉴바/클릭 패널·notch·sleep/wake 확인은 pending이다.
 일반 installer/앱 restart/refresh·권한·설정은 변경하지 않았다. 상세는 audit §9.16이다.
 
+같은 날 R13 후보 af7bdee의 CI success를 확인한 뒤 백업·승인된 6줄 설치 반영으로 다시
+source/install cmp와 release-verify 전체 exit 0(78 pass/890 assertions)을 확인했다.
+메뉴바·실기기 UI는 여전히 pending이며 상세 hash/격리 설치 실행은 audit §9.17이다.
+
 참가자에게 설명하지 않고 아래를 수행하게 한다.
 
 1. Pocket을 열고 “지금 작업을 계속해도 되는지” 말한다.

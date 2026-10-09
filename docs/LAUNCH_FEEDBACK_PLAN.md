@@ -7,7 +7,7 @@
 
 - 공개 Pocket은 `4d326d3`/offline cache v11, desktop release는 immutable `v1.2.2`다.
 - 최신 엔진 후보는 Claude/Codex 잘못된 사용률·미래 관측 시각을 차단하고 오류 원인·성공
-  시각을 desktop renderer와 일치시킨다. 로컬 76개 테스트/829 assertions 및
+  시각을 desktop renderer와 일치시킨다. 로컬 78개 테스트/890 assertions 및
   release-verify는 승인된 플러그인 한 파일 갱신 뒤 설치본 일치까지 exit 0이다. 실제 UI는 pending이다.
   소스/CI 통과를 노트북 표시 문제의 해결 또는 스토어 출시로 기록하지 않는다.
 - 다음 P0는 UI 접근/사용자 관찰로 노트북의 메뉴바/패널·
