@@ -1686,8 +1686,13 @@ function getExternalProviders() {
           ...usageState({ state: "unavailable", source: "external-local-file" }), observedAt: Date.now() };
       }
       const age = Date.now() - observedAt;
-      if (!items.length || age > EXTERNAL_PROVIDER_MAX_STALE_MS) {
-        return { ...cfg, items: [], reason: !items.length ? "invalid-file" : "too-old", ...usageState({ state: "unavailable", source: "external-local-file", observedAt, lastSuccessAt: observedAt, stale: age > EXTERNAL_PROVIDER_MAX_STALE_MS }) };
+      if (!items.length) {
+        // An observation without readable quota is not a successful read.
+        return { ...cfg, items: [], reason: "invalid-file",
+          ...usageState({ state: "unavailable", source: "external-local-file", stale: age > EXTERNAL_PROVIDER_MAX_STALE_MS }), observedAt };
+      }
+      if (age > EXTERNAL_PROVIDER_MAX_STALE_MS) {
+        return { ...cfg, items: [], reason: "too-old", ...usageState({ state: "unavailable", source: "external-local-file", observedAt, lastSuccessAt: observedAt, stale: true }) };
       }
       const state = age <= EXTERNAL_PROVIDER_FRESH_MS ? "fresh" : "stale";
       return { ...cfg, items, ...usageState({ state, source: "external-local-file", observedAt, lastSuccessAt: observedAt, stale: state === "stale" }) };
@@ -1960,7 +1965,7 @@ function buildDiagnostics() {
     lines.push(`copilot: ${stateLabel(copilot.state)} · ${copilot.state === "fresh" ? "GitHub Premium-request spend" : copilot.reason || "unavailable"} · last success ${last ? fmtAgo(last) : "never"}${copilot.errorCode ? ` · http ${copilot.errorCode}` : ""}`);
   }
   for (const provider of providers) {
-    const last = provider.lastSuccessAt ?? provider.observedAt;
+    const last = provider.lastSuccessAt;
     lines.push(`provider:${provider.id}: ${stateLabel(provider.state)} · ${sourceLabel(provider.source)} · last success ${last ? fmtAgo(last) : "never"}${provider.reason ? ` · reason ${provider.reason}` : ""}`);
   }
   lines.push(`sessions: ${sessions.filter((s) => s.platform === "claude").length} claude · ${sessions.filter((s) => s.platform === "codex").length} codex (context estimates)`);

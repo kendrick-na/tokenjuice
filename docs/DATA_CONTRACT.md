@@ -72,6 +72,12 @@ null로 유지한다. observedAt에는 실패한 실제 읽기 시각만 남긴�
 정상 numeric-string 변환·15분/2시간 기준·reset 처리·파일/설정은 바꾸지 않는다. 이는 선택된
 관측 시각의 검증이며 raw 파일의 모든 타입/문법이나 used/reset의 엄격한 검증 완료는 아니다.
 
+기존 필터 뒤 읽을 수 있는 quota 항목이 없으면 `invalid-file/unavailable/items[]`이며
+`lastSuccessAt`은 null이다. 유효한 파일 관측 시각은 `observedAt`에만 남기고 진단에서도
+성공 시각으로 대체하지 않는다. 정상 quota가 있으나 2시간을 넘은 `too-old`는 기존처럼
+숫자를 숨기되 그 유효한 과거 관측을 마지막 성공으로 유지한다. 새 성공 캐시나 필터/
+형식 정책을 추가하지 않으며, 실패한 교체 파일에 이전 읽기의 성공을 합성하지 않는다.
+
 ## 데이터 경로와 한계
 
 Claude usage API와 Claude Code local usage-cache의 존재하는 주요 창 `utilization`도

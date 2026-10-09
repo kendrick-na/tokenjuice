@@ -1407,6 +1407,60 @@ test("local provider observation guard preserves conversion, mtime fallback and 
   expect(json().providers[0].source).toBe("external-local-file");
 });
 
+test("local provider invalid-file cannot manufacture a successful read", () => {
+  const bad = write("exports/bad.json", {});
+  const goodAt = Date.now() - 60000;
+  const good = write("exports/good.json", { observedAt: goodAt, items: [{ name: "Monthly", used: 20 }] });
+  config({ api: false, forecast: { enabled: true }, notify: { enabled: true }, providers: [
+    { id: "bad", label: "Bad", usageFile: bad }, { id: "good", label: "Good", usageFile: good },
+  ] });
+  for (const age of [1, 121]) {
+    const at = Date.now() - age * 60000;
+    for (const items of [undefined, null, {}, [], [{ name: 42, used: 99 }], [{ name: "Monthly", used: 101 }]]) {
+      writeFileSync(bad, JSON.stringify({ observedAt: at, items, topic: SECRET_PROMPT }));
+      const c = json().providers[0];
+      expect(c.reason).toBe("invalid-file");
+      expect(c.state).toBe("unavailable");
+      expect(c.items).toEqual([]);
+      expect(c.lastSuccessAt).toBeNull();
+      expect(c.observedAt).toBe(at); // File observation is not a successful quota read.
+      const snapshot = JSON.parse(run("--widget-snapshot"));
+      expect(snapshot.providers[0].items).toEqual([]);
+      expect(snapshot.providers[0].lastSuccessAt).toBeNull();
+      expect(snapshot.providers[1].lastSuccessAt).toBe(goodAt);
+      expect(snapshot.providers[1].state).toBe("fresh");
+      expect(run("--diagnostics")).toContain("provider:bad: unavailable · user-selected local usage file · last success never · reason invalid-file");
+      expect(JSON.stringify(snapshot)).not.toContain(SECRET_PROMPT);
+    }
+  }
+  run();
+  expect(calls()).toBe(0);
+  expect(notifications()).toEqual([]);
+  expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
+});
+
+test("local provider success diagnostics preserve old valid observations but never failed ones", () => {
+  const file = write("exports/local.json", {});
+  config({ api: false, providers: [{ id: "local", label: "Local", usageFile: file }] });
+  for (const age of [1, 16, 121]) {
+    const at = Date.now() - age * 60000;
+    writeFileSync(file, JSON.stringify({ observedAt: at, items: [{ name: "Monthly", used: "42" }] }));
+    const c = json().providers[0];
+    expect(c.lastSuccessAt).toBe(at);
+    expect(c.reason ?? null).toBe(age > 120 ? "too-old" : null);
+    expect(run("--diagnostics")).not.toContain("last success never · reason too-old");
+    // A failed replacement cannot reuse that observation as success.
+    writeFileSync(file, JSON.stringify({ observedAt: at, items: [] }));
+    expect(json().providers[0].lastSuccessAt).toBeNull();
+    expect(run("--diagnostics")).toContain("last success never · reason invalid-file");
+  }
+  writeFileSync(file, JSON.stringify({ observedAt: Date.now() + 60000, items: [{ name: "Monthly", used: 42 }] }));
+  expect(run("--diagnostics")).toContain("last success never · reason invalid_timestamp");
+  writeFileSync(file, "not-json");
+  expect(json().providers[0].lastSuccessAt).toBeNull();
+  expect(run("--diagnostics")).toContain("last success never · reason unreadable-file");
+});
+
 test("compact mode is an explicit safe layout override", () => {
   usage(200, okUsage());
   const r = spawnSync(process.execPath, [ENGINE, "--diagnostics"], {
