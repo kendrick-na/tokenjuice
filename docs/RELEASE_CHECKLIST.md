@@ -7,6 +7,10 @@
 현재 자동 검증과 미확인 외부 게이트의 대응은 [릴리스 증거 매트릭스](RELEASE_EVIDENCE.md)를
 참고한다.
 
+> 현재 `v1.2.2`는 이미 공개된 릴리스다. 이 파일의 체크박스는 다음 릴리스에도 재사용하는
+> 사전 템플릿이며, 이번 릴리스의 실제 결과는 `docs/REQUIREMENTS_AUDIT.md`,
+> `docs/VALIDATION_KIT.md`, 공개 release/CI 근거로 판정한다.
+
 ## 원격 사전조건 (2026-10-08 확인)
 
 - [ ] 원격 `main`에 이번 변경을 검토·병합한 뒤 `Engine verification`과
