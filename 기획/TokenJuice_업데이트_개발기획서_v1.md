@@ -22,14 +22,14 @@ TokenJuice의 다음 승부처는 지원 AI를 많이 늘리는 것이 아니라
 - 2026년 Product Hunt 신제품 흐름은 단순 quota 표시를 넘어 세션 상태·승인 요청·완료 알림·컨텍스트·비용까지 묶는 “AI agent command center”로 확장되고 있다.
 - 시장의 약점은 공통적이다. Claude·Cursor·Codex의 사용량 경로가 공식 공개 API가 아니거나 CLI/브라우저 세션에 의존하고, 토큰 만료·429·수면 복귀·계정 선택 오류가 쉽게 “0%” 또는 오래된 숫자로 보인다.
 - TokenJuice는 설치본을 이미 보유하고, Claude Team과 Codex를 한 메뉴바에서 읽으며, Windows 트레이 버전까지 있다는 점이 강점이다.
-- 구현 기준으로 v1.1·v1.2 핵심과 R12/R19/R20의 로컬 기반을 완료했다. v2.0에는 암호화 수동 전달을 구현했다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 현재 구현이 없어 실기기 검증 전 기능 구현·회귀 테스트가 필요하다.
+- 구현 기준으로 v1.1·v1.2 핵심과 R12/R19/R20의 로컬 기반을 완료했다. v2.0에는 암호화 수동 전달을 구현했다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성 결정 전까지 `implementation boundary` blocker다.
 
 ### 1.1 2026-10-08 구현 추적
 
 | 범위 | 구현 증거 | 상태 |
 |---|---|---|
 | R1~R8, R15~R16 | 상태 계약, Retry-After, 수동 기본 로그인 갱신, wake debounce, 비밀값 없는 진단, fixture 회귀 테스트 | 구현·자동 검증 완료 |
-| R9~R11, R17~R18 | 안전한 starter config, 멀티 계정 별칭, Windows renderer, opt-in 세션 상태·pace forecast | 구현·자동 검증 완료; `5617b9a` Engine `37811131425`, Windows `37811131623` 성공 |
+| R9~R11, R17~R18 | 안전한 starter config, 멀티 계정 별칭, Windows renderer, opt-in 세션 상태·pace forecast | 구현·자동 검증 완료; 최신 Engine `37881044425`, Windows `37881044414` 성공 |
 | R12 | 자격증명 없는 로컬 스냅샷 export와 TokenJuice Pocket PWA import | 구현·브라우저 자동 검증 완료 |
 | R13 | GitHub Copilot 공식 비용 adapter + 명시적 local quota-file adapter | 구현·fixture/PWA 검증 완료; Cursor/Antigravity는 쿠키 수집 없이 안전한 exporter 파일로만 연결 |
 | R14 | 선택적 암호화 수동 전달 bundle(PBKDF2 + AES-GCM), 자동 sync 없음 | 구현·엔진/PWA 상호운용 자동 검증 완료; CloudKit 자동 sync는 별도 제품 결정 |
@@ -1308,7 +1308,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
 | v1.1 신뢰성 엔진·알림·진단 | 코드·자동 검증 완료 / 외부 gate 대기 | `CHANGELOG.md`, 최신 `38 pass`·`190 expect()` 엔진 회귀, release-verify; 실계정·OS notification presentation은 `docs/REQUIREMENTS_AUDIT.md`에 pending으로 분리 |
-| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 코드·CI 완료 / 실기기·신규 설치 대기 | `5617b9a`: Engine `37811131425`, Windows `37811131623` 성공; 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
+| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 코드·CI 완료 / 실기기·신규 설치 대기 | 최신 Engine `37881044425`, Windows `37881044414` 성공; 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test; `37812922149` Pages 성공; 2026-10-09 로컬 `tests/companion.test.py` 재실행 통과; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
 | UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `12efce2`: 375px·1280px overflow, 200% large text, keyboard focus order/outline, ARIA name/landmark, 44px target, reduced-motion emulation, dark token contrast와 light preference 회귀를 browser test로 검증; `docs/VALIDATION_KIT.md` §1의 5명 script/기록표 준비; 스크린리더 수동 점검·실사용자 5명은 pending |
