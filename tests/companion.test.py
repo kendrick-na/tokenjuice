@@ -218,6 +218,10 @@ def main() -> None:
             assert page.get_by_text("설치하고 메뉴바 확인").is_visible()
             assert page.get_by_text("이 기기는 macOS로 확인되었습니다. 아래 메뉴바 설치 경로만 안내합니다.").is_visible()
             assert page.locator('[data-install-platform="windows"]').is_hidden()
+            assert page.locator('[data-install-platform="mac"] .install-steps li').count() == 3
+            mac_card = page.locator('[data-install-platform="mac"]')
+            assert mac_card.get_by_text("첫 데이터 확인", exact=True).is_visible()
+            assert mac_card.get_by_text("필수:", exact=True).is_visible()
             assert page.get_by_text("./install.sh --doctor", exact=True).count() == 2
             page.get_by_text("피드백에 어떤 정보를 보내면 되나요?", exact=True).click()
             assert page.get_by_text("bun claude-codex-battery.5s.js --copy-diagnostics", exact=True).is_visible()
