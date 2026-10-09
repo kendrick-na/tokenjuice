@@ -482,6 +482,9 @@ function readClaudeAppUsage() {
 // API 모드(키체인 접근)는 명시적 옵트인. 기본은 키체인을 절대 건드리지 않음.
 //   켜는 법: 환경변수 CCB_API=1  또는  ~/.config/claude-codex-battery/config.json {"api": true}
 function apiModeEnabled() {
+  // Read-only support and diagnostics commands must be able to guarantee that
+  // a persisted {"api":true} setting cannot re-enable Keychain/API access.
+  if (process.env.CCB_DISABLE_API === "1") return false;
   if (process.env.CCB_API === "1") return true;
   try {
     const c = JSON.parse(readFileSync(CONFIG_FILE, "utf8"));

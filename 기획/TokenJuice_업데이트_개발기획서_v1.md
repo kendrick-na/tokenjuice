@@ -1349,3 +1349,27 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
 | light/dark contrast 범위 | 현재 제품이 dark token set임을 `color-scheme: dark`로 고정하고, dark 및 light preference 에뮬레이션 양쪽에서 ink/muted/faint/teal 대 panel-2 대비 `>=4.5:1` 검사 | 별도 light theme는 구현 대상이 아니므로 light palette acceptance는 pending이 아니라 제품 범위 밖 |
 | UX8 OS notification | 엔진 fixture가 account reconnect opt-in, auth_expired transition 단일 발화, stale/unavailable/429 제외, threshold/reset 이유와 retry 시각을 검증; `CCB_TEST_NOTIFY_LOG`로 payload만 확인 | 실제 macOS Notification Center·Windows toast 표시, 권한·방해금지·스케줄링 |
 | UX9 compact/notch | compact override와 SwiftBar 설치본 일치, Windows 공통 엔진·CI를 자동 검증 | 2026-10-09 CUA 관찰은 SwiftBar timeout(`-10005`)으로 실패; 실제 notch Mac에서 icon clipping·가독성은 여전히 물리 장치 필요 |
+
+## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
+
+스토어 심사 완료를 기다리지 않고 실제 피드백을 받기 위해 출시 채널을 분리한다. 현재 실행 계획과 체크리스트는 [`docs/LAUNCH_FEEDBACK_PLAN.md`](../docs/LAUNCH_FEEDBACK_PLAN.md)에 기록한다.
+
+- **즉시 공개:** GitHub Pages의 Pocket PWA + GitHub Issues 피드백 템플릿.
+- **P0 출시 차단:** 네 Mac에서 설치 → SwiftBar 메뉴바 표시 → 실제 Claude/Codex 데이터 표시를 직접 통과한다.
+- **다음 릴리스:** 실기기 Mac/Windows 검증 후 GitHub Release patch를 발행한다.
+- **별도 스토어 트랙:** SwiftBar 플러그인은 Mac App Store 제출물이 아니므로 독립 macOS 앱·서명·공증·스토어 심사를 별도로 설계한다. Pocket PWA는 Google Play 앱이 아니므로 모바일 사용 데이터를 먼저 모은 뒤 TWA 또는 네이티브 Android 래퍼를 결정한다.
+- **확장프로그램:** 브라우저에서 해결할 명확한 사용 사례가 확인되기 전까지 만들지 않는다. 단순한 배포 채널 추가는 제품 검증으로 간주하지 않는다.
+- **피드백 원칙:** 초기에는 자동 텔레메트리를 넣지 않고, 사용자가 직접 제출하는 비밀값 없는 진단 정보와 이슈 템플릿으로 시작한다.
+
+이 전환 이후 “출시 완료”는 자동 테스트 통과가 아니라 실기기 설치와 첫 상태 표시까지 포함할 때만 선언한다.
+
+## 19. 2026-10-09 UI/UX 출시 품질 게이트
+
+경쟁사 대비 UI/UX를 별도 후순위로 두지 않고 출시 차단 조건으로 승격한다. 비교 결과와 화면별 투두는 [`docs/UI_UX_RELEASE_PLAN.md`](../docs/UI_UX_RELEASE_PLAN.md)에 기록한다.
+
+- Pocket·메뉴바·트레이 모두 `NOW → WHY → NEXT → DETAIL` 정보 위계를 사용한다.
+- `fresh / stale / reconnect / unavailable` 상태를 색상만이 아니라 라벨·문장·아이콘으로 표현한다.
+- 공식 quota·로컬 session context·추정 forecast·snapshot freshness를 서로 다른 시각 계층으로 분리한다.
+- 빈 상태, import 오류, 설치 실패에 각각 원인·다음 행동·재시도 경로를 제공한다.
+- 375px, 키보드, VoiceOver/TalkBack, reduced motion, dynamic text, notch/tray 실기기 검증을 출시 게이트에 포함한다.
+- 5명 UX 테스트가 끝나기 전에는 App Store/Google Play/확장프로그램을 제품 완성의 증거로 사용하지 않는다.

@@ -128,5 +128,17 @@ detached child 로그보다 먼저 끝나는 재현 가능한 race가 드러났�
 비활성으로 표시했다. 플러그인이 실제 자격증명을 읽을 가능성 때문에 앱 실행/플러그인 refresh는
 하지 않았다. 따라서 notch 상태는 여전히 pending이다.
 
+### 6.1 2026-10-09 설치 doctor 재검증
+
+현재 작업 Mac에서 `./install.sh --doctor`를 읽기 전용으로 실행했다. Bun `1.3.14`, SwiftBar 설치,
+`tokenjuice-battery.5s.js` 존재, 설치본·소스 일치, SwiftBar 프로세스 실행, TokenJuice 엔진 실행 가능을
+모두 확인해 exit 0을 받았다. 이 결과는 현재 작업 환경의 설치·프로세스 경계가 정상이라는 증거이며,
+사용자의 별도 노트북이나 실제 메뉴바 픽셀 표시·notch 가독성의 acceptance로 승격하지 않는다.
+
+이후 doctor의 로컬 전용 API 차단을 추가하면서 소스가 변경되어, 현재 설치본은 의도적으로 `outdated`로
+검출되고 `scripts/release-verify.sh`의 설치본 일치 gate는 exit 1이다. 이는 새 소스가 실제 메뉴바에
+배포됐다고 오인하지 않도록 하는 정상 gate다. 릴리스 후보 커밋이 확정된 뒤에만 사용자가 설치 절차를
+실행하고, 같은 doctor와 release verify를 다시 통과시킨다.
+
 이 문서는 현 시점 코드 감사와 실행 준비 상태를 기록할 뿐, 목표 완료나 사용자 성공을
 선언하지 않는다.

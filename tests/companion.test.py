@@ -147,7 +147,7 @@ def main() -> None:
             assert page.locator('link[rel="icon"]').get_attribute("href") == "./icons/tokenjuice-192.png"
             assert page.get_by_text("설치·FAQ").is_visible()
             page.get_by_text("설치·FAQ").click()
-            page.get_by_text("메뉴바에 설치").wait_for()
+            page.get_by_text("설치하고 메뉴바 확인").wait_for()
             assert page.get_by_text("개인정보 원칙 보기").is_visible()
             page.go_back(wait_until="networkidle")
             page.get_by_text("개인정보").click()
@@ -157,6 +157,8 @@ def main() -> None:
             page.get_by_text("계기판으로").click()
             page.locator("#snapshot-file").set_input_files(str(snapshot))
             page.get_by_text("Personal").wait_for()
+            assert page.locator("#import-feedback").get_by_text("스냅샷을 가져왔습니다. 가장 먼저 확인할 상태를 표시합니다.").is_visible()
+            assert page.locator("#live-region").inner_text() == "스냅샷을 가져왔습니다. 가장 먼저 확인할 상태를 표시합니다."
             assert page.get_by_text("65%").is_visible()
             assert page.get_by_text("리셋 전 소진 예상").is_visible()
             assert page.get_by_text("제공자 제한 중", exact=True).is_visible()
@@ -198,7 +200,9 @@ def main() -> None:
             page.set_viewport_size({"width": 375, "height": 812})
             page.reload(wait_until="networkidle")
             assert_no_horizontal_overflow(page)
-            assert page.get_by_text("메뉴바에 설치").is_visible()
+            assert page.get_by_text("공개 베타", exact=True).is_visible()
+            assert page.get_by_text("설치하고 메뉴바 확인").is_visible()
+            assert page.get_by_text("./install.sh --doctor", exact=True).count() == 2
             targets = visible_target_heights(page)
             assert min(target["height"] for target in targets) >= 44, targets
             page.goto("http://127.0.0.1:4173/", wait_until="networkidle")
@@ -238,10 +242,18 @@ def main() -> None:
             page.locator("#snapshot-file").set_input_files(str(encrypted))
             page.wait_for_timeout(300)
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == before_failed_import
-            assert dialogs[-2:] == [
-                "prompt: 이 암호화 번들을 만들 때 사용한 암호를 입력하세요.",
-                "alert: TokenJuice 스냅샷 v1 또는 올바른 암호화 번들이 아닙니다.",
-            ], dialogs
+            assert dialogs[-1:] == ["prompt: 이 암호화 번들을 만들 때 사용한 암호를 입력하세요."], dialogs
+            assert page.locator("#import-feedback").get_by_text("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.").is_visible()
+            assert page.locator("#live-region").inner_text() == "가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요."
+
+            # A malformed file must produce the same nearby, recoverable error
+            # without an alert and without replacing the existing snapshot.
+            malformed = Path(directory) / "malformed.json"
+            malformed.write_text('{"not":"a tokenjuice snapshot"}', encoding="utf-8")
+            page.locator("#snapshot-file").set_input_files(str(malformed))
+            page.wait_for_timeout(200)
+            assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == before_failed_import
+            assert page.locator("#import-feedback").get_by_text("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.").is_visible()
 
             # The valid bundle must work even after an earlier failed attempt.
             page.evaluate("localStorage.clear()")

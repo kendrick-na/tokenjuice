@@ -79,6 +79,14 @@ cd tokenjuice
 
 The installer checks bun & SwiftBar (auto-installing what's missing), registers the plugin, launches SwiftBar, and adds it to your login items plus a per-user LaunchAgent fallback so it survives reboots.
 
+If the menu-bar battery is not visible, run the read-only installation doctor from the repository root:
+
+```bash
+./install.sh --doctor
+```
+
+It checks Bun, SwiftBar, the installed plugin, source freshness, process state, and whether the local engine can start. It does not launch SwiftBar, change permissions, access the Keychain, or send provider requests — even if API mode is enabled in your normal config.
+
 > **No keychain prompt by default.** Sessions & Codex work from local files immediately. Claude limits only need the keychain if you turn on [API mode](#privacy--security) — and only then does macOS ask you to *Always Allow*.
 
 ### Update / uninstall
@@ -387,6 +395,12 @@ cd tokenjuice
 ```
 
 bun·SwiftBar를 확인(없으면 자동 설치)하고 플러그인을 등록한 뒤 SwiftBar를 띄우고, **로그인 항목에 등록해 재부팅 후에도 자동 실행**되게 한다.
+
+메뉴바에 배터리가 보이지 않으면 설치 폴더에서 아래 읽기 전용 진단을 실행한다. Bun·SwiftBar·플러그인·실행 상태·엔진 시작 가능 여부를 단계별로 확인하며, 앱을 새로 실행하거나 권한을 바꾸지 않고, 기존 설정에 API 모드가 켜져 있어도 키체인·제공자 요청을 사용하지 않는다.
+
+```bash
+./install.sh --doctor
+```
 
 > **기본은 키체인 접근 없음.** 세션·Codex는 로컬 파일만 읽어 바로 뜬다. Claude 한도는 로컬 캐시가 없는 버전에서만, 그리고 **직접 API 모드를 켤 때만**(`export CCB_API=1`) 키체인 토큰을 읽는다. 그때만 macOS가 "항상 허용"을 묻는다.
 

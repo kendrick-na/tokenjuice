@@ -36,7 +36,7 @@ function engineEnv(overrides = {}) {
   return { ...process.env, HOME: home, USERPROFILE: home, ...overrides };
 }
 
-function run(...args) {
+function runWithEnv(overrides, ...args) {
   const r = spawnSync(process.execPath, [ENGINE, ...args], {
     encoding: "utf8",
     timeout: 30000,
@@ -48,11 +48,13 @@ function run(...args) {
       CCB_TEST_COPILOT_FIXTURE: copilotFx,
       CCB_CLAUDE_BIN: path.join(home, "fake-claude"),
       CCB_TEST_NOTIFY_LOG: path.join(home, "notify.log"),
+      ...overrides,
     }),
   });
   if (r.status !== 0) throw new Error(`engine exit ${r.status}: ${r.stderr}`);
   return r.stdout;
 }
+function run(...args) { return runWithEnv({}, ...args); }
 const json = () => JSON.parse(run("--json"));
 const notifications = () => existsSync(path.join(home, "notify.log")) ? readFileSync(path.join(home, "notify.log"), "utf8").trim().split("\n").filter(Boolean) : [];
 const renewCalls = () => existsSync(path.join(home, "fake-claude.log")) ? readFileSync(path.join(home, "fake-claude.log"), "utf8").trim().split("\n").filter(Boolean) : [];
@@ -113,6 +115,12 @@ test("fresh API reading is live and provider-reported", () => {
   expect(c.items.map((i) => i.used)).toEqual([20, 40]);
   expect(typeof c.lastSuccessAt).toBe("number");
   expect(j.contractVersion).toBe(2);
+});
+
+test("read-only API guard overrides persisted API configuration", () => {
+  usage(200, okUsage(20, 40));
+  runWithEnv({ CCB_DISABLE_API: "1" }, "--text");
+  expect(calls()).toBe(0);
 });
 
 test("60s cache: a second render makes no new request", () => {

@@ -2,6 +2,8 @@ const KEY = "tokenjuice.widget-snapshot.v1";
 const SYNC_FORMAT = "tokenjuice-sync-v1";
 const $ = (selector) => document.querySelector(selector);
 const fileInput = $("#snapshot-file");
+const importFeedback = $("#import-feedback");
+const liveRegion = $("#live-region");
 
 const stateCopy = {
   fresh: { label: "방금 확인됨", tone: "good", action: "지금은 계속 작업해도 좋습니다." },
@@ -56,6 +58,14 @@ async function decryptBundle(bundle, passphrase) {
   return JSON.parse(new TextDecoder().decode(plaintext));
 }
 function escapeHtml(value) { const span = document.createElement("span"); span.textContent = String(value ?? ""); return span.innerHTML; }
+function announce(message, tone = "") {
+  if (importFeedback) {
+    importFeedback.hidden = !message;
+    importFeedback.className = `import-feedback ${tone}`;
+    importFeedback.textContent = message;
+  }
+  if (liveRegion) liveRegion.textContent = message;
+}
 function copyFor(payload) { return stateCopy[payload?.state] || stateCopy.unavailable; }
 function remaining(item) { return Math.max(0, Math.min(100, 100 - Number(item.used))); }
 function metric(item) {
@@ -194,6 +204,7 @@ function demoSnapshot() {
 }
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files?.[0]; if (!file) return;
+  announce("스냅샷을 확인하는 중입니다.");
   try {
     let snapshot = JSON.parse(await file.text());
     if (validBundle(snapshot)) {
@@ -203,7 +214,8 @@ fileInput.addEventListener("change", async () => {
     }
     if (!valid(snapshot)) throw new Error("invalid");
     load(snapshot);
-  } catch { alert("TokenJuice 스냅샷 v1 또는 올바른 암호화 번들이 아닙니다."); }
+    announce("스냅샷을 가져왔습니다. 가장 먼저 확인할 상태를 표시합니다.", "good");
+  } catch { announce("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.", "danger"); }
   finally { fileInput.value = ""; }
 });
 $("#replace").addEventListener("click", () => fileInput.click());

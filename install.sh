@@ -37,6 +37,69 @@ case "$(uname -s)" in
     ;;
 esac
 
+doctor_ok() { printf "   ✓ %s\n" "$1"; }
+doctor_fail() { printf "   ❌ %s\n" "$1"; DOCTOR_FAILED=1; }
+
+run_doctor() {
+  DOCTOR_FAILED=0
+  DOCTOR_PLUGIN_DIR="${SWIFTBAR_PLUGIN_DIR:-$HOME/.swiftbar-plugins}"
+  DOCTOR_PLUGIN="$DOCTOR_PLUGIN_DIR/tokenjuice-battery.5s.js"
+
+  bold "🔎 TokenJuice macOS doctor"
+  echo
+  if command -v bun >/dev/null 2>&1; then
+    doctor_ok "bun $(bun --version)"
+  else
+    doctor_fail "bun이 없습니다 — https://bun.sh 또는 ./install.sh를 사용하세요"
+  fi
+
+  if [ -d "/Applications/SwiftBar.app" ]; then
+    doctor_ok "SwiftBar 설치됨"
+  else
+    doctor_fail "SwiftBar가 없습니다 — ./install.sh를 다시 실행하거나 SwiftBar를 설치하세요"
+  fi
+
+  if [ -f "$DOCTOR_PLUGIN" ]; then
+    doctor_ok "플러그인 존재: $DOCTOR_PLUGIN"
+    if diff <(tail -n +2 "$DOCTOR_PLUGIN") <(tail -n +2 "$SELF_DIR/$SOURCE_PLUGIN") >/dev/null 2>&1; then
+      doctor_ok "설치된 플러그인이 현재 소스와 일치"
+    else
+      doctor_fail "설치된 플러그인이 오래됨 — ./install.sh를 다시 실행하세요"
+    fi
+  else
+    doctor_fail "플러그인이 없습니다 — ./install.sh를 다시 실행하세요"
+  fi
+
+  if pgrep -x SwiftBar >/dev/null 2>&1; then
+    doctor_ok "SwiftBar 실행 중"
+  else
+    doctor_fail "SwiftBar가 실행 중이 아닙니다 — 메뉴바 앱에서 SwiftBar를 실행하세요"
+  fi
+
+  if command -v bun >/dev/null 2>&1; then
+    if CCB_DISABLE_API=1 bun "$SELF_DIR/$SOURCE_PLUGIN" --text >/dev/null 2>&1; then
+      doctor_ok "TokenJuice 엔진 실행 가능"
+    else
+      doctor_fail "TokenJuice 엔진 실행 실패 — 진단 정보가 필요합니다"
+    fi
+  fi
+
+  echo
+  if [ "$DOCTOR_FAILED" = "0" ]; then
+    bold "✅ 기본 설치 진단 통과"
+    dim "SwiftBar 메뉴바 아이콘이 보이지 않으면 SwiftBar 환경설정에서 Plugin Directory를 확인하세요."
+  else
+    bold "⚠️ 설치 진단에서 문제가 발견됐습니다"
+    dim "위 ❌ 항목의 다음 행동을 수행한 뒤 ./install.sh --doctor를 다시 실행하세요."
+  fi
+  return "$DOCTOR_FAILED"
+}
+
+if [ "${1:-}" = "--doctor" ]; then
+  run_doctor
+  exit $?
+fi
+
 bold "🔋 Installing tokenjuice"
 echo
 

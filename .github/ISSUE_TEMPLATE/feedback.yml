@@ -1,0 +1,42 @@
+name: 사용자 피드백
+description: 설치, 표시, 데이터 신뢰성, 사용성에 대한 피드백을 남겨주세요.
+title: "[Feedback] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        비밀번호, API 키, OAuth 토큰, 프롬프트, 코드, 개인 식별 정보는 입력하지 마세요.
+  - type: dropdown
+    id: type
+    attributes:
+      label: 피드백 유형
+      options:
+        - 설치가 되지 않음
+        - 메뉴바/트레이에 표시되지 않음
+        - 사용량 또는 리셋 값이 이상함
+        - Pocket/PWA 사용성
+        - 기능 제안
+        - 기타
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: 플랫폼
+      description: "예: macOS 15, Windows 11, iPhone Safari"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 어떻게 했나요?
+      description: 재현 순서와 기대한 결과, 실제 결과를 적어주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: 비밀값 없는 진단 정보
+      description: 가능하면 TokenJuice의 진단 명령 결과에서 토큰·프롬프트·코드를 제거한 뒤 붙여넣으세요.
+    validations:
+      required: false
