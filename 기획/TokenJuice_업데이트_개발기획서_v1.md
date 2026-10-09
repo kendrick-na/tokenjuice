@@ -1308,7 +1308,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
 | v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `59 pass`·`346 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast 구현. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
-| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 및 수동 Codex 프로필 구현 / 실계정·OS 검증 대기 | Codex explicit root/alias/ID/표시 선택·stable notification/history key 구현. 직전 `065d868` Engine `37948130019`, Windows `37948130013` 성공. 새 프로필 Windows UI CI는 별도 확인하며 실제 Windows/macOS UI와 신규 설치는 validation kit pending. Windows toast 미구현 |
+| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 및 수동 Codex 프로필 구현 / 실계정·OS 검증 대기 | Codex explicit root/alias/ID/표시 선택·stable notification/history key 구현. `862d50f` Engine `37950615407`·Windows `37950615519`, Windows 호환 수정 `70abf9e`의 `37950833358`는 success. 실제 Windows/macOS UI와 신규 설치는 validation kit pending. Windows toast 미구현 |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
 | UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `6cacedb`: 375px detail disclosure, Enter keyboard, 44px target browser test; Engine/Windows/Publish `37886745999`/`37886745975`/`37886745971` 성공. 스크린리더·실기기 notch/tray·실사용자 5명은 pending |
@@ -1413,6 +1413,7 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   pystray 부재로 로컬 실행은 미통과여서 Windows CI에서 별도 확인한다. release-verify
   자동 단계 통과와 installed-source mismatch(exit 1), 실계정·OS UI·사용자 pending은
   분리한다. 실제 설치본·release asset·PWA를 이번 변경으로 갱신했다고 주장하지 않는다.
+- 후속 검증: `862d50f` Engine [37950615407](https://github.com/kendrick-na/tokenjuice/actions/runs/37950615407)·Windows [37950615519](https://github.com/kendrick-na/tokenjuice/actions/runs/37950615519)는 success다. 구버전 codexStatus 없는 Windows 메뉴 fallback의 기존 의미를 유지한 `70abf9e`도 Windows [37950833358](https://github.com/kendrick-na/tokenjuice/actions/runs/37950833358)에서 selftest/exe까지 success다. `70abf9e`는 Windows 경로만 변경하여 Engine/Pages 재실행 대상이 아니며, 최신 PWA `49a012f`와 공개 desktop asset `v1.2.2`는 유지된다. 실제 Mac 설치본 갱신/실행 승인과 실기기 검증은 아직 남았다. 다음 실행 순서는 [`docs/REQUIREMENTS_AUDIT.md` §9.7](../docs/REQUIREMENTS_AUDIT.md#97-다음-실행-순서와-실제-출시-게이트)에 기록했다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

@@ -12,12 +12,14 @@
 성공했다. 이는 GitHub Pages의 PWA 소스 배포 증거이며, immutable macOS/Windows release asset이나
 실기기 acceptance를 대체하지 않는다.
 
-직전 desktop **소스 후보**는 `065d8683e3ba33daa47b6d13e7380f549e03be37`다.
-Engine verification `37948130019`·Windows build `37948130013`는 모두 success다.
+최신 desktop **소스 후보**는 `70abf9e85cd51f4a8d5ba32205606b0e538b3f3b`다.
+프로필 엔진/브라우저 커밋 `862d50f41734ffc35321fddeb453854a27263427`의 Engine verification
+`37950615407`·Windows build `37950615519`는 success다. 이후 Windows 구버전 menu fallback
+수정 `70abf9e`의 Windows build `37950833358`도 selftest/exe 실행까지 success다.
 이후 audit/기획서 문서-only 변경은 해당 CI 필터나 Pages 배포를 다시 실행하지 않는다.
 desktop release asset/설치본은 갱신하지 않았고, Pocket 배포는 계속 `49a012f`다.
-Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 로컬 증거는 §9.6이다. 새로운 SHA별 CI는 push
-후 별도로 기록하며, 로컬 통과를 CI 또는 실제 설치 성공으로 대체하지 않는다.
+Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 증거는 §9.6이다. `70abf9e`는
+Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 실제 설치 성공으로 대체하지 않는다.
 
 ## 1. 단계별 완료 기준 감사
 
@@ -41,7 +43,7 @@ Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 로컬 �
 | R7 | official quota와 local context/cost 분리 | `kind` contract, session/context/cost tests, Pocket cards | 코드·자동 검증 완료 |
 | R8 | secret-free copyable diagnostics | `--diagnostics`, `--copy-diagnostics`, diagnostics privacy test | 자동 검증 완료; 실제 support workflow는 pending |
 | R9 | first-run onboarding/permission/keychain choice | `--init-config`, `guide.html`, starter config test | artifact·자동 검증 완료; 신규 사용자 comprehension pending |
-| R10 | multi-account aliases/status | `loadAccounts()`, `loadCodexProfiles()`, selected legacy/additive JSON, macOS/Windows menu, 5 profile tests | Claude 및 수동 Codex root/alias/ID/표시 선택·계정별 상태/알림/history 계약 구현. 실제 인증 계정 자동 식별·로그인 전환은 하지 않음. Windows 새 메뉴 CI·실제 Team/personal mapping/사용성은 별도 검증 |
+| R10 | multi-account aliases/status | `loadAccounts()`, `loadCodexProfiles()`, selected legacy/additive JSON, macOS/Windows menu, 5 profile tests, Windows `37950833358` | Claude 및 수동 Codex root/alias/ID/표시 선택·계정별 상태/알림/history 계약 구현. Windows 메뉴 selftest/exe CI 통과. 실제 인증 계정 자동 식별·로그인 전환은 하지 않음. 실제 Team/personal mapping/사용성은 별도 검증 |
 | R11 | Windows/macOS meaning/alarm parity | shared JS engine, Windows build `37885325588`, Engine CI `37885325573` | tray/build/contract 완료; macOS·Windows tray 실제 presentation pending. Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성이 필요해 현재 범위에서 blocked |
 | R12 | mobile companion/widget | Pocket import/export/offline/encrypted bundle browser test, Pages `37885325558` | PWA local export 완료; native widget/retention pending |
 | R13 | provider adapters | Copilot official-cost and local quota-file tests | 안전한 범위의 adapter 완료; extra provider policy/format validation pending |
@@ -298,5 +300,24 @@ reorder·동일 표시 이름의 창·profile별 pace/override·invalid config/�
 알림 억제를 검증했다. 전체 engine 59 pass/346 assertions와 release-verify 자동 단계는
 통과했고 마지막 installed-source mismatch는 여전히 exit 1이다. Windows selftest에 native
 메뉴/안전한 argv/잘못된 ID 차단 회귀를 추가했다. 이 Mac에는 pystray가 없어 로컬 실행은
-미통과이며 Windows CI에서 따로 확인한다. 실제 계정/root mapping·신규 설치·OS presentation은
+미통과였지만 Windows CI [37950615519](https://github.com/kendrick-na/tokenjuice/actions/runs/37950615519)에서 메뉴/selftest/exe 실행까지 success다. 실제 계정/root mapping·신규 설치·OS presentation은
 pending이고 같은 root에서 실제 인증 계정만 바뀌는 경우는 자동 구분하지 않는다.
+
+구버전 JSON에 codexStatus가 없는 Windows menu fallback의 기본 fresh 의미를 유지하는
+회귀를 `70abf9e`에 추가했다. Windows [37950833358](https://github.com/kendrick-na/tokenjuice/actions/runs/37950833358)는 selftest/engine/exe 실행까지 success다. 프로필 커밋의 Engine
+[37950615407](https://github.com/kendrick-na/tokenjuice/actions/runs/37950615407)도 Linux/macOS 및 Pocket browser까지 success다. release job은 tag가 없어 skipped이며 새 공개 desktop release를 만들지 않았다.
+
+### 9.7 다음 실행 순서와 실제 출시 게이트
+
+1. **사용자 승인 필요:** 기존 SwiftBar 설치본의 source 갱신/실행. 승인 전 설치·OS 설정·
+   Keychain·실계정 접근을 실행하지 않는다. source mismatch는 실제 메뉴바 미표시의 원인을
+   확정한 진단이 아니라 최신 후보 설치 여부를 확인하는 gate다.
+2. **설치 후 P0:** 메뉴바 아이콘/패널, 실제 quota와 trust, 잘린 notch, 재시작/절전 복귀를
+   실제 노트북에서 확인한다. Codex 프로필의 실제 계정/root mapping도 사용자와 확인한다.
+3. **코드 백로그:** 시각적 7-day history와 Phase B resume workflow는 별도 계약/구현이
+   남아 있다. metadata checkpoint/history export만으로 전체를 완료 처리하지 않는다.
+4. **제품·권한 선택:** Windows native toast의 identity/설치 경계, 자동 sync/모바일 설정의
+   보안 경계, 스토어/확장 배포 플랫폼·개발자 계정·제출 권한을 결정한다. 현재 PWA를
+   App Store/Google Play/확장프로그램 출시로 설명하지 않는다.
+5. **사람이 필요한 검증:** 5명 신규 설치, 10명 인터뷰·14일 diary, 화면 읽기/실기기 UI 및
+   실제 피드백 분류는 참가자·동의·관찰 결과가 필요하다. 빈 validation kit를 성공으로 채우지 않는다.
