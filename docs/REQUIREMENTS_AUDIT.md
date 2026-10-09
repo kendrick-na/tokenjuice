@@ -337,5 +337,12 @@ reset 추론 전에 숫자형·유한·0~100을 검사한다. 실패한 프로�
 전체 로컬 engine 62 pass/422 assertions, 번들·스크립트 문법·격리 notification dry-run 및
 Pocket 브라우저 검증은 통과했다. release-verify는 마지막 installed-source mismatch로 exit 1이다.
 실제 설치/SwiftBar 실행·OS 권한·Keychain·실계정 접근은 하지 않았다. reset 등 모든 필드의
-스키마 검증이나 새 release/PWA 배포, 실기기 acceptance 완료를 뜻하지 않는다. 원격 CI는
-코드 커밋 push 후 별도 확인한다. §9.7의 출시 게이트는 유지한다.
+스키마 검증이나 새 release/PWA 배포, 실기기 acceptance 완료를 뜻하지 않는다.
+
+코드 커밋 `9afc509ee20536f3a1f80a5cc694b4b0cbddc203`의 Engine
+[37952669054](https://github.com/kendrick-na/tokenjuice/actions/runs/37952669054)는 Linux/macOS
+및 Pocket browser까지 success, Windows
+[37952668998](https://github.com/kendrick-na/tokenjuice/actions/runs/37952668998)는 엔진 회귀·
+트레이 selftest·exe 빌드/실행까지 success다. release job은 tag가 없어 skipped다. companion
+변경이 없어 Pages 재배포 대상이 아니며 공개 PWA `49a012f`와 desktop asset `v1.2.2`는
+유지된다. §9.7의 출시 게이트는 유지한다.

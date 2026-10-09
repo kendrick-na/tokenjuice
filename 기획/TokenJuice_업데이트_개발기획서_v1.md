@@ -1422,8 +1422,8 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   쓰지 않으며 JSON/widget/history/알림에서 잘못된 값을 제외한다. 3개 fixture/76 assertions로
   타입/범위/비유한 수·과거 reset·정상 레코드 fallback 차단·프로필 격리·정상 0/100·privacy를
   검증해 전체 로컬 62 tests/422 assertions 및 Pocket browser가 통과했다. release-verify는
-  마지막 설치본 불일치로 exit 1이며 설치/실행·OS 권한·실계정은 건드리지 않았다. 원격 CI는
-  push 후 별도 확인한다. 모든 provider 스키마/실기기 정확성이나 새 release/PWA 배포 완료를
+  마지막 설치본 불일치로 exit 1이며 설치/실행·OS 권한·실계정은 건드리지 않았다. 코드
+  `9afc509`의 Engine [37952669054](https://github.com/kendrick-na/tokenjuice/actions/runs/37952669054)는 Linux/macOS/Pocket browser까지, Windows [37952668998](https://github.com/kendrick-na/tokenjuice/actions/runs/37952668998)는 engine/selftest/exe 빌드·실행까지 success다. release job은 tag가 없어 skipped이며 Pages 재배포 대상이 아니다. 공개 PWA `49a012f`와 desktop asset `v1.2.2`는 유지된다. 모든 provider 스키마/실기기 정확성이나 새 release/PWA 배포 완료를
   뜻하지 않는다. 상세 증거는 [`docs/REQUIREMENTS_AUDIT.md` §9.8](../docs/REQUIREMENTS_AUDIT.md#98-r1r15-codex-malformed-사용률-안전-실패-2026-10-10)에 기록했다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
