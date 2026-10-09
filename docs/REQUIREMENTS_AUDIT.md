@@ -32,7 +32,7 @@ release-verify는 exit 0이다. 실제 메뉴바/실기기·사용자·스토어
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 76 pass/829 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; 승인된 플러그인 갱신 뒤 release-verify 설치본 일치까지 exit 0; 실제 UI는 pending |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 78 pass/890 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; 새 R13 후보 자동 단계 통과·설치본 반영 전 전체 exit 1; 실제 UI pending |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -647,3 +647,24 @@ Windows 실기기·interview/diary·스토어 및 전체 resume/history/Coach ga
 다음 독립 코드 후보는 R13 명시 local quota-file adapter의 미래 observedAt/mtime 검사다.
 현재 Unix ms 관측·15분 fresh/2시간 stale 계약 및 무인증 로컬 경계가 명시되어 있어,
 계약/consumer/합성 재현을 먼저 확인할 수 있다. 새 provider·시각 포맷/수집 경계를 만들지 않는다.
+
+### 9.17 R13 local provider의 선택된 관측 시각 검증 (2026-10-10)
+
+clean 78f6d53=origin/main의 명시 quota-file 계약/reader·JSON/widget 소비자를 대조하고
+systematic-debugging으로 미래 observedAt이 fresh로 표시되는 실패를 먼저 재현했다.
+선택된 관측의 음수 나이를 15분 이내로 처리한 것이 원인이었다. 기존 Number 변환과
+nonfinite/누락 observedAt의 mtime fallback은 유지하며 그 결과인 chosen observation만
+양의 유한한 Date-valid/nonfuture Unix ms로 검사한다. 실패는 invalid_timestamp/unavailable/
+items[]/lastSuccessAt null이며 실패 읽기의 observedAt만 실제 현재 시각이다.
+
+두 합성 fixture/61 assertions로 미래 numeric/numeric-string·Date 범위 밖/0/음수 및
+미래 mtime, JSON/widget 숫자·가짜 성공 차단과 healthy provider 격리·알림/API/history
+비발화를 검증했다. 정상 시각/사용량 문자열 변환·14/16/119/121분 경계와 누락/기존
+non-numeric observedAt의 mtime 선택을 보존한다. raw schema/used/reset의 엄격한 형식
+검증을 추가한 것이 아니고 새 provider/credential/네트워크/명령 실행은 없다.
+전체 검증·CI와 후보 설치본 반영은 후속 기록한다. 앞 §9.16의 설치 일치·exit 0은 이전
+본문에 대한 증거이며 이번 새 소스 후보의 설치 일치와 구분한다. 실기기/UI gate는 유지한다.
+
+현재 후보의 전체 로컬 78 pass/890 assertions와 release-verify 자동 engine/bundle/browser/
+문법/격리 알림/diff는 통과했다. 새 엔진 6줄이 아직 설치본에 없으므로 마지막 일치 검사로
+전체 exit 1이며 CI 확인 후 승인된 좁은 반영으로 다시 검증한다. 실제 앱은 restart/refresh하지 않는다.

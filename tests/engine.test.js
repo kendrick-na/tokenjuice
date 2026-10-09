@@ -1358,6 +1358,55 @@ test("local provider adapter reads only an explicit quota file and marks stale f
   expect(run("--text")).toContain("Cursor(stale)");
 });
 
+test("local provider invalid chosen observation never becomes fresh quota or last success", () => {
+  const bad = write("exports/bad.json", {});
+  const good = write("exports/good.json", { items: [{ name: "Monthly", used: 20 }] });
+  config({ api: false, forecast: { enabled: true }, notify: { enabled: true }, providers: [
+    { id: "bad", label: "Bad", usageFile: bad }, { id: "good", label: "Good", usageFile: good },
+  ] });
+  for (const observedAt of [Date.now() + 60000, String(Date.now() + 60000), 1e20, 0, -1]) {
+    writeFileSync(bad, JSON.stringify({ observedAt, items: [{ name: "Monthly", used: 99 }] }));
+    const c = json().providers[0];
+    expect(c.state).toBe("unavailable");
+    expect(c.reason).toBe("invalid_timestamp");
+    expect(c.items).toEqual([]);
+    expect(c.lastSuccessAt).toBeNull();
+    expect(c.observedAt).toBeLessThanOrEqual(Date.now());
+    const snapshot = JSON.parse(run("--widget-snapshot"));
+    expect(snapshot.providers[0].items).toEqual([]);
+    expect(snapshot.providers[0].lastSuccessAt).toBeNull();
+    expect(snapshot.providers[1].state).toBe("fresh");
+  }
+  writeFileSync(bad, JSON.stringify({ items: [{ name: "Monthly", used: 99 }] }));
+  const future = (Date.now() + 60000) / 1000;
+  utimesSync(bad, future, future);
+  expect(json().providers[0].reason).toBe("invalid_timestamp");
+  expect(json().providers[0].items).toEqual([]);
+  expect(json().providers[0].lastSuccessAt).toBeNull();
+  run();
+  expect(notifications()).toEqual([]);
+  expect(calls()).toBe(0);
+  expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
+});
+
+test("local provider observation guard preserves conversion, mtime fallback and age boundaries", () => {
+  const file = write("exports/local.json", {});
+  config({ api: false, providers: [{ id: "local", label: "Local", usageFile: file }] });
+  for (const age of [14, 16, 119, 121]) {
+    const at = Date.now() - age * 60000;
+    writeFileSync(file, JSON.stringify({ observedAt: String(at), items: [{ name: "Monthly", used: "42" }] }));
+    const c = json().providers[0];
+    expect(c.state).toBe(age < 15 ? "fresh" : age < 120 ? "stale" : "unavailable");
+    expect(c.items.map((item) => item.used)).toEqual(age < 120 ? [42] : []);
+    expect(c.lastSuccessAt).toBe(at);
+  }
+  for (const payload of [{}, { observedAt: "not-a-time" }]) {
+    writeFileSync(file, JSON.stringify({ ...payload, items: [{ name: "Monthly", used: 42 }] }));
+    expect(json().providers[0].state).toBe("fresh"); // Existing selected-mtime fallback.
+  }
+  expect(json().providers[0].source).toBe("external-local-file");
+});
+
 test("compact mode is an explicit safe layout override", () => {
   usage(200, okUsage());
   const r = spawnSync(process.execPath, [ENGINE, "--diagnostics"], {

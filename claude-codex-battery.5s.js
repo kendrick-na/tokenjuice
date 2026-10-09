@@ -1679,6 +1679,12 @@ function getExternalProviders() {
         .slice(0, 8)
         .map((item) => ({ name: item.name.slice(0, 64), used: Number(item.used), resets: item.resets ?? null }));
       const observedAt = Number.isFinite(Number(payload?.observedAt)) ? Number(payload.observedAt) : stat.mtimeMs;
+      // Preserve the adapter's existing conversion/mtime selection, but never
+      // admit a future or invalid chosen observation as quota success.
+      if (!validObservationTime(observedAt)) {
+        return { ...cfg, items: [], reason: "invalid_timestamp",
+          ...usageState({ state: "unavailable", source: "external-local-file" }), observedAt: Date.now() };
+      }
       const age = Date.now() - observedAt;
       if (!items.length || age > EXTERNAL_PROVIDER_MAX_STALE_MS) {
         return { ...cfg, items: [], reason: !items.length ? "invalid-file" : "too-old", ...usageState({ state: "unavailable", source: "external-local-file", observedAt, lastSuccessAt: observedAt, stale: age > EXTERNAL_PROVIDER_MAX_STALE_MS }) };

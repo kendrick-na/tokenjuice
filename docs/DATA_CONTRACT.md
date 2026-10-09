@@ -65,6 +65,13 @@ adapter 결과다. 항목은 `{ id, label, usageFile }`이며, 파일에는 `ite
 `fresh`, 2시간 이내의 과거값을 `stale`, 그보다 오래되었거나 읽지 못한 파일을 `unavailable`로
 처리한다. 이 경로는 network, token, cookie, browser session, shell command를 사용하지 않는다.
 
+adapter의 기존 Number 변환 및 nonfinite/누락 observedAt→파일 mtime 선택은 유지한다.
+그렇게 선택된 관측 시각은 양의 유한한 Date-valid/nonfuture Unix ms여야 한다. 미래/0/음수/
+Date 범위 밖 값은 invalid_timestamp·unavailable·items[]로 반환하고 at/lastSuccessAt을
+null로 유지한다. observedAt에는 실패한 실제 읽기 시각만 남긴다. 다른 provider는 독립적이다.
+정상 numeric-string 변환·15분/2시간 기준·reset 처리·파일/설정은 바꾸지 않는다. 이는 선택된
+관측 시각의 검증이며 raw 파일의 모든 타입/문법이나 used/reset의 엄격한 검증 완료는 아니다.
+
 ## 데이터 경로와 한계
 
 Claude usage API와 Claude Code local usage-cache의 존재하는 주요 창 `utilization`도
