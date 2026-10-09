@@ -1,6 +1,6 @@
 # TokenJuice 데이터 계약 v2
 
-확인일: 2026-10-08
+확인일: 2026-10-10
 
 `bun claude-codex-battery.5s.js --json`은 macOS 메뉴바, Windows 트레이 등
 외부 표시기가 공통으로 소비하는 출력이다. 숫자를 표시하는 소비자는 반드시 `kind`,
@@ -66,6 +66,18 @@ adapter 결과다. 항목은 `{ id, label, usageFile }`이며, 파일에는 `ite
 처리한다. 이 경로는 network, token, cookie, browser session, shell command를 사용하지 않는다.
 
 ## 데이터 경로와 한계
+
+Codex quota를 읽을 때 존재하는 각 창의 `used_percent`는 유한한 숫자형 0~100이어야
+한다. 숫자처럼 보이는 문자열·boolean·배열·객체·범위 밖 값·비유한 수는 변환하지 않는다.
+최신 탐색 레코드의 primary 또는 secondary가 이 검사를 실패하면 해당 프로필 전체를
+`unavailable`, `reason: "invalid_quota"`, 빈 `items`로 반환한다. 더 오래된 정상 레코드로
+fallback하거나 reset 경과를 근거로 잘못된 값을 0%로 바꾸지 않는다. 다른 정상 프로필은
+영향받지 않는다. 누락/null 사용률 창을 건너뛰는 기존 동작과 정상 숫자 0·100은 유지한다.
+
+실패 레코드의 파일 수정 시각은 `observedAt`에만 남긴다. 성공 이력이 따로 저장되지 않은
+이 경로의 `lastSuccessAt`은 `null`이다. JSON/widget에 잘못된 사용률을 내보내거나 pace
+history·quota 알림에 사용하지 않는다. 이 검사는 Codex 사용률에 한정되며 reset 등 모든
+provider 필드의 스키마를 검증하거나 실계정 정확성을 보증하는 것은 아니다.
 
 - Claude 한도: 로컬 usage cache, 사용자가 API 모드를 켠 경우 Anthropic usage endpoint,
   최근 Claude Desktop 기록 순으로 사용한다. API endpoint와 로컬 cache 스키마는 공개 안정

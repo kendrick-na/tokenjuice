@@ -25,7 +25,7 @@ Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 �
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 59 pass/346 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Codex는 명시적 로컬 프로필/유효 이벤트·reset 조건부. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 62 pass/422 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Codex는 명시적 로컬 프로필/유효 이벤트·reset 조건부이며 malformed 사용률은 unavailable. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -321,3 +321,21 @@ pending이고 같은 root에서 실제 인증 계정만 바뀌는 경우는 자�
    App Store/Google Play/확장프로그램 출시로 설명하지 않는다.
 5. **사람이 필요한 검증:** 5명 신규 설치, 10명 인터뷰·14일 diary, 화면 읽기/실기기 UI 및
    실제 피드백 분류는 참가자·동의·관찰 결과가 필요하다. 빈 validation kit를 성공으로 채우지 않는다.
+
+### 9.8 R1/R15 Codex malformed 사용률 안전 실패 (2026-10-10)
+
+master 전체와 audit를 재대조한 뒤, §9.2의 provider 스키마 변경 시 안전 실패에 해당하는
+작은 로컬 항목을 선택했다. 수정 전 fixture의 문자열 `"99"`를 fresh로 내보내고, 격리된
+알림 기록기에 `Codex 5-hour: 1% left` threshold 경고를 생성하는 실패를 먼저 확인했다.
+원인은 getCodex의 원본 used_percent를 검사하지 않고 숫자 연산 소비자에 넘기는 경로다.
+
+reset 추론 전에 숫자형·유한·0~100을 검사한다. 실패한 프로필은 invalid_quota/unavailable와
+빈 items를 반환하고 과거 정상 레코드로 fallback하지 않는다. 실패 관측 시각은 observedAt에만
+남기며 at을 성공 fallback으로 사용하지 않아 JSON/widget의 lastSuccessAt도 null이다.
+3개 fixture/76 assertions로 잘못된 타입·음수/100 초과·비유한 수·과거 reset·더 오래된 정상
+레코드·export/history/알림 차단·프로필 격리·정상 0/100 유지·prompt 비노출을 검증했다.
+전체 로컬 engine 62 pass/422 assertions, 번들·스크립트 문법·격리 notification dry-run 및
+Pocket 브라우저 검증은 통과했다. release-verify는 마지막 installed-source mismatch로 exit 1이다.
+실제 설치/SwiftBar 실행·OS 권한·Keychain·실계정 접근은 하지 않았다. reset 등 모든 필드의
+스키마 검증이나 새 release/PWA 배포, 실기기 acceptance 완료를 뜻하지 않는다. 원격 CI는
+코드 커밋 push 후 별도 확인한다. §9.7의 출시 게이트는 유지한다.

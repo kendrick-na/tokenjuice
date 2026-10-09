@@ -1098,6 +1098,17 @@ function getCodex(profile = selectedCodexProfile()) {
       try { obj = JSON.parse(lines[i]); } catch { continue; }
       const rl = obj?.payload?.rate_limits ?? obj?.rate_limits;
       if (!rl) continue;
+      const windows = [rl.primary, rl.secondary].filter((window) => window?.used_percent != null);
+      if (windows.some((window) => !Number.isFinite(window.used_percent) || window.used_percent < 0 || window.used_percent > 100)) {
+        // Reject at the source, before reset inference or Number() in consumers.
+        // Do not turn an older reading into "fresh" after a malformed newest one.
+        return {
+          ok: false, items: [], reason: "invalid_quota",
+          ...usageState({ state: "unavailable", source: "codex-jsonl" }),
+          // A failed observation is not a successful quota reading.
+          observedAt: f.mtime,
+        };
+      }
       const items = [];
       if (rl.primary && rl.primary.used_percent != null) {
         items.push({

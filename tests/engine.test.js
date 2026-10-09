@@ -793,6 +793,63 @@ test("Codex profiles preserve independent fresh, stale and unavailable states fo
   expect(notifications().every((row) => row.includes("Personal"))).toBe(true);
 });
 
+test("Codex rejects malformed quota percentages before reset inference, export and alerts", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200;
+  config({ api: false, codexForecast: { enabled: true }, notify: { enabled: true, threshold: 20, codexForecast: true } });
+  for (const used of ["99", true, false, [], {}, -1, 101, "", SECRET_PROMPT]) {
+    codexPaceSample({ at: now, reset, primaryUsed: used, secondaryUsed: 50 });
+    run();
+    expect(notifications()).toEqual([]);
+    const output = json();
+    expect(output.codexStatus.state).toBe("unavailable");
+    expect(output.codexStatus.reason).toBe("invalid_quota");
+    expect(output.codexStatus.lastSuccessAt).toBeNull();
+    expect(output.codex).toEqual([]);
+    const snapshot = JSON.parse(run("--widget-snapshot"));
+    expect(snapshot.codex.state).toBe("unavailable");
+    expect(snapshot.codex.items).toEqual([]);
+    run();
+  }
+  codexPaceSample({ at: now, reset: Math.floor(now / 1000) - 60, primaryUsed: "99" });
+  expect(json().codexStatus.reason).toBe("invalid_quota"); // not inferred as reset/0% used
+  expect(JSON.parse(run("--codex-forecast-history")).observations).toEqual([]);
+  expect(run("--diagnostics")).not.toContain(SECRET_PROMPT);
+  expect(notifications()).toEqual([]);
+});
+
+test("Codex does not fall back to an older good quota after a malformed newest reading", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200;
+  config({ api: false, notify: { enabled: true } });
+  const file = codexPaceSample({ at: now - 60000, reset, primaryUsed: 20 });
+  const rows = readFileSync(file, "utf8").trim().split("\n");
+  const invalid = JSON.parse(rows[1]);
+  invalid.timestamp = new Date(now).toISOString();
+  invalid.payload.rate_limits.secondary.used_percent = 101;
+  writeFileSync(file, `${rows.join("\n")}\n${JSON.stringify(invalid)}\n`);
+  expect(json().codexStatus.reason).toBe("invalid_quota");
+  expect(json().codex).toEqual([]);
+  // JSON allows a large numeric exponent; reject Infinity instead of exporting null/live.
+  writeFileSync(file, `${rows.join("\n")}\n${JSON.stringify(invalid).replace('"used_percent":101', '"used_percent":1e999')}\n`);
+  expect(json().codexStatus.reason).toBe("invalid_quota");
+  run();
+  expect(notifications()).toEqual([]);
+});
+
+test("invalid Codex quota is isolated per profile and valid 0/100 boundaries remain provider values", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200;
+  config({ api: false, codexAccounts: codexProfileList(), notify: { enabled: true, threshold: 20 } });
+  codexProfileSample(".codex-personal", { at: now, reset, primaryUsed: "99" });
+  codexProfileSample(".codex-work", { at: now, reset, primaryUsed: 99, secondaryUsed: 99 });
+  expect(json().codexAccounts.map((account) => account.state)).toEqual(["unavailable", "fresh"]);
+  run();
+  expect(notifications()).toHaveLength(2);
+  expect(notifications().every((row) => row.includes("Work"))).toBe(true);
+  codexProfileSample(".codex-personal", { at: now, reset, primaryUsed: 0, secondaryUsed: 100 });
+  const output = json();
+  expect(output.codexStatus.state).toBe("fresh");
+  expect(output.codex.map((item) => item.used)).toEqual([0, 100]);
+});
+
 test("--json and --text never send notifications", () => {
   config({ api: true, notify: { enabled: true, threshold: 20 } });
   usage(200, okUsage(99, 99));
