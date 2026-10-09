@@ -62,7 +62,7 @@ TokenJuice의 시각적 방향은 화려한 대시보드가 아니라 **작업�
 ## 4. P1 화면 투두
 
 - [ ] 7일 trend와 pace forecast를 quota 카드와 분리
-- [ ] account/provider별 reset·threshold·reconnect 설정 화면
+- [ ] account/provider별 reset·threshold·reconnect 설정 화면 — gated: Pocket snapshot 계약은 설정 override를 제외하며, 모바일에서 Mac `config.json`을 수정하면 local-only/읽기 전용 경계를 침범함. 데스크톱의 기존 local per-target 명령만 유지하고 제품·보안 결정 전에는 Pocket 설정을 추가하지 않음.
 - [x] session context 80%/90% 단계별 checkpoint CTA (80% checkpoint 권장, 90% 새 세션 전환 준비; 클릭 시 로컬 스냅샷만 내보냄)
 - [x] 작은 화면에서 핵심 카드만 먼저 보이고 상세는 접기 (상태·NEXT는 항상 표시, 출처·마지막 성공은 키보드 가능한 disclosure)
 - [ ] keyboard, VoiceOver/TalkBack, reduced motion, dynamic text 실기기 점검
