@@ -222,6 +222,7 @@ def main() -> None:
             mac_card = page.locator('[data-install-platform="mac"]')
             assert mac_card.get_by_text("첫 데이터 확인", exact=True).is_visible()
             assert mac_card.get_by_text("필수:", exact=True).is_visible()
+            assert mac_card.get_by_text("비밀값 없는 진단 정보와 함께 피드백 보내기 →", exact=True).is_visible()
             assert page.get_by_text("./install.sh --doctor", exact=True).count() == 2
             page.get_by_text("피드백에 어떤 정보를 보내면 되나요?", exact=True).click()
             assert page.get_by_text("bun claude-codex-battery.5s.js --copy-diagnostics", exact=True).is_visible()
