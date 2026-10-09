@@ -319,7 +319,7 @@ test("--renew-login runs on demand but not twice within a minute", async () => {
   if (process.platform !== "darwin") return;
   config({ api: true, autoRenew: false });
   expect(run("--renew-login").trim()).toBe("renew started");
-  await sleep(300);
+  await waitFor(() => renewCalls().length === 1, "the manual background login renewal");
   expect(renewCalls().length).toBe(1);
   const r = spawnSync(process.execPath, [ENGINE, "--renew-login"], { encoding: "utf8", env: engineEnv({ CCB_CLAUDE_BIN: path.join(home, "fake-claude"), CCB_COMPACT: "0" }) });
   expect(r.stdout).toContain("skipped");

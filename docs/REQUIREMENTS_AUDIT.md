@@ -28,12 +28,12 @@ tag commit에서 고정되어 있다.
 | R3 | 인증 만료를 명시 상태·사용자 실행 안내로 전환 | `autoRenew:false` 기본값; 명시적 `autoRenew:true`일 때만 401/403 이후 10분 제한 갱신; 메뉴 정책 표시와 `--renew-login`; `tests/engine.test.js` opt-in/opt-out/수동 실행 테스트 | 코드·자동 검증 완료. 0 model-call은 2026-10-05 Claude CLI 2.1.238 실측에 한정(버전 변경 시 재검증); 실제 계정 재로그인·Keychain 및 Claude Team/조직 정책 확인은 pending |
 | R4 | 429 Retry-After·backoff | `fetchClaudeUsage()`, 429 tests | 자동 검증 완료 |
 | R5 | wake refresh single debounce | `scripts/ensure-swiftbar-visible.sh`, wake helper test | 코드·fixture 완료; 실제 sleep/wake 장비는 pending |
-| R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect tests | payload·idempotency 완료; macOS/Windows presentation pending |
+| R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect tests | macOS payload·sender 구현; 실제 Notification Center presentation pending. Windows tray에는 toast sender가 없어 toast는 코드 미구현 blocker |
 | R7 | official quota와 local context/cost 분리 | `kind` contract, session/context/cost tests, Pocket cards | 코드·자동 검증 완료 |
 | R8 | secret-free copyable diagnostics | `--diagnostics`, `--copy-diagnostics`, diagnostics privacy test | 자동 검증 완료; 실제 support workflow는 pending |
 | R9 | first-run onboarding/permission/keychain choice | `--init-config`, `guide.html`, starter config test | artifact·자동 검증 완료; 신규 사용자 comprehension pending |
 | R10 | multi-account aliases/status | `loadAccounts()`, multi-directory test, menu labels | 코드·fixture 완료; 실제 Team/personal 계정 사용성 pending |
-| R11 | Windows/macOS meaning/alarm parity | shared JS engine, Windows build `37812922103`, tagged build `37813141076` | build/contract 완료; 두 OS 실제 presentation pending |
+| R11 | Windows/macOS meaning/alarm parity | shared JS engine, Windows build `37812922103`, tagged build `37813141076` | tray/build/contract 완료; macOS·Windows tray 실제 presentation pending. Windows toast는 소스에 sender가 없어 구현·자동회귀 전까지 blocked |
 | R12 | mobile companion/widget | Pocket import/export/offline/encrypted bundle browser test, Pages `37812922149` | PWA local export 완료; native widget/retention pending |
 | R13 | provider adapters | Copilot official-cost and local quota-file tests | 안전한 범위의 adapter 완료; extra provider policy/format validation pending |
 | R14 | optional sync | passphrase-only AES-GCM manual bundle test | manual local transfer 완료; CloudKit/automatic sync intentionally pending |
@@ -55,7 +55,7 @@ tag commit에서 고정되어 있다.
 | UX5 | consumer Pocket empty/demo/import/offline/re-export flow | Pocket browser test, service worker/offline, checkpoint/privacy assertions | 코드·browser 완료; phone PWA/device acceptance pending |
 | UX6 | contrast, 44px, keyboard, screen reader, 375px/desktop/dark/reduced motion | `tests/companion.test.py`, `docs/VALIDATION_KIT.md` §1/§3 | machine criteria pass; screen reader and 5-person gate pending |
 | UX7 | local-labeled forecast/action language | forecast tests and Pocket “리셋 전 소진 예상” assertion | code pass; diary/action conversion pending |
-| UX8 | per-account/window threshold/reset/reconnect and reason/next time | notification policy/override/reconnect tests; `CCB_TEST_NOTIFY_LOG` | engine contract pass; actual OS notification presentation pending |
+| UX8 | per-account/window threshold/reset/reconnect and reason/next time | notification policy/override/reconnect tests; `CCB_TEST_NOTIFY_LOG` | macOS engine contract·sender pass; OS presentation pending. Windows tray source에는 toast sender가 없어 OS test 이전에 기능 구현 필요 |
 | UX9 | detailed menu/tray panel and compact/notch safety | menu output, compact test, Windows CI, installed source match | code/build pass; physical notch and OS visual pending |
 | UX10 | value/install/privacy/OS/FAQ/release landing | `guide.html`, Pages CI `37812922149`, Pages HTTP 200 | artifact/deploy pass; new-user 5-person gate pending |
 | UX11 | choose native mobile platform only after PWA usage/waitlist evidence | PWA exists; no native implementation | intentionally pending; requires usage/waitlist evidence |
@@ -81,10 +81,31 @@ tag commit에서 고정되어 있다.
 |---|---|---|
 | 5명 UX6/UX10 | 제품 담당자 + 참가자 5명 | `docs/VALIDATION_KIT.md` §1, synthetic demo, P01~P05 표 |
 | 10명 interview + 14일 diary | 제품 담당자 + 동의한 참가자 10명 | `docs/VALIDATION_KIT.md` §2, I01~I10, 최소 diary fields |
-| macOS notification/notch | v1.2.2 Mac/notch 장비 보유자 | `docs/VALIDATION_KIT.md` §3, fixture/permission checklist |
-| Windows notification/tray | v1.2.2 Windows 장비 보유자 | `docs/VALIDATION_KIT.md` §3, release exe + 동봉 engine |
+| macOS notification/notch | macOS/notch 장비 보유자; notification은 격리 fixture 환경 담당자도 필요 | `docs/VALIDATION_KIT.md` §3. notch는 기존 UI가 있을 때만 관찰; 재사용 가능한 isolated fixture harness가 없어 notification은 harness 준비 전 실행 금지 |
+| Windows tray UI | v1.2.2 Windows 장비 보유자 | `docs/VALIDATION_KIT.md` §3, 기존 실행본의 icon·tooltip·menu 관찰 |
+| Windows toast | TokenJuice 구현 담당자 | 현 source에 native toast sender 없음; OS 실기기 gate 전에 기능·fixture 회귀 구현 |
 | native widget/Watch | 제품 의사결정자 + PWA usage/waitlist 데이터 | UX11 기준; 구현·결제는 보류 |
 | CloudKit/team/webhook/payment | 제품·보안·법무 의사결정자 | 현재 구현하지 않으며 정책 결정 후 별도 설계 |
+
+### 제품·보안 의사결정 gate (코드 자동화와 분리)
+
+| 제안 | 필요한 근거·결정 | 현재 판정 |
+|---|---|---|
+| native widget/Watch | 실제 PWA 사용률·반복 사용·waitlist 수치로 플랫폼을 하나 선택 | 데이터·의사결정자 입력 전까지 구현 보류 |
+| Usage Coach/trend | 동의한 10명 interview + 14일 diary; §16.4 반증 조건과 §2 metric 정의 적용 | 행동 전환 근거 전까지 우선순위/화면 확정 보류 |
+| CloudKit/team | 데이터 항목·암호화·접근권한·삭제/보존·서버수집 범위에 대한 제품·보안 승인 | 승인 전 구현 금지 |
+| webhook | 전송 목적지·동의·인증·최소 데이터·철회/삭제·실패 정책의 보안 검토 | 승인 전 구현 금지 |
+| payment | free/paid 경계·가격·환불·지원·세금·개인정보 범위에 대한 제품·법무 결정 | 승인 전 결제 코드 금지 |
+
+v1.2.2 Pocket PWA의 로컬 브라우저 회귀는 2026-10-09에 `webapp-testing` helper로
+정적 companion 서버를 띄워 `tests/companion.test.py`를 재실행해 통과했다. 이는 Playwright
+브라우저 검증이며 실제 전화기/PWA 설치 acceptance를 뜻하지 않는다.
+
+2026-10-09 release-verify 재실행에서 수동 `--renew-login` 테스트의 고정 300ms 대기가
+detached child 로그보다 먼저 끝나는 재현 가능한 race가 드러났다. 수동 갱신 코드의 응답은
+정상(`renew started`)이었고, 대응 테스트만 형제 자동 갱신 테스트처럼 관측 가능한 로그를
+조건 대기하도록 바꿨다. targeted test와 전체 `scripts/release-verify.sh`가 모두 통과했다
+(38 pass / 190 assertions 포함). 이는 테스트 안정화이지 갱신 구현 변경은 아니다.
 
 ## 6. 2026-10-09 SwiftBar 실기기 관찰 시도
 
@@ -94,6 +115,10 @@ tag commit에서 고정되어 있다.
 - 이 시도에서는 설정, 알림 권한·발화, 설치 파일을 변경하지 않았다.
 - 따라서 live 메뉴바/notch 렌더링은 여전히 pending이다. compact 출력·CI·설치본 비교의 자동 증거를 물리적 시각 pass로 승격하지 않는다.
 - 다음 안전한 절차는 SwiftBar가 실제로 실행 중인 데스크톱 세션에서 `docs/VALIDATION_KIT.md` §3 체크리스트만 수행하는 것이다. 개인정보가 포함된 화면 캡처는 요구하지 않는다.
+
+추가 read-only CUA inventory도 SwiftBar를 실행 중 앱으로 노출하지 않았고 SystemUIServer를
+비활성으로 표시했다. 플러그인이 실제 자격증명을 읽을 가능성 때문에 앱 실행/플러그인 refresh는
+하지 않았다. 따라서 notch 상태는 여전히 pending이다.
 
 이 문서는 현 시점 코드 감사와 실행 준비 상태를 기록할 뿐, 목표 완료나 사용자 성공을
 선언하지 않는다.

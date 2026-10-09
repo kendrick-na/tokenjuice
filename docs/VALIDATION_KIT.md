@@ -33,11 +33,12 @@
 
 1. “이 테스트는 제품이 아니라 화면을 평가합니다. 막히거나 틀려도 참가자 책임이 아닙니다.”
 2. “실제 계정이나 작업 자료를 보여주지 마세요. 지금 제공하는 예시 화면만 사용합니다.”
-3. 참가자에게 화면을 공유하되 facilitator는 마우스·키보드·힌트를 조작하지 않는다.
-4. 과제 중에는 “무엇을 누를까요?”에 답하지 말고 “지금 무엇을 이해했나요?”만 되묻는다.
-5. 각 과제 후 관찰된 행동·시간·오류만 기록한다. 발화 원문은 기록하지 않는다.
-6. 종료 시 “어떤 정보가 가장 불안했나요?”와 “어떤 문구가 다음 행동을 결정하는 데 도움이 됐나요?”만 묻는다.
-7. 삭제·철회 선택을 다시 안내하고, 참가자 ID만 남긴다.
+3. 동의 초안을 읽고 명시적 동의를 받는다. 거절하면 ID나 응답을 만들지 않고 종료한다. 동의 후에만 P01~P05를 배정한다.
+4. 참가자에게 synthetic 화면을 보여주되 facilitator는 마우스·키보드·힌트를 조작하지 않는다. 화면 공유가 불편하면 facilitator 기기에서 직접 보게 한다.
+5. 과제 중에는 “무엇을 누를까요?”에 답하지 말고 “지금 무엇을 이해했나요?”만 되묻는다.
+6. 과제 후 pass/fail·시간·사전 정의된 오류 코드만 기록한다. 발화 원문·자유서술 notes는 남기지 않는다.
+7. 종료 시 “어떤 정보가 가장 불안했나요?”와 “어떤 문구가 다음 행동을 결정하는 데 도움이 됐나요?”를 묻되, 답은 미리 정한 범주로만 집계한다.
+8. 철회·삭제를 다시 안내한다. 철회 시 해당 ID의 기록과 임시 데모 파일을 즉시 삭제한다.
 
 ### Scenario / task cards
 
@@ -51,16 +52,22 @@
 
 ### 기록표 (빈 양식)
 
-| participant ID | S1 sec / pass | S2 sec / pass | S3 sec / pass | S4 sec / pass | S5 sec / pass | first error | recovery sec | notes |
-|---|---:|---|---:|---|---:|---|---:|---|
-| P01 |  |  |  |  |  |  |  |  |
-| P02 |  |  |  |  |  |  |  |  |
-| P03 |  |  |  |  |  |  |  |  |
-| P04 |  |  |  |  |  |  |  |  |
-| P05 |  |  |  |  |  |  |  |  |
+| participant ID | S1 sec / pass | S2 sec / pass | S3 sec / pass | S4 sec / pass | S5 sec / pass | error code | recovery sec |
+|---|---:|---|---:|---|---:|---|---:|
+| P01 |  |  |  |  |  |  |  |
+| P02 |  |  |  |  |  |  |  |
+| P03 |  |  |  |  |  |  |  |
+| P04 |  |  |  |  |  |  |  |
+| P05 |  |  |  |  |  |  |  |
+
+오류 코드는 `none`, `wrong_state`, `missed_source`, `missed_action`,
+`needed_hint` 중 하나만 기록한다. 이 범주에 맞지 않는 경우 자유 텍스트를 만들지 말고
+검증 책임자가 결과표를 집계할 때 `unclassified` 건수로만 별도 합산한다.
 
 출시 게이트는 사전에 고정한다: 핵심 과제 S1~S4 중 4명 이상이 facilitator 도움 없이 성공하면
 `4/5 gate = pass`로 계산한다. 실제 결과가 없을 때는 `pending`이다.
+S5는 접근성 관찰용으로 별도 보고하며 4/5 판정 분모에 넣지 않는다. 미완료 과제는
+`fail`과 관찰 종료 시각으로 기록한다.
 
 ## 2. P0 10명 인터뷰 + 2주 diary
 
@@ -70,6 +77,9 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 제품 가설 검증용이며 실제 계정 사용량을 수집하지 않는다.
 
 ### 10분 interview script
+
+동의 초안을 먼저 읽고 명시적 동의를 받는다. 동의 전에는 ID·응답·날짜를 기록하지 않는다.
+거절·철회는 결측값이나 실패로 집계하지 않는다. I01~I10은 동의 후 배정한다.
 
 1. 최근 AI coding 작업이 멈춘 순간이 있었나요? 있었다/없었다만 표시한다.
 2. 그때 원인은 한도·컨텍스트·인증·에이전트 대기 중 어느 범주였나요?
@@ -97,13 +107,39 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 
 ### 동의·철회 초안(아직 전송하지 않음)
 
-> 이 검증은 TokenJuice의 synthetic 화면과 최소 행동 기록만 사용합니다. 실제 계정, 프롬프트,
-> 코드, 토큰, 이메일, 스크린샷은 요청하지 않습니다. 참여는 선택이며 언제든 이유 없이 중단할 수
-> 있습니다. 기록은 pseudonymous ID로 로컬에만 저장하고 검증 종료 후 7일 이내 삭제합니다.
-> 참여에 동의하지 않거나 중간에 철회해도 불이익은 없습니다.
+> 이 검증은 TokenJuice의 synthetic 화면과 최소 행동 기록만 사용합니다. UX 화면 확인은 약 20분,
+> 인터뷰는 약 10분이며, diary 참여는 별도 동의한 경우에만 14일 동안 하루 1회 또는 사건 때
+> 선택적으로 기록합니다. 실제 계정, 프롬프트, 코드, 토큰, 이메일, 스크린샷, 녹화는 요청하지
+> 않습니다. 참여는 선택이며 언제든 이유 없이 중단·철회할 수 있습니다. 기록은 pseudonymous ID로
+> 로컬에만 저장하고 검증 종료 후 7일 이내 삭제합니다. 참여를 거절하거나 철회해도 불이익은 없습니다.
 
 동의 기록은 `participant_id`, `consent=yes/no`, `consented_at`, `withdrawn_at`만 남긴다.
 동의하지 않은 ID의 세션·diary 행은 생성하지 않는다.
+
+인터뷰에서 최근 30일 중단 경험은 `yes/no`만 aggregate count로 기록하고, 미참여·무응답과
+`no`를 구분한다. D0 synthetic 비교는 참가자 ID 기준 홀짝으로 순서를 정한다
+(홀수 baseline-first, 짝수 card-first); 순서 외 개인 식별 정보는 기록하지 않는다.
+
+### 실행 순서와 사전 판정 규칙
+
+1. 동의한 참가자만 I01~I10에 배정해 10분 인터뷰를 한다. 실제 계정·알림·사용량 화면은 열지 않는다.
+2. 동의자는 synthetic 시나리오에서 기존 방식으로 다음 행동을 고르고 판단 시간을 기록한 뒤, NOW/WHY/NEXT 화면에서 같은 유형의 과제를 수행한다. baseline/card 순서는 참가자마다 번갈아 배치한다. 시간·행동 범주만 남긴다.
+3. D1~D14에는 하루 1회 또는 사건 발생 때 최소 필드 한 행만 기록한다. 무사건 날은 빈 행을 만들지 않는다. 철회 후 미기록 일자는 실패로 보지 않는다.
+4. 아래 분모를 고정한다. 분모가 0인 지표는 0%가 아니라 `pending`이다.
+
+| metric | numerator / denominator | 판정 기준 |
+|---|---|---|
+| 최근 30일 중단 경험 | 실제 quota/auth/context 중단을 보고한 동의 참가자 / 인터뷰 완료자 | 10명 중 3명 미만이면 §16.4의 pain 반증 조건 |
+| 판단 시간 변화 | 동일 참가자의 synthetic baseline 초와 NOW/WHY/NEXT 초 | 참가자별 차이와 중앙값을 함께 보고; 10명 미만이면 탐색 결과 |
+| alert→action within 5 min | 알림 후 5분 안에 행동한 사건 / actionable alert 사건 | 분모 0은 pending; 행동률 20% 미만이면 §16.4 반증 조건 |
+| return within 24h | 24시간 안에 복귀한 중단 사건 / 관찰 가능한 중단 사건 | 분모 0은 pending |
+| false alert rate | false_alert=yes 알림 / yes 또는 no로 분류한 알림 | unknown은 분모에서 제외하고 별도 개수 보고 |
+| checkpoint/resume action | checkpoint 또는 resume를 택한 사건 / 행동 여부가 기록된 actionable alert | 분모 0은 pending |
+| 주간 재방문 | 주 1회 이상 manual_check/returned가 있는 참여자-주 / 완전 관찰된 참여자-주 | §16.4의 주간 2회 미만 기준과 대조; 결측 주 제외 |
+
+§16.4의 반증 조건 중 두 개 이상이 실제 관찰되면 mobile widget·provider 추가·결제를 보류하고
+재포지셔닝을 의사결정자에게 상정한다. 이는 자동 출시 승인 기준이 아니다. 인터뷰 10명 미만,
+14일 미완료, 또는 분모 0은 성공이나 반증으로 간주하지 않고 pending으로 둔다.
 
 ### diary 결과표 (빈 양식)
 
@@ -121,9 +157,12 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 - release: `v1.2.2`
 - tag commit: `12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`
 - 실제 계정 대신 엔진 fixture 또는 synthetic config를 사용한다.
-- 테스트 전 알림 권한과 방해금지 상태를 참가자 화면에서 확인하되, 계정·메시지·스크린샷은 기록하지 않는다.
+- 기기 소유자가 현재 권한·집중 모드 상태를 직접 확인한다. 이 절차에서 설정을 열거나 바꾸지 않는다. 상태 확인을 원하지 않거나 권한이 꺼져 있으면 presentation은 pending이다.
 - 알림 payload의 내용은 이미 자동 fixture로 검증됐으므로, 여기서는 표시 여부·위치·중복·클릭 후
   앱 복귀만 본다.
+- macOS 엔진은 `osascript display notification` 경로를 사용한다. 현재 Windows tray 소스
+  `windows/tokenjuice_tray.py`에는 native toast/notification 송신 구현이 없다. Windows toast는
+  기기 검증 대기가 아니라 기능 미구현 blocker이며, tray icon·tooltip·menu만 별도 검증할 수 있다.
 
 ### macOS
 
@@ -137,11 +176,8 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 
 ### Windows
 
-- [ ] `v1.2.2`의 `tokenjuice.exe`와 동봉 engine을 같은 폴더에 배치
-- [ ] Windows notification permission 허용 상태에서 threshold/reconnect toast가 표시
-- [ ] 동일 상태 polling에서 duplicate toast가 발생하지 않음
-- [ ] reset/recovery 후 다음 상태 변화가 정상 표시
-- [ ] permission 거부 시 tray 상태와 next action이 유지되고 crash하지 않음
+- [ ] 기존 실기기 실행본에서 tray icon·tooltip·menu의 상태와 다음 행동을 확인
+- [ ] Windows toast/notification은 기능 구현 전까지 `blocked: not implemented`로 기록. 미구현을 기기 pass로 바꾸지 않음
 
 ### 수동 결과표 (빈 양식)
 
@@ -152,6 +188,13 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 |  |  | reset |  |  |  | pending |  |
 |  |  | notch/compact |  |  | n/a | pending |  |
 
+### 실행 순서
+
+1. **Mac:** 기기 소유자가 SwiftBar와 TokenJuice release 설치본이 이미 실행 중인지 확인한다. 새로 실행하거나 플러그인·권한·집중 모드를 변경하지 않는다. 앱/UI가 없으면 notch는 `pending: app/UI unavailable`이다.
+2. Notification 관찰은 별도의 synthetic fixture 전용 실행 환경(분리된 임시 HOME/config, provider credential 부재, 알림 출력만 기기에서 관찰)이 이미 준비되고 `CCB_TEST_USAGE_FIXTURE` 및 `CCB_TEST_NOTIFY_LOG` 사용법을 담당자가 확인한 경우에만 한다. 이 검증 키트는 OS 알림을 발화하는 재사용 가능한 harness/명령을 제공하지 않는다. 환경이 없으면 명령을 추측하거나 기본 프로필에서 실행하지 말고 `pending: isolated fixture harness unavailable`로 남긴다. 준비된 경우에만 threshold → 같은 상태 재실행(중복 억제) → recovery/reset → auth-expired/reconnect 순으로 한 시나리오씩 관찰한다. payload fixture 통과와 OS presentation은 별도 판정한다.
+3. **Windows:** 현재 toast 송신 기능이 없으므로 toast 테스트와 권한 조작은 하지 않는다. 기존 실행본이 있는 기기에서 tray icon·tooltip·menu만 관찰한다.
+4. 두 OS 모두 화면 캡처·알림 본문·계정 데이터를 수집하지 않는다. 실패는 defect ID와 OS major만 남긴다.
+
 증거는 private data 없는 `pass/fail`, OS major version, release tag, defect ID만 남긴다. 알림
 스크린샷·계정명·파일 경로는 수집하지 않는다.
 
@@ -161,7 +204,8 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 |---|---|---|---|
 | UX6 5명 세션 | pending | 제품 담당자 + 참가자 5명 | §1 script와 P01~P05 표를 사용해 20분씩 진행 |
 | P0 10명 interview/diary | pending | 제품 담당자 + 동의한 참가자 10명 | §2 consent 후 I01~I10, D1~D14 기록 |
-| macOS notification/notch | pending | macOS 실기기 보유자 | §3 v1.2.2 checklist, synthetic fixture만 사용 |
-| Windows notification/tray | pending | Windows 실기기 보유자 | §3 v1.2.2 checklist, release exe 사용 |
+| macOS notification/notch | pending | macOS 실기기 보유자 | §3: notch는 기존 UI가 있을 때만 관찰; notification은 isolated fixture harness가 준비된 경우에만 실행 |
+| Windows tray UI | pending | Windows 실기기 보유자 | §3: 기존 release exe의 tray icon·tooltip·menu만 관찰 |
+| Windows toast | blocked: not implemented | TokenJuice 구현 담당자 | OS 검증 전에 sender 구현과 자동 fixture 회귀 필요 |
 
 이 문서는 프로토콜 준비 완료를 뜻할 뿐, 실제 검증 통과를 뜻하지 않는다.

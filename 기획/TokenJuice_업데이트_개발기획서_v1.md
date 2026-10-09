@@ -22,7 +22,7 @@ TokenJuice의 다음 승부처는 지원 AI를 많이 늘리는 것이 아니라
 - 2026년 Product Hunt 신제품 흐름은 단순 quota 표시를 넘어 세션 상태·승인 요청·완료 알림·컨텍스트·비용까지 묶는 “AI agent command center”로 확장되고 있다.
 - 시장의 약점은 공통적이다. Claude·Cursor·Codex의 사용량 경로가 공식 공개 API가 아니거나 CLI/브라우저 세션에 의존하고, 토큰 만료·429·수면 복귀·계정 선택 오류가 쉽게 “0%” 또는 오래된 숫자로 보인다.
 - TokenJuice는 설치본을 이미 보유하고, Claude Team과 Codex를 한 메뉴바에서 읽으며, Windows 트레이 버전까지 있다는 점이 강점이다.
-- 구현 기준으로 v1.1·v1.2 핵심과 R12/R19/R20의 로컬 기반을 완료했다. v2.0에는 암호화 수동 전달을 구현했으며, 남은 출시 차단 항목은 자동 CloudKit 동기화의 제품·보안 결정, 실기기 Windows 검증, 스토어/배포 결정이다.
+- 구현 기준으로 v1.1·v1.2 핵심과 R12/R19/R20의 로컬 기반을 완료했다. v2.0에는 암호화 수동 전달을 구현했다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 현재 구현이 없어 실기기 검증 전 기능 구현·회귀 테스트가 필요하다.
 
 ### 1.1 2026-10-08 구현 추적
 
@@ -1309,19 +1309,32 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 |---|---|---|
 | v1.1 신뢰성 엔진·알림·진단 | 코드·자동 검증 완료 / 외부 gate 대기 | `CHANGELOG.md`, 최신 `38 pass`·`190 expect()` 엔진 회귀, release-verify; 실계정·OS notification presentation은 `docs/REQUIREMENTS_AUDIT.md`에 pending으로 분리 |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 코드·CI 완료 / 실기기·신규 설치 대기 | `5617b9a`: Engine `37811131425`, Windows `37811131623` 성공; 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
-| P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test; `37812922149` Pages 성공; 10초/30초 사용자 지표는 pending |
+| P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test; `37812922149` Pages 성공; 2026-10-09 로컬 `tests/companion.test.py` 재실행 통과; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
 | UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `12efce2`: 375px·1280px overflow, 200% large text, keyboard focus order/outline, ARIA name/landmark, 44px target, reduced-motion emulation, dark token contrast와 light preference 회귀를 browser test로 검증; `docs/VALIDATION_KIT.md` §1의 5명 script/기록표 준비; 스크린리더 수동 점검·실사용자 5명은 pending |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
-| UX8 알림 센터/설정 UX | 코드 기준 구현 완료 / OS presentation·실사용자 검증 대기 | 계정별 opt-in `reconnect`, auth_expired transition 단일 알림, 계정·이유·다음 행동·last success·retry 시각을 `5617b9a`에 추가; stale/unavailable/429·반복 렌더에는 발화하지 않음. OS 알림 표시와 실사용자 선호 검증은 pending |
-| UX9 메뉴바 상세 패널/compact | 구현 완료 / 실기기 검증 대기 | compact/notch 출력과 SwiftBar 설치본 비교 통과; `docs/VALIDATION_KIT.md` §3에 v1.2.2 notch·notification checklist 준비; 2026-10-09 CUA에서 SwiftBar inventory 미노출 및 `getApp` timeout(`-10005`)으로 실제 notch 시각 pass는 주장하지 않음 |
+| UX8 알림 센터/설정 UX | macOS engine sender·payload 구현 / OS presentation 대기; Windows toast 미구현 | 계정별 opt-in `reconnect`, auth_expired transition 단일 macOS 알림, 계정·이유·다음 행동·last success·retry 시각을 `5617b9a`에 추가; stale/unavailable/429·반복 렌더에는 발화하지 않음. `windows/tokenjuice_tray.py`에는 native toast sender가 없어 실기기 test 전에 기능 구현·자동 회귀가 필요 |
+| UX9 메뉴바 상세 패널/compact | 구현 완료 / 실기기 검증 대기 | compact/notch 출력과 SwiftBar 설치본 비교 통과; `docs/VALIDATION_KIT.md` §3에 v1.2.2 checklist와 안전 절차 준비; 2026-10-09 CUA inventory에서 SwiftBar 미노출·SystemUIServer 비활성, 이전 `getApp` timeout(`-10005`)을 재확인해 실제 notch 시각 pass는 주장하지 않음 |
 | UX10 랜딩/설치 경로 | 코드 산출물 완료 / 사용자 검증 대기 | `279a260`: `companion/guide.html`의 가치·macOS/Windows/Pocket 설치·개인정보·FAQ·릴리스 링크; `37812922149` Pages 성공; `docs/VALIDATION_KIT.md` §1에 5명 신규 사용자 script 준비; 신규 사용자 5명 검증은 pending |
-| P1 7-day history/Usage Coach | 부분 구현/검증 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 최소 diary schema 준비; 시각적 trend·Usage Coach 우선순위는 실제 행동 전환 데이터 필요 |
+| P1 7-day history/Usage Coach | local history export 구현 / 제품 우선순위 근거 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 diary 실행 순서, 분모/판정 기준 보완; 시각적 trend·Usage Coach는 행동 전환 데이터와 의사결정 전까지 보류 |
 | P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture와 최신 38개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
-| P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자·provider 안전 adapter 검증 필요 |
+| P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자 지표와 provider 안전·정책 검증 필요; 의사결정 전 구현 보류 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
 최신 기능 코드 `12efce2`의 Engine verification `37812922211`, Windows build `37812922103`, Publish TokenJuice Pocket `37812922149`는 모두 성공했다. 정식 patch release `v1.2.2`는 tag commit `12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`에서 생성됐고 tagged workflow `37813141076`의 build/release가 성공했다. [v1.2.2 release](https://github.com/kendrick-na/tokenjuice/releases/tag/v1.2.2)의 macOS 엔진은 122,369 bytes, `sha256:be84b894ec70a97d4bc1a4104d1c8d3d9b4333f8bac9bd4ce818aaa6545f9cee`, Windows exe는 16,582,431 bytes, `sha256:abeed7e353f513de4c97f3ec29438d86274742e4750055b27ae285e8c66f0b64`이며 모두 uploaded다. Pocket 배포 URL은 HTTP 200을 반환한다. 이후 문서-only 커밋은 release asset을 변경하지 않는다. 완료 증거의 공통 기준은 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 통과다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.
+
+2026-10-09 추가 감사: CUA의 read-only app inventory에서 SwiftBar가 실행 중 앱으로 보이지 않고
+SystemUIServer도 비활성으로 표시됐다. 플러그인 실행이 실제 provider 자격증명을 읽을 수 있어
+앱을 새로 띄우지 않았다. notch presentation은 pending이다. 같은 날 macOS/Windows 소스 비교에서
+Windows tray renderer는 있으나 native toast sender는 없어 Windows toast는 실기기 gate가 아니라
+선행 구현 blocker로 분류한다. 실사용자 모집·동의·실기기 UI/알림 실행은 하지 않았다.
+
+같은 날 `--renew-login` 테스트의 고정 300ms 대기가 detached child의 fake CLI 로그보다 먼저
+끝나는 race를 단독 재현했다. 제품 갱신 코드는 변경하지 않고 테스트를 로그 발생 조건으로
+기다리게 수정했으며, targeted test와 전체 `scripts/release-verify.sh`가 통과했다
+(38 pass / 190 assertions). 검증 키트는 OS 알림을 실제 발화하는 격리 harness를 제공하지
+않으므로, 임시 HOME/config와 provider 자격증명 부재를 보장하는 실행 도구가 별도 준비되기 전에는
+실기기 notification을 실행하지 않는다.
 
 ### 17.1 UX6·UX8·UX9 자동 검증 연결표
 
