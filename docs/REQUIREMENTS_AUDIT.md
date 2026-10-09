@@ -35,8 +35,8 @@
 | R8 | secret-free copyable diagnostics | `--diagnostics`, `--copy-diagnostics`, diagnostics privacy test | 자동 검증 완료; 실제 support workflow는 pending |
 | R9 | first-run onboarding/permission/keychain choice | `--init-config`, `guide.html`, starter config test | artifact·자동 검증 완료; 신규 사용자 comprehension pending |
 | R10 | multi-account aliases/status | `loadAccounts()`, multi-directory test, menu labels | 코드·fixture 완료; 실제 Team/personal 계정 사용성 pending |
-| R11 | Windows/macOS meaning/alarm parity | shared JS engine, Windows build `37880424218`, Engine CI `37880424276` | tray/build/contract 완료; macOS·Windows tray 실제 presentation pending. Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성이 필요해 현재 범위에서 blocked |
-| R12 | mobile companion/widget | Pocket import/export/offline/encrypted bundle browser test, Pages `37812922149` | PWA local export 완료; native widget/retention pending |
+| R11 | Windows/macOS meaning/alarm parity | shared JS engine, Windows build `37885325588`, Engine CI `37885325573` | tray/build/contract 완료; macOS·Windows tray 실제 presentation pending. Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성이 필요해 현재 범위에서 blocked |
+| R12 | mobile companion/widget | Pocket import/export/offline/encrypted bundle browser test, Pages `37885325558` | PWA local export 완료; native widget/retention pending |
 | R13 | provider adapters | Copilot official-cost and local quota-file tests | 안전한 범위의 adapter 완료; extra provider policy/format validation pending |
 | R14 | optional sync | passphrase-only AES-GCM manual bundle test | manual local transfer 완료; CloudKit/automatic sync intentionally pending |
 | R15 | data contract/fixtures/regression | `docs/DATA_CONTRACT.md`, `tests/engine.test.js`, CI matrix | 자동 검증 완료; undocumented provider contracts remain risk |
@@ -59,7 +59,7 @@
 | UX7 | local-labeled forecast/action language | forecast tests and Pocket “리셋 전 소진 예상” assertion | code pass; diary/action conversion pending |
 | UX8 | per-account/window threshold/reset/reconnect and reason/next time | notification policy/override/reconnect tests; `CCB_TEST_NOTIFY_LOG` | macOS engine contract·sender pass; OS presentation pending. Windows toast는 현재 `pystray`/Pillow 패키징만으로는 안전하게 구현할 수 없어 기능·설치 경계 결정 전까지 blocked |
 | UX9 | detailed menu/tray panel and compact/notch safety | menu output, compact test, Windows CI, installed source match | code/build pass; physical notch and OS visual pending |
-| UX10 | value/install/privacy/OS/FAQ/release landing | `guide.html`, Pages CI `37812922149`, Pages HTTP 200 | artifact/deploy pass; new-user 5-person gate pending |
+| UX10 | value/install/privacy/OS/FAQ/release landing | `guide.html`, Pages CI `37885325558`, Pages HTTP 200 | artifact/deploy pass; new-user 5-person gate pending |
 | UX11 | choose native mobile platform only after PWA usage/waitlist evidence | PWA exists; no native implementation | intentionally pending; requires usage/waitlist evidence |
 | UX12 | validate free/paid boundary before payments | no payment/cloud code; strategy docs | intentionally pending; requires product/pricing/privacy decision |
 | P0 | Work Continuity Slice | Pocket decision hierarchy, metadata checkpoint, trust/context separation | code/test pass; user behavior gate pending |
@@ -83,7 +83,7 @@
 |---|---|---|
 | 5명 UX6/UX10 | 제품 담당자 + 참가자 5명 | `docs/VALIDATION_KIT.md` §1, synthetic demo, P01~P05 표 |
 | 10명 interview + 14일 diary | 제품 담당자 + 동의한 참가자 10명 | `docs/VALIDATION_KIT.md` §2, I01~I10, 최소 diary fields |
-| macOS notification/notch | TokenJuice 담당자 + macOS/notch 장비 보유자 | `scripts/notification-smoke.sh` dry-run으로 contract를 먼저 검증; 실제 Notification Center/notch는 `docs/VALIDATION_KIT.md` §3에서 별도 관찰 |
+| macOS notification/notch | TokenJuice 담당자 + macOS/notch 장비 보유자 | `./install.sh --doctor`로 baseline/source 불일치를 먼저 확인한다. 최신 source 설치는 기기 소유자가 명시적으로 승인할 때만 `CCB_YES=1 ./install.sh`를 실행하고 doctor source match 뒤 `scripts/notification-smoke.sh` dry-run 및 `docs/VALIDATION_KIT.md` §3 관찰을 진행 |
 | Windows tray UI | v1.2.2 Windows 장비 보유자 | `docs/VALIDATION_KIT.md` §3, 기존 실행본의 icon·tooltip·menu 관찰 |
 | Windows toast | 제품·설치 경계 결정자 + TokenJuice 구현 담당자 | 현재는 `blocked: implementation boundary`. 앱 identity/AUMID·Start Menu shortcut 또는 WinRT 의존성 선택과 event contract/격리 fixture 승인이 먼저다. 그 결정 이후에만 sender 회귀와 OS 실기기 presentation gate를 연다 |
 | native widget/Watch | 제품 의사결정자 + PWA usage/waitlist 데이터 | UX11 기준; 구현·결제는 보류 |

@@ -26,7 +26,7 @@
 - 목적: 신규 사용자가 Pocket/guide에서 위험 상태, 근거, 다음 행동, 설치 경로를 스스로 찾는지 확인한다.
 - 대상: 실제 참가자 5명. 개발자·연구자 여부는 분석 필드로 저장하지 않는다.
 - 시간: 1명당 20분(소개 2분, 과제 12분, 회고 4분, 철회/삭제 안내 2분).
-- 준비: `v1.2.2` release의 Pocket URL, synthetic demo 화면, 빈 기록표, 타이머.
+- 준비: 최신 GitHub Pages Pocket URL(현재 product source `c08fa49`가 배포된 URL), synthetic demo 화면, 빈 기록표, 타이머. `v1.2.2`는 immutable desktop release asset이므로 PWA source와 같은 버전이라고 가정하지 않는다.
 - 금지: 실제 설치·로그인·계정 연결·화면 녹화·스크린샷·브라우저 파일 업로드.
 
 ### Facilitator script
@@ -154,8 +154,9 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 
 ### 공통 사전조건
 
-- release: `v1.2.2`
-- tag commit: `12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`
+- immutable desktop baseline: `v1.2.2` / `12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`
+- current public PWA source: `c08fa49` (Pages workflow `37885325558` 성공). 이는 desktop release asset이 아니다.
+- desktop presentation은 **한 번에 하나의 기준만** 검증한다. 기존 `v1.2.2` 설치본을 관찰할 때는 tag 기준을, 사용자 승인 후 최신 소스를 설치했을 때는 현재 checkout 기준을 사용한다. 두 기준을 섞어 pass로 기록하지 않는다.
 - 실제 계정 대신 엔진 fixture 또는 synthetic config를 사용한다.
 - 기기 소유자가 현재 권한·집중 모드 상태를 직접 확인한다. 이 절차에서 설정을 열거나 바꾸지 않는다. 상태 확인을 원하지 않거나 권한이 꺼져 있으면 presentation은 pending이다.
 - 알림 payload의 내용은 이미 자동 fixture로 검증됐으므로, 여기서는 표시 여부·위치·중복·클릭 후
@@ -167,7 +168,7 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 
 ### macOS
 
-- [ ] SwiftBar 설치본이 `v1.2.2` release engine과 일치
+- [ ] 선택한 desktop 기준과 SwiftBar 설치본이 일치. 기존 baseline이면 `v1.2.2` tag와 비교하고, 최신 source 후보면 현재 checkout에서 `./install.sh --doctor`가 source match를 보고한 뒤에만 기록
 - [ ] Notification permission 허용 상태에서 threshold alert가 Notification Center에 표시
 - [ ] reconnect alert가 계정명·이유·다음 행동·retry 시각을 표시
 - [ ] 동일 상태 새로고침에서 duplicate toast가 발생하지 않음
@@ -191,7 +192,7 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 
 ### 실행 순서
 
-1. **Mac:** 기기 소유자가 SwiftBar와 TokenJuice release 설치본이 이미 실행 중인지 확인한다. 새로 실행하거나 플러그인·권한·집중 모드를 변경하지 않는다. 앱/UI가 없으면 notch는 `pending: app/UI unavailable`이다.
+1. **Mac:** 먼저 `./install.sh --doctor`로 읽기 전용 상태를 확인한다. 현재는 installed plugin이 source보다 오래됐다고 보고되는 것이 정상이며, 이 결과는 UI pass가 아니다. 기기 소유자가 최신 source 설치를 명시적으로 승인한 경우에만 현재 checkout에서 `CCB_YES=1 ./install.sh`를 실행하고, 다시 `./install.sh --doctor`가 source match를 보고한 뒤 아래 관찰을 한다. 승인 전에는 기존 release 설치본을 덮어쓰거나 새로 실행하지 않는다. 앱/UI가 없으면 notch는 `pending: app/UI unavailable`이다.
 2. Notification contract smoke는 macOS에서 `scripts/notification-smoke.sh`를 실행한다. 기본 모드는 분리된 임시 HOME/config, provider credential 부재, `CCB_TEST_USAGE_FIXTURE`, `CCB_TEST_NOTIFY_LOG`를 사용해 threshold → reset → reconnect를 각각 한 번씩 캡처하며 `osascript`를 호출하지 않는다. Linux/Windows에서는 명확히 skip한다. OS presentation은 이 harness의 통과와 별개로 pending이다. 실제 알림을 보려면 `--allow-os-notification`과 `TOKENJUICE_CONFIRM_OS_NOTIFICATION=I_UNDERSTAND_TOKENJUICE_WILL_NOTIFY`를 모두 명시해야 하며, 기기 소유자가 권한·집중 모드를 확인한 뒤 별도 실행해야 한다. 기본 프로필·credential·Keychain을 사용하지 않는다.
 3. **Windows:** 현재 toast 송신 기능이 없으므로 toast 테스트와 권한 조작은 하지 않는다. 기존 실행본이 있는 기기에서 tray icon·tooltip·menu만 관찰한다.
 4. 두 OS 모두 화면 캡처·알림 본문·계정 데이터를 수집하지 않는다. 실패는 defect ID와 OS major만 남긴다.
