@@ -63,7 +63,7 @@ TokenJuice의 시각적 방향은 화려한 대시보드가 아니라 **작업�
 
 - [ ] 7일 trend와 pace forecast를 quota 카드와 분리
 - [ ] account/provider별 reset·threshold·reconnect 설정 화면
-- [ ] session context 80%/90% 단계별 checkpoint CTA
+- [x] session context 80%/90% 단계별 checkpoint CTA (80% checkpoint 권장, 90% 새 세션 전환 준비; 클릭 시 로컬 스냅샷만 내보냄)
 - [ ] 작은 화면에서 핵심 카드만 먼저 보이고 상세는 접기
 - [ ] keyboard, VoiceOver/TalkBack, reduced motion, dynamic text 실기기 점검
 - [ ] 스크린샷과 실제 화면이 다른 문서 예시 제거

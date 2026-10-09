@@ -87,10 +87,10 @@ function codexSession({ usedPercent = 40, ageMin = 1, complete = false } = {}) {
   utimesSync(p, t, t);
 }
 
-function claudeSession(model = "claude-test") {
+function claudeSession(model = "claude-test", contextTokens = 50000) {
   write(".claude/projects/-tmp-demo/aaaa1111.jsonl", [
     JSON.stringify({ type: "user", cwd: "/tmp/demo-proj", message: { role: "user", content: `${SECRET_PROMPT} ${SECRET_EMAIL}` } }),
-    JSON.stringify({ type: "assistant", cwd: "/tmp/demo-proj", message: { model, usage: { input_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 50000 } } }),
+    JSON.stringify({ type: "assistant", cwd: "/tmp/demo-proj", message: { model, usage: { input_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: contextTokens } } }),
   ].join("\n") + "\n");
 }
 
@@ -470,6 +470,16 @@ test("session context is labelled separately from plan quota", () => {
   expect(menu).toContain("Claude session context · per conversation, not quota");
   expect(menu).toContain("Codex plan limits · account quota");
   expect(menu).toContain("local estimate · transcript tokens, not quota");
+});
+
+test("high context offers one explicit local checkpoint handoff", () => {
+  usage(200, okUsage());
+  claudeSession("claude-test", 168000); // 84% of the 200k Claude context window
+  const menu = run();
+  expect(menu).toContain("checkpoint 권장 · checkpoint용 로컬 스냅샷 내보내기");
+  expect(menu).toContain("param1=--export-widget-snapshot");
+  expect(menu).toContain("로컬 파일만 생성");
+  expect(menu).not.toContain("자동으로 새 세션");
 });
 
 test("session status is opt-in and explicitly marked as a local heuristic", () => {

@@ -586,6 +586,12 @@ function recoveryActionFor({ state, reason, stale } = {}) {
   return "";
 }
 
+function checkpointHandoffLabel(pct) {
+  return pct >= 90
+    ? "컨텍스트 임박 · 새 세션 전환 전 checkpoint용 로컬 스냅샷 내보내기"
+    : "checkpoint 권장 · checkpoint용 로컬 스냅샷 내보내기";
+}
+
 function fmtRetryAt(retryAt) {
   if (!retryAt || !Number.isFinite(Number(retryAt))) return "";
   const t = new Date(Number(retryAt));
@@ -2255,6 +2261,7 @@ if (activeClaudeSessions.length) {
       `id ${s.id}`,
     ].filter(Boolean).join("  ·  ");
     out.push(`--${meta} | font=Menlo size=11 color=#6b7280`);
+    if (s.pct >= 80) out.push(`--${checkpointHandoffLabel(s.pct)} (로컬 파일만 생성) | bash='${SELF}' param1=--export-widget-snapshot terminal=false`);
   });
 }
 
@@ -2305,6 +2312,7 @@ if (codex.items.length || existsSync(path.join(HOME, ".codex"))) {
         `id ${s.id}`,
       ].filter(Boolean).join("  ·  ");
       out.push(`--${meta} | font=Menlo size=11 color=#6b7280`);
+      if (s.pct >= 80) out.push(`--${checkpointHandoffLabel(s.pct)} (로컬 파일만 생성) | bash='${SELF}' param1=--export-widget-snapshot terminal=false`);
     });
   }
 }
