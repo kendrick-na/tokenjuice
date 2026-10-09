@@ -1307,7 +1307,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `49 pass`·`252 expect()` 엔진 회귀; opt-in reset-soon/Claude local forecast 구현, Codex 예측 미지원. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
+| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `51 pass`·`259 expect()` 엔진 회귀; opt-in reset-soon/Claude local forecast 구현, Codex 예측 미지원. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 멀티 계정·표시 구현 / Codex 멀티 계정·Windows toast 미구현 | `6cacedb` Engine `37886745999`, Windows `37886745975` 성공은 구현된 코드 범위만 증명. 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
@@ -1384,6 +1384,10 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   표본·알려진 reset 전 소진 조건, window override, 구간별 중복 방지와 수동 next action을
   fixture 3개로 검증했다. 현재 전체 49 tests/252 assertions 통과. Codex pace 예측은 없고
   Windows sender·실기기/사용자 acceptance는 별도 gate다.
+- P0 menu NOW의 quota 위험 정렬 역전도 수정했다. `used`는 제공자 사용률인데 이전
+  점수는 `100-used`라 여유 있는 창을 먼저 표시했다. 위험 점수를 used로 바꾸고 remaining
+  표시와 trust 경고 우선순위는 유지했다. Claude 다중 창·Codex 고사용률·context 경쟁 및
+  stale/unavailable 우선순위 회귀를 추가해 현재 51 tests/259 assertions가 통과했다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

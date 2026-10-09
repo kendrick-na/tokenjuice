@@ -114,10 +114,37 @@ test("fresh API reading is live and provider-reported", () => {
   expect(c.source).toBe("api");
   expect(c.kind).toBe("quota");
   expect(c.trust.level).toBe("live");
-  expect(run()).toContain("NOW · Claude · 5-hour · 80% left");
+  expect(run()).toContain("NOW · Claude · Weekly · 60% left");
   expect(c.items.map((i) => i.used)).toEqual([20, 40]);
   expect(typeof c.lastSuccessAt).toBe("number");
   expect(j.contractVersion).toBe(2);
+});
+
+test("NOW ranks quota depletion and context occupancy in the same risk direction", () => {
+  usage(200, okUsage(10, 85));
+  expect(run().split("\n").find((line) => line.startsWith("NOW ·"))).toContain("Claude · Weekly · 15% left");
+  cache("claude-0.json", {});
+  usage(200, okUsage(95, 20));
+  expect(run().split("\n").find((line) => line.startsWith("NOW ·"))).toContain("Claude · 5-hour · 5% left");
+  codexSession({ usedPercent: 98 });
+  const codexNow = run().split("\n").find((line) => line.startsWith("NOW ·"));
+  expect(codexNow).toContain("Codex");
+  expect(codexNow).toContain("2% left");
+});
+
+test("NOW shows high context before healthy quota but untrusted data before context", () => {
+  usage(200, okUsage(10, 20));
+  claudeSession("claude-test", 170000);
+  expect(run().split("\n").find((line) => line.startsWith("NOW ·"))).toContain("Claude context · 85% used");
+  config({ api: false });
+  const local = write(".claude/usage-cache.json", okUsage(10, 20));
+  const old = (Date.now() - 31 * 60000) / 1000;
+  utimesSync(local, old, old);
+  expect(run().split("\n").find((line) => line.startsWith("NOW ·"))).toContain("Claude · 업데이트 필요");
+  config({ api: true });
+  cache("claude-0.json", { ok: true, source: "api", at: Date.now() - 30 * 60000, items: [{ name: "5-hour", used: 10 }] });
+  usage(500);
+  expect(run().split("\n").find((line) => line.startsWith("NOW ·"))).toContain("Claude · 확인할 수 없음");
 });
 
 test("read-only API guard overrides persisted API configuration", () => {

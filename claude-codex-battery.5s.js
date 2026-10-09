@@ -2171,11 +2171,14 @@ claudes.forEach((cl, accountIndex) => {
   // A non-fresh reading is always more urgent than a number: it must not be
   // displaced by a lower but trustworthy quota from another account.
   if (state !== "fresh" && state !== "fallback") priorityCandidates.push({ score: 300, text: `NOW · ${accountLabel} · ${stateDisplayLabel(state)} · ${stateRecoveryHint(state)}` });
-  for (const item of cl.items || []) priorityCandidates.push({ score: 100 - Number(item.used), text: `NOW · ${accountLabel} · ${item.name} · ${Math.round(100 - Number(item.used))}% left` });
+  // Larger used-percent means higher depletion risk, just like context pct.
+  // Remaining-percent is only presentation text; sorting it descending would
+  // put the healthiest quota above the most depleted one.
+  for (const item of cl.items || []) priorityCandidates.push({ score: Number(item.used), text: `NOW · ${accountLabel} · ${item.name} · ${Math.round(100 - Number(item.used))}% left` });
 });
 const codexState = codex.state ?? (codex.items.length ? "fresh" : "unavailable");
 if ((codex.items.length || existsSync(path.join(HOME, ".codex"))) && codexState !== "fresh" && codexState !== "fallback") priorityCandidates.push({ score: 300, text: `NOW · Codex · ${stateDisplayLabel(codexState)} · ${stateRecoveryHint(codexState)}` });
-for (const item of codex.items || []) priorityCandidates.push({ score: 100 - Number(item.used), text: `NOW · Codex · ${item.name} · ${Math.round(100 - Number(item.used))}% left` });
+for (const item of codex.items || []) priorityCandidates.push({ score: Number(item.used), text: `NOW · Codex · ${item.name} · ${Math.round(100 - Number(item.used))}% left` });
 for (const session of [...activeClaudeSessions, ...activeCodexSessions]) priorityCandidates.push({ score: Number(session.pct) || 0, text: `NOW · ${session.platform === "claude" ? "Claude" : "Codex"} context · ${Math.round(Number(session.pct) || 0)}% used · local estimate` });
 const priority = priorityCandidates.sort((a, b) => b.score - a.score)[0];
 // Pixel-battery header. Sleep/wake staleness is handled outside the plugin:

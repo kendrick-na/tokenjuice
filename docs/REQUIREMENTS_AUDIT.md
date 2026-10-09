@@ -16,7 +16,7 @@
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 49 pass/252 expect, `scripts/release-verify.sh`, 기존 reset-soon Engine CI `37944170751`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude local pace 예측 알림 구현. Codex 예측 없음. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 51 pass/259 expect, `scripts/release-verify.sh`, 기존 forecast Engine CI `37944984558`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude local pace 예측 알림 구현. Codex 예측 없음. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -51,7 +51,7 @@
 | ID | 성공 기준 | Current evidence | 판정 |
 |---|---|---|---|
 | UX1 | shared state language/tokens across surfaces | `stateDisplayLabel()`, Pocket labels, shared engine, `tests/companion.test.py` | 코드 기준 완료; cross-OS visual parity pending |
-| UX2 | urgent-first NOW view with reset/forecast/source/CTA | Pocket `NOW/WHY/NEXT`, priority/context cards, demo/import browser test | 코드·browser 완료; 10-second user metric pending |
+| UX2 | urgent-first NOW view with reset/forecast/source/CTA | Pocket `NOW/WHY/NEXT`, priority/context cards, demo/import browser test; menu NOW risk-direction regression | menu quota 잔여량 역순 점수를 사용률 점수로 수정하고 Claude/Codex/context·untrusted 우선 회귀 추가. 코드·browser 범위 확인; 10-second user metric pending |
 | UX3 | stale/401/429/unavailable each has reason/action | engine state tests (`NEXT` recovery uniqueness), menu recovery branches, Pocket recovery assertions | stale/auth/rate-limit/missing-data는 단일 안내, 원인 불명 unavailable은 행동 미제안까지 코드·fixture 완료; real user recovery time pending |
 | UX4 | <=3-step first-run onboarding and privacy promise | empty state steps, guide/install FAQ, browser text assertions | artifact/browser 완료; 5-person onboarding comprehension pending |
 | UX5 | consumer Pocket empty/demo/import/offline/re-export flow | Pocket browser test, service worker/offline, checkpoint/privacy assertions | 코드·browser 완료; phone PWA/device acceptance pending |
@@ -236,3 +236,17 @@ reset-soon 커밋 `f1ed2c6`의 Engine `37944170751`·Windows `37944170598`는 su
 미래 소진과 알려진 reset 조건, window override, 구간별 중복 방지와 local-estimate/next-action
 문구를 구현했다. fixture 3개/14 assertions를 추가했다. Codex는 history/forecast 계산이
 없어 포함하지 않으며 Windows native sender·실기기·사용자 acceptance는 완료가 아니다.
+
+### 9.4 P0 menu NOW 위험 정렬 역전 수정
+
+`parseUsageItems()`의 `utilization`, Codex의 `used_percent`는 사용률이다. 기존
+quota score `100 - used`를 내림차순 정렬해, 90% 남은 창이 15% 남은 창 및 context
+85%보다 먼저 표시되는 것을 fixture로 재현했다. 잘못된 순서를 고정한 기존 assertion도
+수정했다. score만 `used`로 바꾸고 표시 문구는 remaining을 유지했다. 두 새 테스트에서
+Claude 여러 창·Codex 98% 사용·높은 context·stale local cache·HTTP 실패 우선순위를
+검증한다. 동일 단위의 사용률을 위험 순서로만 비교하며 quota와 context를 합산하지 않는다.
+
+직전 forecast 커밋 `39c6579` Engine `37944984558`·Windows `37944984754`는 success다.
+현재 local release-verify는 engine 51 pass/259 assertions, browser·bundle·syntax·격리
+notification 단계 통과 후 installed-source mismatch로 exit 1이다. 새 NOW 소스가
+현재 SwiftBar 설치본 또는 v1.2.2 자산에 이미 반영됐다고 주장하지 않는다.
