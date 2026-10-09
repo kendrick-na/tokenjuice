@@ -79,6 +79,18 @@ invalid quota는 snapshot·알림·pace history에 숫자를 제공하지 않는
 바꾸지 않는다. 이 utilization 검사는 reset/시각 필드·JSON 파일 문법 등 모든 provider
 스키마 검증 완료를 뜻하지 않는다. Desktop 별도 경로의 제한된 검사는 아래와 구분한다.
 
+Claude 내부 정규화 API cache의 존재하는 `at/observedAt/lastSuccessAt`은 양의 유한한
+Date-valid/nonfuture Unix ms 숫자여야 한다. 누락/null optional 시각의 기존 `at` fallback은
+유지한다. fresh cache는 존재하는 관측/성공 시각도 모두 60초 이내여야 하며 invalid cache는
+fresh와 HTTP 실패 후 fallback 양쪽에서 제외한다. 명시적으로 켠 API의 실제 정상 응답은
+현재 읽기 시각으로 회복할 수 있다. 기존 2시간 fallback 한계와 캐시 파일은 유지한다.
+Claude Code local usage-cache의 기존 파일 mtime 관측 방식도 유지하되 미래/불명/유효 범위
+밖 mtime은 `unavailable / invalid_timestamp / items: []`로 반환한다. 다른 local 후보/API로
+조용히 우회하지 않고 30분 fresh/stale 기준을 유지한다. 실패 관측은 `observedAt`에만 남길
+수 있고 실제 유효 성공이 없으면 `at/lastSuccessAt`은 null이다. 실패한 읽기를 현재 시각의
+성공으로 대체하지 않는다. 미래가 정상인 retryAt/reset, 일반 provider 시각 형식이나 OS
+시계 보정·시계 오차 허용 정책은 새로 정의하지 않는다.
+
 macOS Claude Desktop `samples[].u.fh/sd`는 숫자 또는 기존 reader가 지원한 비어 있지 않은
 숫자 문자열을 0~100 범위에서만 정규화한다. boolean/null/blank/배열/객체/비유한 수·범위
 밖 값은 clamp하지 않고 해당 표본을 제외한다. `t`도 같은 숫자/숫자 문자열 호환성을 유지하되

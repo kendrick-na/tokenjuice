@@ -7,6 +7,10 @@
 
 ### 변경
 
+- Claude API cache/local 파일의 미래·불명 관측 시각을 최신값/성공 fallback에서 제외한다.
+  실패 관측을 마지막 성공으로 승격하지 않고 정상 응답 뒤 회복과 기존 freshness 기준을
+  유지한다. local 미래 mtime은 `invalid_timestamp`로 안내한다. 설치본 변경은 아니다.
+
 - macOS Claude Desktop 표본의 잘못된 quota와 미래/불명 관측 시각을 제외한다.
   clamp·boolean/null/blank 강제 변환으로 숫자나 마지막 성공을 만들지 않는다.
   유효한 숫자 문자열·0/100·기존 표본 선택/소스 우선순위는 유지한다. 일반 provider

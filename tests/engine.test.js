@@ -190,6 +190,104 @@ test("60s cache: a second render makes no new request", () => {
   expect(calls()).toBe(1);
 });
 
+test("Claude API cache rejects future or invalid observations instead of fake fresh success", () => {
+  config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 20 } });
+  usage(500);
+  for (const field of ["at", "observedAt", "lastSuccessAt"]) {
+    for (const value of [Date.now() + 60000, "99", true, [], {}, 0, -1, 1e20]) {
+      cache("claude-0.fail.json", {});
+      const reading = { ok: true, source: "api", at: Date.now() - 1000, items: [{ name: "5-hour", used: 99 }] };
+      reading[field] = value;
+      cache("claude-0.json", reading);
+      const c = json().claude[0];
+      expect(c.state).toBe("unavailable");
+      expect(c.items).toEqual([]);
+      expect(c.lastSuccessAt).toBeNull();
+      expect(JSON.parse(run("--widget-snapshot")).claude[0].lastSuccessAt).toBeNull();
+      run();
+    }
+  }
+  expect(notifications()).toEqual([]);
+  expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
+  expect(calls()).toBe(24);
+  cache("claude-0.fail.json", {});
+  cache("claude-0.json", '{"ok":true,"source":"api","at":1e999,"items":[{"name":"5-hour","used":99}]}');
+  expect(json().claude[0].items).toEqual([]);
+  expect(json().claude[0].lastSuccessAt).toBeNull();
+  // A real successful refresh can replace rejected cached metadata.
+  cache("claude-0.fail.json", {});
+  usage(200, okUsage(20, 40));
+  expect(json().claude[0].state).toBe("fresh");
+  expect(json().claude[0].items.map((item) => item.used)).toEqual([20, 40]);
+});
+
+test("Claude local future mtime is unavailable and never becomes a successful observation", () => {
+  config({ api: false, forecast: { enabled: true }, notify: { enabled: true } });
+  const file = write(".claude/usage-cache.json", okUsage(99, 99));
+  const future = (Date.now() + 60000) / 1000;
+  utimesSync(file, future, future);
+  write(".claude/cache/usage-cache.json", okUsage(20, 40));
+  const c = json().claude[0];
+  expect(c.state).toBe("unavailable");
+  expect(c.reason).toBe("invalid_timestamp");
+  expect(c.items).toEqual([]);
+  expect(c.lastSuccessAt).toBeNull();
+  expect(c.observedAt).toBeLessThanOrEqual(Date.now());
+  expect(run()).toContain("사용량 기록 시각을 확인할 수 없어 숫자를 표시하지 않습니다");
+  expect(notifications()).toEqual([]);
+  expect(calls()).toBe(0);
+  expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
+});
+
+test("Claude observation validation preserves freshness boundaries and legacy nullable fields", () => {
+  const items = [{ name: "5-hour", used: 20 }];
+  usage(500);
+  for (const age of [59000, 61000, 119 * 60000, 121 * 60000]) {
+    cache("claude-0.fail.json", {});
+    const at = Date.now() - age;
+    cache("claude-0.json", { ok: true, source: "api", at, observedAt: null, lastSuccessAt: null, items });
+    const c = json().claude[0];
+    expect(c.state).toBe(age < 60000 ? "fresh" : "unavailable");
+    expect(c.items.map(({ name, used }) => ({ name, used }))).toEqual(age < 120 * 60000 ? items : []);
+    expect(c.lastSuccessAt).toBe(age < 120 * 60000 ? at : null);
+  }
+  cache("claude-0.fail.json", {});
+  const earlier = Date.now() - 61000;
+  cache("claude-0.json", { ok: true, source: "api", at: Date.now(), observedAt: earlier, lastSuccessAt: earlier, items });
+  expect(json().claude[0].state).toBe("unavailable");
+  expect(json().claude[0].lastSuccessAt).toBe(earlier);
+  config({ api: false });
+  const file = write(".claude/usage-cache.json", okUsage(20, 40));
+  for (const age of [29 * 60000, 31 * 60000]) {
+    const at = (Date.now() - age) / 1000;
+    utimesSync(file, at, at);
+    expect(json().claude[0].state).toBe(age < 30 * 60000 ? "fresh" : "stale");
+  }
+});
+
+test("Claude bad API timestamps do not suppress valid fallback or promote failed Desktop reads", () => {
+  usage(500);
+  const old = Date.now() - 31 * 60000;
+  const local = write(".claude/usage-cache.json", okUsage(20, 40));
+  utimesSync(local, old / 1000, old / 1000);
+  cache("claude-0.json", { ok: true, source: "api", at: Date.now() + 60000, items: [{ name: "5-hour", used: 99 }] });
+  const c = json().claude[0];
+  expect(c.state).toBe("unavailable");
+  expect(c.source).toBe("local");
+  expect(c.items.map((item) => item.used)).toEqual([20, 40]);
+  expect(Math.abs(c.lastSuccessAt - old)).toBeLessThan(2);
+  if (process.platform !== "darwin") return;
+  rmSync(path.join(home, ".claude"), { recursive: true });
+  write("Library/Application Support/Claude/plan-usage-history.json", { samples: [{ t: Date.now() - 60000, u: { fh: 12, sd: 30 } }] });
+  expect(json().claude[0].state).toBe("fallback");
+  expect(json().claude[0].items.map((item) => item.used)).toEqual([12, 30]);
+  write("Library/Application Support/Claude/plan-usage-history.json", { samples: [{ t: Date.now() + 60000, u: { fh: 12, sd: 30 } }] });
+  const failed = json().claude[0];
+  expect(failed.state).toBe("unavailable");
+  expect(failed.lastSuccessAt).toBeNull();
+  expect(failed.items).toEqual([]);
+});
+
 test("Claude rejects malformed API utilization without promoting old quota or emitting alerts", () => {
   config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 20, forecast: true } });
   const previous = { ok: true, source: "api", at: Date.now() - 120000, items: [{ name: "5-hour", used: 20 }] };

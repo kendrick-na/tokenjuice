@@ -390,11 +390,21 @@ function validClaudeCache(cached) {
   return Array.isArray(cached?.items) && cached.items.length > 0 && cached.items.every((item) =>
     item && typeof item === "object" && !Array.isArray(item) && typeof item.name === "string" && validQuotaPercent(item.used));
 }
+function validObservationTime(value, now = Date.now()) {
+  return Number.isFinite(value) && value > 0 && value <= now && Number.isFinite(new Date(value).getTime());
+}
+function validClaudeCacheObservations(cached) {
+  const times = [cached?.at, cached?.observedAt, cached?.lastSuccessAt];
+  return times.some((time) => time != null) && times.every((time) => time == null || validObservationTime(time));
+}
 function invalidClaudeQuota(source, observedAt = Date.now()) {
   // A failed read is not a last successful observation. Do not give usageState
   // an at/observedAt it could promote via its legacy success-time fallback.
   return { ok: false, items: [], reason: "invalid_quota",
-    ...usageState({ state: "unavailable", source }), observedAt };
+    ...usageState({ state: "unavailable", source }), observedAt: validObservationTime(observedAt) ? observedAt : Date.now() };
+}
+function invalidClaudeObservation(source) {
+  return { ...invalidClaudeQuota(source), reason: "invalid_timestamp" };
 }
 
 // Claude Code가 스스로 갱신하는 로컬 사용량 캐시 (버전에 따라 경로가 다르거나 없을 수 있음)
@@ -414,8 +424,9 @@ function readLocalUsageCache(acc = {}) {
       const items = parseUsageItems(d);
       if (items === null) return invalidClaudeQuota("local", statSync(f).mtimeMs);
       if (items.length) {
-        let at = Date.now();
-        try { at = statSync(f).mtimeMs; } catch {}
+        let at;
+        try { at = statSync(f).mtimeMs; } catch { return invalidClaudeObservation("local"); }
+        if (!validObservationTime(at)) return invalidClaudeObservation("local");
         const stale = Date.now() - at > 30 * 60 * 1000;
         return {
           ok: true, items, at, observedAt: at, lastSuccessAt: at,
@@ -941,7 +952,7 @@ async function getClaude(acc = {}, idx = 0) {
   const app = IS_MAC && idx === 0 ? readClaudeAppUsage() : null;
   // 1순위: Claude Code 로컬 사용량 캐시 (원본 dennykim123 방식) — 실시간·무네트워크·키체인 X
   const local = readLocalUsageCache(acc);
-  if (local?.reason === "invalid_quota") return local;
+  if (local?.reason === "invalid_quota" || local?.reason === "invalid_timestamp") return local;
   if (local?.state === "fresh") return local;
 
   // API 모드가 꺼져 있으면 → 키체인을 건드리지 않고 앱 값 또는 안내만 반환
@@ -962,7 +973,8 @@ async function getClaude(acc = {}, idx = 0) {
   if (existsSync(cacheFile)) {
     try {
       const cached = JSON.parse(readFileSync(cacheFile, "utf8"));
-      if (cached.at && Date.now() - cached.at < CLAUDE_TTL_MS) {
+      if (validClaudeCacheObservations(cached) && validObservationTime(cached.at)
+        && [cached.at, cached.observedAt ?? cached.at, cached.lastSuccessAt ?? cached.at].every((time) => Date.now() - time < CLAUDE_TTL_MS)) {
         if (!validClaudeCache(cached)) return invalidClaudeQuota(cached.source || "api");
         return {
           ...cached,
@@ -1054,7 +1066,7 @@ async function getClaude(acc = {}, idx = 0) {
     // "?" for it and the dropdown says how old it is.
     const cached = (() => { try { return JSON.parse(readFileSync(cacheFile, "utf8")); } catch { return null; } })();
     for (const c of [local, app?.ok ? app : null, cached]
-      .filter((c) => c?.ok && validClaudeCache(c) && (c.lastSuccessAt ?? c.at) && Date.now() - (c.lastSuccessAt ?? c.at) <= CLAUDE_CACHE_MAX_STALE_MS)
+      .filter((c) => c?.ok && validClaudeCache(c) && validClaudeCacheObservations(c) && (c.lastSuccessAt ?? c.at) && Date.now() - (c.lastSuccessAt ?? c.at) <= CLAUDE_CACHE_MAX_STALE_MS)
       .sort((a, b) => (b.lastSuccessAt ?? b.at) - (a.lastSuccessAt ?? a.at))) {
       const at = c.lastSuccessAt ?? c.at;
       return {
@@ -1084,6 +1096,9 @@ async function getClaude(acc = {}, idx = 0) {
       : /ENOENT|no such file/i.test(msg) ? "login" : "error";
     // Both sources are down: report the API cause and keep the app's last
     // sample for the dropdown note. Never show an old number as live.
+    const lastGoodSource = [app, local].find((reading) => validObservationTime(reading?.lastSuccessAt ?? reading?.at));
+    const lastGoodAt = lastGoodSource?.lastSuccessAt ?? lastGoodSource?.at ?? null;
+    const observedAt = app?.observedAt ?? local?.observedAt ?? null;
     return {
       ok: false,
       items: [],
@@ -1094,14 +1109,16 @@ async function getClaude(acc = {}, idx = 0) {
       ...usageState({
         state: failureState || "unavailable",
         source: app?.source || local?.source || "api",
-        at: app?.at ?? local?.at ?? null,
-        observedAt: app?.observedAt ?? local?.observedAt ?? null,
-        lastSuccessAt: app?.lastSuccessAt ?? local?.lastSuccessAt ?? null,
         retryAt,
         errorCode: failStatus,
         error: msg,
         refreshing,
       }),
+      // The legacy usageState helper derives success from observation. Failed
+      // reads have their own observation time and must not inherit that rule.
+      at: lastGoodAt,
+      observedAt: validObservationTime(observedAt) ? observedAt : null,
+      lastSuccessAt: lastGoodAt,
     };
   }
 }
@@ -2424,6 +2441,8 @@ for (let ai = 0; ai < accounts.length; ai++) {
     out.push("⚠️ 확인할 수 없음 · 잘못된 사용량 형식으로 숫자를 표시하지 않습니다 | size=12 color=#ffcc00");
     const retry = fmtRetryAt(cl.retryAt);
     if (retry) out.push(`--다음 확인 ${retry} · 그때까지 API를 재호출하지 않습니다 | size=11 color=#8b949e`);
+  } else if (cl.reason === "invalid_timestamp") {
+    out.push("⚠️ 확인할 수 없음 · 사용량 기록 시각을 확인할 수 없어 숫자를 표시하지 않습니다 | size=12 color=#ffcc00");
   } else if (cl.reason === "auth" || state === "auth_expired") {
     out.push("🔐 다시 연결 필요 · Claude 로그인 만료 (실시간 숫자 없음) | size=12 color=#ff453a");
     if (cl.appLast) {
