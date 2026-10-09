@@ -1307,21 +1307,22 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 코드·자동 검증 완료 / 외부 gate 대기 | `CHANGELOG.md`, 최신 `38 pass`·`190 expect()` 엔진 회귀, release-verify; 실계정·OS notification presentation은 `docs/REQUIREMENTS_AUDIT.md`에 pending으로 분리 |
-| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 코드·CI 완료 / 실기기·신규 설치 대기 | 최신 Engine `37881044425`, Windows `37881044414` 성공; 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
-| P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline browser test; `37812922149` Pages 성공; 2026-10-09 로컬 `tests/companion.test.py` 재실행 통과; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
+| v1.1 신뢰성 엔진·알림·진단 | 코드·자동 검증 완료 / 외부 gate 대기 | 최신 `42 pass`·`217 expect()` 엔진 회귀; release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
+| v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | 코드·CI 완료 / 실기기·신규 설치 대기 | `6cacedb` Engine `37886745999`, Windows `37886745975` 성공; 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
+| P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
-| UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `12efce2`: 375px·1280px overflow, 200% large text, keyboard focus order/outline, ARIA name/landmark, 44px target, reduced-motion emulation, dark token contrast와 light preference 회귀를 browser test로 검증; `docs/VALIDATION_KIT.md` §1의 5명 script/기록표 준비; 스크린리더 수동 점검·실사용자 5명은 pending |
+| UX6 접근성·375px·5명 사용성 | 자동 기준 검증 완료 / 사용자 검증 대기 | `6cacedb`: 375px detail disclosure, Enter keyboard, 44px target browser test; Engine/Windows/Publish `37886745999`/`37886745975`/`37886745971` 성공. 스크린리더·실기기 notch/tray·실사용자 5명은 pending |
 | UX7 행동형 forecast | 구현 완료 | `85858a3`; opt-in local pace forecast를 Pocket snapshot까지 전달 |
-| UX8 알림 센터/설정 UX | macOS engine sender·payload 구현 / OS presentation 대기; Windows toast 경계 승인 대기 | 계정별 opt-in `reconnect`, auth_expired transition 단일 macOS 알림, 계정·이유·다음 행동·last success·retry 시각을 `5617b9a`에 추가; stale/unavailable/429·반복 렌더에는 발화하지 않음. Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성이 필요해 현재 패키징 경계에서 구현하지 않음 |
-| UX9 메뉴바 상세 패널/compact | 구현 완료 / 실기기 검증 대기 | compact/notch 출력과 SwiftBar 설치본 비교 통과; `docs/VALIDATION_KIT.md` §3에 v1.2.2 checklist와 안전 절차 준비; 2026-10-09 CUA inventory에서 SwiftBar 미노출·SystemUIServer 비활성, 이전 `getApp` timeout(`-10005`)을 재확인해 실제 notch 시각 pass는 주장하지 않음 |
-| UX10 랜딩/설치 경로 | 코드 산출물 완료 / 사용자 검증 대기 | `279a260`: `companion/guide.html`의 가치·macOS/Windows/Pocket 설치·개인정보·FAQ·릴리스 링크; `37812922149` Pages 성공; `docs/VALIDATION_KIT.md` §1에 5명 신규 사용자 script 준비; 신규 사용자 5명 검증은 pending |
+| UX8 알림 센터/설정 UX | 데스크톱 로컬 설정 구현 / Pocket 제품·보안 결정 대기; OS presentation·Windows toast 승인 대기 | 기존 local per-target threshold/reset와 계정 reconnect 알림은 엔진 fixture로 검증. `016a60a`: Pocket snapshot에는 설정 override가 없고 Mac config.json을 쓰는 경로도 없으므로 모바일 설정 적용은 전송·동의·제품·보안 설계가 선행돼야 함. 알림 설정과 실제 인증 갱신은 별개. Windows native toast는 identity/shortcut 또는 WinRT 의존성 결정 필요 |
+| UX9 메뉴바 상세 패널/compact | 코드·build 완료 / 설치본·실기기 검증 대기 | compact 출력·NOW 우선순위·단일 복구·checkpoint CTA의 엔진 회귀와 Windows CI 통과. 현재 release-verify의 SwiftBar 설치본 비교는 불일치. notch/tray 잘림·가독성과 실제 sleep/wake는 `docs/VALIDATION_KIT.md` §3 실기기 gate |
+| UX10 랜딩/설치 경로 | 코드·배포 완료 / 사용자 검증 대기 | `6cacedb` Pages `37886745971` 성공. `17d02c8`은 README의 두 구버전 이미지를 historical example로 표시하고 파일은 보존; 최신 UI 또는 immutable v1.2.2 화면 증거로 취급하지 않음. 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | local history export 구현 / 제품 우선순위 근거 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 diary 실행 순서, 분모/판정 기준 보완; 시각적 trend·Usage Coach는 행동 전환 데이터와 의사결정 전까지 보류 |
-| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture와 최신 38개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
+| P1 작은 화면·checkpoint·설정 | 안전한 로컬 subset 완료 / history·제품·보안 gate 대기 | `679f079` 80%/90% 로컬 checkpoint 내보내기 CTA; `6cacedb` 상태·NEXT를 유지하고 상세만 접는 Pocket disclosure. trend/Usage Coach는 실제 시계열 snapshot 계약·10명 interview·14일 diary 근거 대기; `016a60a` Pocket 설정 경계는 제품·보안 결정 전 gated |
+| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture를 포함한 현재 42개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자 지표와 provider 안전·정책 검증 필요; 의사결정 전 구현 보류 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
-최신 기능 코드 `12efce2`의 Engine verification `37812922211`, Windows build `37812922103`, Publish TokenJuice Pocket `37812922149`는 모두 성공했다. 정식 patch release `v1.2.2`는 tag commit `12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`에서 생성됐고 tagged workflow `37813141076`의 build/release가 성공했다. [v1.2.2 release](https://github.com/kendrick-na/tokenjuice/releases/tag/v1.2.2)의 macOS 엔진은 122,369 bytes, `sha256:be84b894ec70a97d4bc1a4104d1c8d3d9b4333f8bac9bd4ce818aaa6545f9cee`, Windows exe는 16,582,431 bytes, `sha256:abeed7e353f513de4c97f3ec29438d86274742e4750055b27ae285e8c66f0b64`이며 모두 uploaded다. Pocket 배포 URL은 HTTP 200을 반환한다. 이후 문서-only 커밋은 release asset을 변경하지 않는다. 완료 증거의 공통 기준은 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 통과다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.
+과거 v1.2.2 기준 코드 `12efce2`의 Engine verification `37812922211`, Windows build `37812922103`, Publish TokenJuice Pocket `37812922149`는 모두 성공했다. 정식 patch release `v1.2.2`는 tag commit `12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`에서 생성됐고 tagged workflow `37813141076`의 build/release가 성공했다. [v1.2.2 release](https://github.com/kendrick-na/tokenjuice/releases/tag/v1.2.2)의 macOS 엔진은 122,369 bytes, `sha256:be84b894ec70a97d4bc1a4104d1c8d3d9b4333f8bac9bd4ce818aaa6545f9cee`, Windows exe는 16,582,431 bytes, `sha256:abeed7e353f513de4c97f3ec29438d86274742e4750055b27ae285e8c66f0b64`이며 모두 uploaded로 기록됐다. 당시 Pocket 배포 URL의 HTTP 200 확인도 과거 기록이다. 이후 문서-only 커밋은 release asset을 변경하지 않는다. 전체 출시 완료에는 코드 변경, 자동 테스트, 문서 반영, `scripts/release-verify.sh` 전체 통과가 필요하다. 실기기·사용자 모집·보안 정책이 필요한 항목은 코드가 존재하더라도 완료로 승격하지 않는다.
 
 2026-10-09 추가 감사: CUA의 read-only app inventory에서 SwiftBar가 실행 중 앱으로 보이지 않고
 SystemUIServer도 비활성으로 표시됐다. 플러그인 실행이 실제 provider 자격증명을 읽을 수 있어
@@ -1336,6 +1337,10 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
 않으므로, 임시 HOME/config와 provider 자격증명 부재를 보장하는 실행 도구가 별도 준비되기 전에는
 실기기 notification을 실행하지 않는다.
 
+최신 Pocket 배포는 `6cacedb`이며 Engine [37886745999](https://github.com/kendrick-na/tokenjuice/actions/runs/37886745999), Windows [37886745975](https://github.com/kendrick-na/tokenjuice/actions/runs/37886745975), Pages [37886745971](https://github.com/kendrick-na/tokenjuice/actions/runs/37886745971)가 모두 success임을 GitHub에서 확인했다. 위 `12efce2` 릴리스 기록은 immutable v1.2.2의 과거 기준이며 현재 PWA 소스와 구분한다.
+
+`17d02c8`(README historical 이미지 표기)과 `016a60a`(Pocket 설정 경계)는 문서만 변경했다. `.github/workflows/engine-verify.yml`, `windows-build.yml`, `companion-pages.yml`의 push paths에 해당 문서 경로가 없고 두 커밋의 run도 없다. 문서 변경이 새 CI/Pages 배포를 뜻하지 않는다. 이번 문서 정합성 검증의 release-verify 결과는 엔진 42 pass/217 assertions·브라우저·번들·스크립트·알림 dry-run 자동 단계 통과, 마지막 SwiftBar 설치본 불일치로 exit 1이다. 설치본 갱신, notch/tray·스크린리더 실기기 확인, 5명 사용성, 10명 인터뷰·14일 diary는 pending이다.
+
 ### 17.1 UX6·UX8·UX9 자동 검증 연결표
 
 | 기준 | 자동 검증 증거 | 자동화로 대체하지 않는 실제 게이트 |
@@ -1348,7 +1353,7 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
 | prefers-reduced-motion | `emulate_media(reduced_motion="reduce")` 후 dashboard animation duration `<=0.01s` 검사; CSS 마지막 media override로 precedence 보장 | 멀미·인지 부담에 대한 사용자 평가 |
 | light/dark contrast 범위 | 현재 제품이 dark token set임을 `color-scheme: dark`로 고정하고, dark 및 light preference 에뮬레이션 양쪽에서 ink/muted/faint/teal 대 panel-2 대비 `>=4.5:1` 검사 | 별도 light theme는 구현 대상이 아니므로 light palette acceptance는 pending이 아니라 제품 범위 밖 |
 | UX8 OS notification | 엔진 fixture가 account reconnect opt-in, auth_expired transition 단일 발화, stale/unavailable/429 제외, threshold/reset 이유와 retry 시각을 검증; `CCB_TEST_NOTIFY_LOG`로 payload만 확인 | 실제 macOS Notification Center·Windows toast 표시, 권한·방해금지·스케줄링 |
-| UX9 compact/notch | compact override와 SwiftBar 설치본 일치, Windows 공통 엔진·CI를 자동 검증 | 2026-10-09 CUA 관찰은 SwiftBar timeout(`-10005`)으로 실패; 실제 notch Mac에서 icon clipping·가독성은 여전히 물리 장치 필요 |
+| UX9 compact/notch | compact override와 Windows 공통 엔진·CI 검증 통과; 현재 SwiftBar 설치본 비교는 불일치 | 설치본 갱신과 실제 notch/tray에서 icon clipping·가독성 확인 필요 |
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

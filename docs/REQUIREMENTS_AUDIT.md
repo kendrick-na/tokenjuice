@@ -7,8 +7,8 @@
 실사용자·실기기·정책 결정을 대신하지 않는다.
 
 기준 release asset은 `v1.2.2` (`12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`)다.
-2026-10-09 최신 public-beta 소스 기준은 `c08fa49`이며, 이 커밋의 Engine verification
-`37885325573`, Windows build `37885325588`, Publish TokenJuice Pocket `37885325558`은 모두
+2026-10-09 최신 배포된 Pocket PWA 소스 기준은 `6cacedb`이며, 이 커밋의 Engine verification
+`37886745999`, Windows build `37886745975`, Publish TokenJuice Pocket `37886745971`은 모두
 성공했다. 이는 GitHub Pages의 PWA 소스 배포 증거이며, immutable macOS/Windows release asset이나
 실기기 acceptance를 대체하지 않는다.
 
@@ -16,7 +16,7 @@
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, `tests/engine.test.js` 41 pass/213 expect, `scripts/release-verify.sh`, Engine CI `37885325573`, macOS notification dry-run | 실계정·OS notification presentation은 별도. 코드/자동 검증 완료 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, `tests/engine.test.js` 42 pass/217 expect, `scripts/release-verify.sh`, Engine CI `37886745999`, macOS notification dry-run | 실계정·OS notification presentation은 별도. 코드/자동 검증 완료; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -55,15 +55,15 @@
 | UX3 | stale/401/429/unavailable each has reason/action | engine state tests (`NEXT` recovery uniqueness), menu recovery branches, Pocket recovery assertions | stale/auth/rate-limit/missing-data는 단일 안내, 원인 불명 unavailable은 행동 미제안까지 코드·fixture 완료; real user recovery time pending |
 | UX4 | <=3-step first-run onboarding and privacy promise | empty state steps, guide/install FAQ, browser text assertions | artifact/browser 완료; 5-person onboarding comprehension pending |
 | UX5 | consumer Pocket empty/demo/import/offline/re-export flow | Pocket browser test, service worker/offline, checkpoint/privacy assertions | 코드·browser 완료; phone PWA/device acceptance pending |
-| UX6 | contrast, 44px, keyboard, screen reader, 375px/desktop/dark/reduced motion | `tests/companion.test.py`, `docs/VALIDATION_KIT.md` §1/§3 | machine criteria pass; screen reader and 5-person gate pending |
+| UX6 | contrast, 44px, keyboard, screen reader, 375px/desktop/dark/reduced motion | `6cacedb` Pocket disclosure + `tests/companion.test.py`; Engine/Windows/Publish runs `37886745999`/`37886745975`/`37886745971` success | machine criteria pass only; screen reader, physical notch/tray, and 5-person gate pending |
 | UX7 | local-labeled forecast/action language | forecast tests and Pocket “리셋 전 소진 예상” assertion | code pass; diary/action conversion pending |
 | UX8 | per-account/window threshold/reset/reconnect and reason/next time | desktop notification policy/override/reconnect tests; `CCB_TEST_NOTIFY_LOG` | macOS engine contract·sender pass; Pocket snapshot deliberately excludes overrides, so mobile settings are gated pending a product/security decision rather than writing Mac `config.json`. OS presentation pending. Windows toast는 현재 `pystray`/Pillow 패키징만으로는 안전하게 구현할 수 없어 기능·설치 경계 결정 전까지 blocked |
-| UX9 | detailed menu/tray panel and compact/notch safety | menu output, compact test, Windows CI, installed source match | code/build pass; physical notch and OS visual pending |
+| UX9 | detailed menu/tray panel and compact/notch safety | menu output, compact test, Windows CI; release-verify의 설치본 비교는 불일치 | code/build pass; 설치본 갱신·physical notch·OS visual pending |
 | UX10 | value/install/privacy/OS/FAQ/release landing | `guide.html`, Pages CI `37885325558`, Pages HTTP 200 | artifact/deploy pass; new-user 5-person gate pending |
 | UX11 | choose native mobile platform only after PWA usage/waitlist evidence | PWA exists; no native implementation | intentionally pending; requires usage/waitlist evidence |
 | UX12 | validate free/paid boundary before payments | no payment/cloud code; strategy docs | intentionally pending; requires product/pricing/privacy decision |
 | P0 | Work Continuity Slice | Pocket decision hierarchy, metadata checkpoint, trust/context separation | code/test pass; user behavior gate pending |
-| P1 | Usage Coach/history/compact surfaces | history export, developer evidence, statusline, forecast, 80%/90% local checkpoint handoff, small-screen detail disclosure browser test | safe local subset implemented; coach/trend behavior evidence pending |
+| P1 | Usage Coach/history/compact surfaces | history export, developer evidence, statusline, forecast, 80%/90% local checkpoint handoff, `6cacedb` small-screen disclosure browser test | safe local subset implemented; coach/trend requires a real history/export contract and behavior evidence; Pocket settings are product/security-gated |
 | P2 | developer integrations/widgets/providers | JSON/history/statusline/local adapter/manual bundle | webhook/native widget/Watch/extra policy-gated connectors pending |
 
 ## 4. Mismatch corrections made by this audit
@@ -72,6 +72,7 @@
   v1.1/v1.2/UX1~UX10 상태를 코드·자동 검증 완료와 외부 gate pending으로 분리한다.
 - `tests/companion.test.py`의 automated accessibility pass는 실제 VoiceOver/NVDA,
   Dynamic Type, 손가락 hit slop, notification permission, notch hardware를 증명하지 않는다.
+- `17d02c8`은 README 이미지를 historical example로 표시하고, `016a60a`는 Pocket 설정의 제품·보안 gate를 기록한다. 두 커밋의 변경 경로와 `.github/workflows/{engine-verify,windows-build,companion-pages}.yml`의 push paths를 대조했다. README와 해당 계획·감사 문서는 어느 필터에도 포함되지 않으며 실제 run 목록에도 두 커밋 실행이 없다. 따라서 CI/Pages 성공을 새로 주장하지 않는다. 로컬 release-verify는 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1)이며 배포 증거와 구분한다.
 - `v1.2.2` release asset은 `12efce2` tag에서 생성된 immutable asset이다. 문서-only
   `0064b72`는 release asset이나 CI 결과를 변경하지 않는다.
 - light preference는 별도 light theme를 제공한다는 뜻이 아니다. 현재 제품은 dark token set을
