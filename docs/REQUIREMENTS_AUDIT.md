@@ -520,3 +520,13 @@ null 창 건너뛰기는 유지한다. event timestamp/pace/context/reset 계약
 release-verify 자동 browser/bundle/syntax/격리 알림/diff 단계는 통과했지만 마지막 설치본
 불일치로 전체 exit 1이다. 후속 CI는 아래에 기록한다. 설치본/실기기/사용성/인터뷰/스토어/전체 resume 및 Coach gate는
 계속 pending이며 Pocket `4d326d3`/sw v11·desktop v1.2.2는 유지한다.
+
+소스 `dce7fdad046723ef687b98ea5c0171941dbd5c8b`의 Engine
+[37960615176](https://github.com/kendrick-na/tokenjuice/actions/runs/37960615176)와 Windows
+[37960615317](https://github.com/kendrick-na/tokenjuice/actions/runs/37960615317)는 모두 success다.
+Linux/macOS 엔진·Pocket browser·bundle 검증과 Windows engine/selftest/exe build/run/artifact를
+통과했다. macOS 로그의 새 Codex 시각 fixture 두 개와 75 pass/825 assertions도 확인했다.
+tag가 없어 release는 skipped이며 Pages 변경 대상이 아니다. 문서/CI 완료는 실제 설치본
+변경이나 기기/사용자 검증 완료를 뜻하지 않는다. 설치 승인에 기대지 않고 다음 독립 코드
+후보는 audit의 계약/consumer·재현 가능성을 확인한 뒤 착수한다. 미정 reset/시계/보안 계약을
+임의로 보완해 전체 완료로 선언하지 않는다.

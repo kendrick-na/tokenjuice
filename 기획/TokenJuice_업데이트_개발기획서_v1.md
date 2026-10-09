@@ -1488,6 +1488,12 @@ fallback 전에 차단했다. 두 fixture/19 assertions로 정상 관측 뒤 회
 바꾸지 않았다. 공개 Pocket/desktop asset 및 실제 설치본은 유지하며 사용자·실기기·스토어/
 전체 resume·trend/Coach gate는 계속 pending이다. 상세는 `docs/REQUIREMENTS_AUDIT.md` §9.13 참조.
 
+로컬 75 pass/825 assertions·release-verify 자동 단계는 통과했으며 설치본 불일치로 전체
+exit 1이다. `dce7fda`의 Engine [37960615176](https://github.com/kendrick-na/tokenjuice/actions/runs/37960615176)·
+Windows [37960615317](https://github.com/kendrick-na/tokenjuice/actions/runs/37960615317)는
+success다. macOS 새 두 fixture/75 pass/825 assertions 및 Windows exe build/run을 확인했다.
+release는 skipped, Pages 변경 대상은 아니며 설치/실기기·사용자 gate는 그대로다.
+
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
 스토어 심사 완료를 기다리지 않고 실제 피드백을 받기 위해 출시 채널을 분리한다. 현재 실행 계획과 체크리스트는 [`docs/LAUNCH_FEEDBACK_PLAN.md`](../docs/LAUNCH_FEEDBACK_PLAN.md)에 기록한다.
