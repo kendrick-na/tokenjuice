@@ -12,7 +12,12 @@
   Windows toast·Pocket 설정 동기화를 추가한 것은 아니다.
 - Claude 로컬 pace 예측 소진 알림을 별도 opt-in으로 추가했다. history 수집과 알림 동의는
   분리하고, fresh·최근 관측·충분한 표본·알려진 미래 reset 비교와 구간별 중복 방지를
-  적용한다. Codex pace 예측은 아직 제공하지 않는다.
+  적용한다.
+- Codex 단일 프로필의 로컬 pace history/예측과 소진 알림을 추가했다. Claude와 수집/알림
+  opt-in을 각각 분리하고, fresh 이벤트 timestamp·알려진 미래 reset·충분한 관측을 요구한다.
+  창 역할/길이/reset별 불투명 key, 중복 방지, 7일 history export와 메뉴/developer/widget
+  표시를 지원한다. session path·prompt·account ID를 history에 기록하지 않는다. 다중 Codex
+  계정이나 Windows native toast, 기존 설치본/공개 release asset 업데이트를 의미하지 않는다.
 - Pocket 첫 화면에 대상 사용자(Claude Code·Codex를 자주 쓰는 사람)와 수동 스냅샷 방식,
   자동 동기화·앱스토어 미지원 상태를 명시했다.
 - 가져오기 직후 스냅샷 최신성을 함께 알리고, 암호화 번들의 암호 입력을 취소했을 때도

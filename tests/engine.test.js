@@ -95,6 +95,17 @@ function claudeSession(model = "claude-test", contextTokens = 50000) {
   ].join("\n") + "\n");
 }
 
+function codexPaceSample({ at, primaryUsed = 10, secondaryUsed = 20, reset, secondaryReset = reset, minutes = 300, timestamp = true }) {
+  const file = codexSession();
+  const rows = readFileSync(file, "utf8").trim().split("\n").map((row) => JSON.parse(row));
+  const event = rows.find((row) => row.payload?.rate_limits);
+  if (timestamp) event.timestamp = new Date(at).toISOString();
+  event.payload.rate_limits.primary = { used_percent: primaryUsed, window_minutes: minutes, resets_at: reset };
+  event.payload.rate_limits.secondary = { used_percent: secondaryUsed, window_minutes: 10080, resets_at: secondaryReset };
+  writeFileSync(file, rows.map((row) => JSON.stringify(row)).join("\n") + "\n");
+  return file;
+}
+
 beforeEach(() => {
   home = mkdtempSync(path.join(os.tmpdir(), "tj-test-"));
   fx = path.join(home, "usage-fixture.json");
@@ -610,6 +621,75 @@ test("forecast target override and read-only exports cannot accidentally alert",
   expect(notifications()).toEqual([]);
   run(); run();
   expect(notifications().filter((n) => n.includes("forecast alert"))).toHaveLength(1);
+});
+
+test("Codex pace needs separate consent and exports no session or account identifiers", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200;
+  config({ api: false, forecast: { enabled: true }, notify: { enabled: true, forecast: true } });
+  codexPaceSample({ at: now, reset });
+  expect(json().codex.every((item) => item.forecast === null)).toBe(true);
+  expect(existsSync(path.join(home, ".cache/claude-codex-battery/codex-quota-history.json"))).toBe(false);
+  const claudeHistoryBefore = readFileSync(path.join(home, ".cache/claude-codex-battery/quota-history.json"), "utf8");
+  config({ api: false, codexForecast: { enabled: true }, notify: { enabled: true, threshold: 1, forecast: true } });
+  codexPaceSample({ at: now - 12 * 60000, reset });
+  expect(json().codex.every((item) => item.forecast === null)).toBe(true);
+  codexPaceSample({ at: now, reset, primaryUsed: 40, secondaryUsed: 50 });
+  const output = json();
+  expect(output.codex.map((item) => item.forecast.samples)).toEqual([2, 2]);
+  expect(output.codex.every((item) => item.forecast.kind === "local_pace_estimate" && item.forecast.beforeReset)).toBe(true);
+  expect(run()).toContain("Pace estimate (local, 2 samples)");
+  expect(run("--developer")).toContain("Codex 5-hour: local pace estimate · samples=2");
+  expect(JSON.parse(run("--widget-snapshot")).codex.items.every((item) => item.forecast.samples === 2)).toBe(true);
+  run(); // Claude alert opt-in does not enable Codex forecast alerts.
+  expect(notifications()).toEqual([]);
+  expect(run("--notify-codex-forecast-on")).toContain("codexForecast=true");
+  run("--json"); run("--text"); run("--widget-snapshot");
+  expect(notifications()).toEqual([]);
+  run(); run();
+  expect(notifications().filter((n) => n.includes("forecast alert") && n.includes("Codex"))).toHaveLength(2);
+  const history = JSON.parse(run("--codex-forecast-history"));
+  expect(history.observations).toHaveLength(4);
+  expect(new Set(history.observations.map((row) => row.key)).size).toBe(2);
+  expect(history.observations.every((row) => /^cw_[a-f0-9]{64}$/.test(row.key) && Object.keys(row).sort().join(",") === "at,key,used")).toBe(true);
+  expect(JSON.stringify(history)).not.toContain(home);
+  expect(JSON.stringify(history)).not.toContain(SECRET_PROMPT);
+  expect(JSON.stringify(history)).not.toContain(SECRET_EMAIL);
+  expect(readFileSync(path.join(home, ".cache/claude-codex-battery/quota-history.json"), "utf8")).toBe(claudeHistoryBefore);
+});
+
+test("Codex pace rejects unknown, expired and stale reset samples, not file mtime", () => {
+  const now = Date.now();
+  config({ api: false, codexForecast: { enabled: true }, notify: { enabled: true, threshold: 1, codexForecast: true } });
+  for (const options of [
+    { at: now, reset: null }, { at: now, reset: 0 }, { at: now, reset: Math.floor(now / 1000) - 60 },
+    { at: now, reset: Math.floor(now / 1000) + 7200, timestamp: false },
+    { at: now - 30 * 60000, reset: Math.floor(now / 1000) + 7200 },
+    { at: now + 60000, reset: Math.floor(now / 1000) + 7200 },
+    { at: now, reset: Math.floor(now / 1000) + 7200, minutes: null, secondaryReset: null },
+  ]) {
+    codexPaceSample(options);
+    expect(json().codex.every((item) => item.forecast === null)).toBe(true);
+    run();
+  }
+  expect(JSON.parse(run("--codex-forecast-history")).observations).toEqual([]);
+  expect(notifications()).toEqual([]);
+});
+
+test("Codex pace isolates reset periods and role keys even with identical display labels", () => {
+  const now = Date.now(), reset = Math.floor(now / 1000) + 7200;
+  config({ api: false, codexForecast: { enabled: true }, notify: { enabled: true, threshold: 1, codexForecast: true } });
+  codexPaceSample({ at: now - 12 * 60000, reset, minutes: 10080 }); json();
+  codexPaceSample({ at: now, reset, minutes: 10080, primaryUsed: 40, secondaryUsed: 50 });
+  expect(json().codex.map((item) => item.forecast.samples)).toEqual([2, 2]);
+  run(); run();
+  expect(notifications().filter((n) => n.includes("forecast alert"))).toHaveLength(2);
+  codexPaceSample({ at: now, reset, minutes: 10080, primaryUsed: "40", secondaryUsed: 101 });
+  expect(json().codex.every((item) => item.forecast === null)).toBe(true);
+  codexPaceSample({ at: now + 1, reset: reset + 7200, minutes: 10080, primaryUsed: 5, secondaryUsed: 10 });
+  expect(json().codex.every((item) => item.forecast === null)).toBe(true);
+  const file = codexPaceSample({ at: now, reset, primaryUsed: 40, secondaryUsed: 50 });
+  utimesSync(file, (now - 2 * 3600e3) / 1000, (now - 2 * 3600e3) / 1000);
+  expect(json().codex.every((item) => item.forecast === null)).toBe(true);
 });
 
 test("--json and --text never send notifications", () => {

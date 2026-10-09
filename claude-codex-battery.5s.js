@@ -11,7 +11,7 @@
 import { execFileSync, execSync, spawn } from "node:child_process";
 import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, existsSync, appendFileSync } from "node:fs";
 import zlib from "node:zlib";
-import { createCipheriv, pbkdf2Sync, randomBytes } from "node:crypto";
+import { createCipheriv, pbkdf2Sync, randomBytes, createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 
@@ -650,6 +650,7 @@ const FORECAST_MIN_INTERVAL_MS = 10 * 60 * 1000;
 const FORECAST_MAX_AGE_MS = 8 * 24 * 60 * 60 * 1000;
 const FORECAST_MAX_OBSERVATIONS = 320;
 function forecastEnabled() { return readConfig().forecast?.enabled === true; }
+function codexForecastEnabled() { return readConfig().codexForecast?.enabled === true; }
 function sessionStatusEnabled() { return readConfig().sessionStatus?.enabled === true; }
 function readForecastHistory() {
   try {
@@ -681,6 +682,9 @@ function forecastForItem(accountIndex, item, state) {
   const observations = readForecastHistory()
     .filter((r) => r.key === key && now - r.at <= FORECAST_MAX_AGE_MS)
     .sort((a, b) => a.at - b.at);
+  return paceEstimate(observations, item);
+}
+function paceEstimate(observations, item) {
   // A decreasing used percentage means the provider reset the window. Only use
   // the monotonic segment after the newest reset, not a previous quota period.
   let start = 0;
@@ -701,6 +705,45 @@ function forecastForItem(accountIndex, item, state) {
     exhaustionAt: Number.isFinite(exhaustionAt) ? Math.round(exhaustionAt) : null,
     beforeReset: !Number.isFinite(resetAt) || exhaustionAt < resetAt,
   };
+}
+
+// Separate consent and file: do not extend existing Claude history opt-in.
+// Keys identify a provider window/period, never a session path or account.
+const CODEX_FORECAST_HISTORY_FILE = path.join(CACHE_DIR, "codex-quota-history.json");
+function codexWindowKey(role, window) {
+  if (!Number.isInteger(window?.window_minutes) || window.window_minutes <= 0
+    || !Number.isFinite(window.resets_at) || window.resets_at * 1000 <= Date.now()) return null;
+  return `cw_${createHash("sha256").update(`${role}:${window.window_minutes}:${window.resets_at}`).digest("hex")}`;
+}
+function readCodexForecastHistory() {
+  try {
+    const rows = JSON.parse(readFileSync(CODEX_FORECAST_HISTORY_FILE, "utf8"))?.observations;
+    return Array.isArray(rows) ? rows.filter((r) => /^cw_[a-f0-9]{64}$/.test(r?.key)
+      && Number.isFinite(r.at) && r.at > 0 && r.at <= Date.now()
+      && Number.isFinite(r.used) && r.used >= 0 && r.used <= 100)
+      .map(({ key, at, used }) => ({ key, at, used })) : [];
+  } catch { return []; }
+}
+function recordCodexForecastObservations(codex) {
+  const now = Date.now(), at = codex.paceObservedAt;
+  if (!codexForecastEnabled() || codex.state !== "fresh" || !Number.isFinite(at)
+    || at > now || now - at > 15 * 60000) return;
+  const rows = readCodexForecastHistory().filter((r) => now - r.at <= FORECAST_MAX_AGE_MS);
+  for (const item of codex.items) {
+    if (!item.paceKey || !Number.isFinite(item.used) || item.used < 0 || item.used > 100) continue;
+    const last = [...rows].reverse().find((r) => r.key === item.paceKey);
+    if (last && at <= last.at) continue; // polling the same event is not a new sample
+    if (!last || at - last.at >= FORECAST_MIN_INTERVAL_MS || Math.abs(last.used - item.used) >= 1) rows.push({ key: item.paceKey, at, used: item.used });
+  }
+  try { writeFileSync(CODEX_FORECAST_HISTORY_FILE, JSON.stringify({ version: 1, observations: rows.slice(-FORECAST_MAX_OBSERVATIONS) })); } catch {}
+}
+function codexForecastForItem(codex, item) {
+  const at = codex.paceObservedAt;
+  if (!codexForecastEnabled() || codex.state !== "fresh" || !item.paceKey
+    || !Number.isFinite(item.used) || item.used < 0 || item.used > 100
+    || !Number.isFinite(at) || at > Date.now() || Date.now() - at > 15 * 60000) return null;
+  return paceEstimate(readCodexForecastHistory().filter((r) => r.key === item.paceKey
+    && Date.now() - r.at <= FORECAST_MAX_AGE_MS).sort((a, b) => a.at - b.at), item);
 }
 
 // v1.2 온보딩: 메뉴에서 사용자가 직접 실행할 때만 안전한 기본 설정을 만든다.
@@ -1017,13 +1060,13 @@ function getCodex() {
       if (rl.primary && rl.primary.used_percent != null) {
         items.push({
           name: rl.primary.window_minutes >= 10000 ? "Weekly" : "5-hour",
-          used: rl.primary.used_percent, resets: rl.primary.resets_at,
+          used: rl.primary.used_percent, resets: rl.primary.resets_at, paceKey: codexWindowKey("primary", rl.primary),
         });
       }
       if (rl.secondary && rl.secondary.used_percent != null) {
         items.push({
           name: rl.secondary.window_minutes >= 10000 ? "Weekly" : "5-hour",
-          used: rl.secondary.used_percent, resets: rl.secondary.resets_at,
+          used: rl.secondary.used_percent, resets: rl.secondary.resets_at, paceKey: codexWindowKey("secondary", rl.secondary),
         });
       }
       if (items.length === 0) continue; // null 창은 건너뛰고 더 과거 기록 탐색
@@ -1037,6 +1080,9 @@ function getCodex() {
         ok: true,
         items,
         plan: rl.plan_type,
+        // Only an explicit timestamp with timezone can anchor pace. File mtime
+        // may refer to a later unrelated event, so it must not become a sample.
+        paceObservedAt: typeof obj.timestamp === "string" && /(?:Z|[+-]\d{2}:\d{2})$/.test(obj.timestamp) ? Date.parse(obj.timestamp) : null,
         ...usageState({
           state: stale ? "stale" : "fresh",
           source: "codex-jsonl",
@@ -1577,7 +1623,7 @@ if (argv[0] === "--init-config") {
     process.exit(1);
   }
 }
-if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off", "--notify-forecast-on", "--notify-forecast-off"].includes(argv[0]) || argv[0]?.startsWith("--notify-threshold=") || argv[0]?.startsWith("--notify-reset-soon=")) {
+if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off", "--notify-forecast-on", "--notify-forecast-off", "--notify-codex-forecast-on", "--notify-codex-forecast-off"].includes(argv[0]) || argv[0]?.startsWith("--notify-threshold=") || argv[0]?.startsWith("--notify-reset-soon=")) {
   try {
     const patch = argv[0] === "--notify-on" ? { enabled: true }
       : argv[0] === "--notify-off" ? { enabled: false }
@@ -1585,12 +1631,14 @@ if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off", "
       : argv[0] === "--notify-reset-off" ? { reset: false }
       : argv[0] === "--notify-forecast-on" ? { forecast: true }
       : argv[0] === "--notify-forecast-off" ? { forecast: false }
+      : argv[0] === "--notify-codex-forecast-on" ? { codexForecast: true }
+      : argv[0] === "--notify-codex-forecast-off" ? { codexForecast: false }
       : argv[0].startsWith("--notify-reset-soon=") ? { resetSoonMinutes: Number(argv[0].split("=")[1]) }
       : { threshold: Number(argv[0].split("=")[1]) };
     if (patch.threshold != null && (!Number.isFinite(patch.threshold) || patch.threshold <= 0 || patch.threshold >= 100)) throw new Error("threshold must be between 1 and 99");
     if (patch.resetSoonMinutes != null && (!Number.isInteger(patch.resetSoonMinutes) || patch.resetSoonMinutes < 0 || patch.resetSoonMinutes > 60)) throw new Error("reset-soon minutes must be an integer from 0 to 60 (0 disables)");
     const notify = updateNotifyConfig(patch);
-    console.log(`notifications updated: enabled=${notify.enabled === true} threshold=${notify.threshold ?? 20} reset=${notify.reset !== false} resetSoonMinutes=${notify.resetSoonMinutes ?? 0} forecast=${notify.forecast === true}`);
+    console.log(`notifications updated: enabled=${notify.enabled === true} threshold=${notify.threshold ?? 20} reset=${notify.reset !== false} resetSoonMinutes=${notify.resetSoonMinutes ?? 0} forecast=${notify.forecast === true} codexForecast=${notify.codexForecast === true}`);
     process.exit(0);
   } catch (e) {
     console.error(`could not update notifications: ${String(e.message || e)}`);
@@ -1621,6 +1669,11 @@ if (argv[0]?.startsWith("--notify-target-threshold=") || argv[0]?.startsWith("--
     process.exit(1);
   }
 }
+if (argv[0] === "--codex-forecast-history") {
+  console.log(JSON.stringify({ format: "tokenjuice-codex-forecast-history-v1", scope: "local Codex pace observations, last 7 days",
+    observations: readCodexForecastHistory().filter((r) => Date.now() - r.at <= 7 * 86400e3) }, null, 2));
+  process.exit(0);
+}
 if (argv[0] === "--forecast-history") {
   const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
   console.log(JSON.stringify({
@@ -1650,6 +1703,8 @@ for (let accountIndex = 0; accountIndex < claudes.length; accountIndex++) {
   account.items = (account.items || []).map((item) => ({ ...item, forecast: forecastForItem(accountIndex, item, state) }));
 }
 const [codex, sessions, letsur, copilot, providers] = [getCodex(), getAllSessions(), getLetsur(), await getCopilotPremiumUsage(), getExternalProviders()];
+recordCodexForecastObservations(codex);
+codex.items = codex.items.map((item) => ({ ...item, forecast: codexForecastForItem(codex, item) }));
 const dark = isDarkMode();
 const asJson = argv.includes("--json");
 const asText = argv.includes("--text");
@@ -1674,6 +1729,7 @@ if (argv.includes("--developer")) {
     }
   });
   out.push(`Codex state=${codex.state ?? "unavailable"} source=${sourceLabel(codex.source || "codex-jsonl")} lastSuccess=${codex.lastSuccessAt ? new Date(codex.lastSuccessAt).toISOString() : "never"}`);
+  for (const item of codex.items) if (item.forecast) out.push(`  Codex ${item.name}: local pace estimate · samples=${item.forecast.samples} · pace=${item.forecast.usedPerHour}%/h`);
   for (const session of sessions) {
     out.push(`session ${session.platform}/${session.name}/${session.id}: status=${session.status || "unknown"} model=${session.model || "unknown"} context=${Math.round(session.pct || 0)}% (${session.used}/${session.win}) mtime=${session.mtime ? new Date(session.mtime).toISOString() : "unknown"}`);
   }
@@ -1783,6 +1839,7 @@ function notifyConfig() {
     reset: n.reset !== false,
     resetSoonMinutes: resetSoonMinutes(n.resetSoonMinutes),
     forecast: n.forecast === true,
+    codexForecast: n.codexForecast === true,
     overrides: n.overrides && typeof n.overrides === "object" ? n.overrides : {},
   };
 }
@@ -1796,6 +1853,7 @@ function notificationPolicyFor(entry) {
     reset: override.reset == null ? global.reset : override.reset !== false,
     resetSoonMinutes: resetSoonMinutes(override.resetSoonMinutes, global.resetSoonMinutes),
     forecast: override.forecast == null ? global.forecast : override.forecast === true,
+    codexForecast: override.codexForecast == null ? global.codexForecast : override.codexForecast === true,
   };
 }
 function notificationPolicyForAccount(accountIndex) {
@@ -1859,18 +1917,19 @@ function runNotifications(entries) {
       st[e.key] = { ...current, resetSoonAt: resetAt, at: Date.now() }; changed = true;
     }
     const forecast = e.forecast;
-    const forecastState = st[e.key] || prev;
+    const forecastKey = e.forecastKey || e.key;
+    const forecastState = st[forecastKey] || prev;
     const now = Date.now();
     // Showing a pace estimate does not opt the user in to notifications. A
     // known future reset and recent, sufficient observations are required;
     // unknown reset times must not turn "beforeReset" into a false claim.
-    if (cfg.forecast && forecast?.kind === "local_pace_estimate" && forecast.samples >= 2
+    if ((e.provider === "codex" ? cfg.codexForecast : cfg.forecast) && forecast?.kind === "local_pace_estimate" && forecast.samples >= 2
       && Number.isFinite(forecast.observedAt) && forecast.observedAt <= now && now - forecast.observedAt <= 15 * 60000
       && Number.isFinite(resetAt) && resetAt > now
       && Number.isFinite(forecast.exhaustionAt) && forecast.exhaustionAt > now && forecast.exhaustionAt < resetAt
       && forecastState.forecastResetAt !== resetAt) {
       sendNotification("TokenJuice", `forecast alert · ${e.label} · local pace estimate (${forecast.samples} samples): may run out before reset · next action: save a checkpoint or wait`);
-      st[e.key] = { ...forecastState, forecastResetAt: resetAt, at: now }; changed = true;
+      st[forecastKey] = { ...forecastState, forecastResetAt: resetAt, at: now }; changed = true;
     }
   }
   if (changed) { try { writeFileSync(NOTIFY_STATE_FILE, JSON.stringify(st)); } catch {} }
@@ -1886,7 +1945,7 @@ function notificationEntries() {
     });
     for (const it of cl.items) out.push({ key: `claude:${i}:${it.name}`, label: `Claude ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, forecast: it.forecast, state });
   });
-  for (const it of codex.items) out.push({ key: `codex:${it.name}`, label: `Codex ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, state: codex.state ?? "fresh" });
+  for (const it of codex.items) out.push({ key: `codex:${it.name}`, provider: "codex", forecastKey: it.paceKey ? `codex:forecast:${it.paceKey}` : null, label: `Codex ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, forecast: it.forecast, state: codex.state ?? "fresh" });
   return out;
 }
 
@@ -2318,6 +2377,11 @@ if (codex.items.length || existsSync(path.join(HOME, ".codex"))) {
       const r = Math.round(100 - i.used);
       const tail = i.wasReset ? "reset done" : fmtReset(i.resets);
       out.push(`${i.name}  ▕${textBar(r)}▏ ${r}% left · ${tail} | font=Menlo size=12 color=${cxState === "fresh" ? heatHex(r) : "#8b949e"}`);
+      if (i.forecast) {
+        const when = i.forecast.exhaustionAt ? fmtUntil(i.forecast.exhaustionAt) : "unknown";
+        const verdict = i.forecast.beforeReset ? `may run out ${when}` : "reset is expected first";
+        out.push(`--Pace estimate (local, ${i.forecast.samples} samples): ${verdict} · +${i.forecast.usedPerHour}%/h | size=11 color=#8b949e`);
+      }
     }
     const ageMin = Math.round((Date.now() - codex.at) / 60000);
     if (ageMin > 60) out.push(`ℹ️ from your last session (${Math.round(ageMin / 60)}h ago) | size=11 color=#8b949e`);
@@ -2428,6 +2492,9 @@ out.push(`--Reset soon alerts: ${notificationPolicy.resetSoonMinutes ? `${notifi
 out.push(`----${notificationPolicy.resetSoonMinutes ? "Disable reset soon alerts" : "Enable 10-minute reset soon alerts"} | bash='${SELF}' param1=--notify-reset-soon=${notificationPolicy.resetSoonMinutes ? 0 : 10} terminal=false refresh=true`);
 out.push(`--Forecast alerts: ${notificationPolicy.forecast ? "on" : "off"} · Claude local estimate only · requires forecast.enabled=true | size=11 color=#8b949e`);
 out.push(`----Turn forecast alerts ${notificationPolicy.forecast ? "off" : "on"} | bash='${SELF}' param1=--notify-forecast-${notificationPolicy.forecast ? "off" : "on"} terminal=false refresh=true`);
+out.push(`--Codex forecast alerts: ${notificationPolicy.codexForecast ? "on" : "off"} · local estimate · requires codexForecast.enabled=true | size=11 color=#8b949e`);
+out.push(`----Turn Codex forecast alerts ${notificationPolicy.codexForecast ? "off" : "on"} | bash='${SELF}' param1=--notify-codex-forecast-${notificationPolicy.codexForecast ? "off" : "on"} terminal=false refresh=true`);
+if (codexForecastEnabled()) out.push(`--Export local Codex pace history (7 days) | bash='${SELF}' param1=--codex-forecast-history terminal=false`);
 const notificationTargets = notificationEntries().slice(0, 8);
 if (notificationTargets.length) {
   out.push("--Per quota window overrides (otherwise global policy applies) | size=11 color=#6b7280");

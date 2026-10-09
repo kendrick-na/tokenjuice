@@ -478,7 +478,17 @@ opt-in한다(`--notify-forecast-off`로 해제). 로컬 history 수집은 `forec
 따로 동의해야 하며 알림을 켠다고 자동 활성화하지 않는다. 최신 관측, 충분한 표본, 알려진
 미래 reset보다 먼저 소진될 가능성이 있을 때 한도 구간당 한 번만 로컬 추정으로 경고한다.
 window별 `notify.overrides["claude:0:Weekly"].forecast`로 상속값을 바꿀 수 있다.
-Codex pace 예측·예측 알림은 아직 제공하지 않는다.
+Codex는 별도로 `codexForecast.enabled:true`에 동의하면 로컬 pace history와 예측을 제공한다.
+Claude 설정을 켜도 Codex 기록은 자동 수집하지 않는다. fresh `rate_limits` 이벤트의 명시적
+타임존 포함 시각이 최근 15분 이내이고, 창 길이·미래 reset이 알려져 있을 때만 기록한다.
+파일 수정 시각만으로 관측을 만들어 내지 않으며, 같은 reset 구간에서 최소 10분 간격의
+표본 2개 이상이 있어야 표시한다. 메뉴·`--developer`·widget snapshot에 로컬 추정으로 표시한다.
+Codex 알림도 `notify.codexForecast:true` 또는 `--notify-codex-forecast-on`으로 따로 켠다
+(`--notify-codex-forecast-off`로 해제). history 동의와 해당 창의 effective 알림 enabled도
+필요하다. JSON/text/widget 내보내기는 알림을 발화하지 않는다.
+`--codex-forecast-history`는 최근 7일의 `{key,at,used}`만 내보낸다. key는 창 역할·길이·reset
+구간의 불투명 해시이며 세션 경로·프롬프트·계정 식별자는 기록하지 않는다. 현재 단일 Codex
+프로필용이며 **계정 식별 또는 다중 Codex 계정 지원은 아니다**. 예측은 공식 잔여 시간 보장이 아니다.
 `sessionStatus`는 Claude/Codex의 마지막 로컬 로그를 읽어 작업 중·입력 대기·완료 같은
 상태를 **휴리스틱**으로 표시한다. 제공자나 에이전트의 공식 상태가 아니므로 기본값은 꺼짐이다.
 

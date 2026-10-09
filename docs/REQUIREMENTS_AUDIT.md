@@ -12,16 +12,18 @@
 성공했다. 이는 GitHub Pages의 PWA 소스 배포 증거이며, immutable macOS/Windows release asset이나
 실기기 acceptance를 대체하지 않는다.
 
-최신 desktop **소스 후보**는 `6f7184b2c36b01ffd579605ac784a7bf111b3da5`다.
+직전 desktop **소스 후보**는 `6f7184b2c36b01ffd579605ac784a7bf111b3da5`다.
 Engine verification `37945674193`·Windows build `37945674232`는 모두 success다.
 이후 audit/기획서 문서-only 변경은 해당 CI 필터나 Pages 배포를 다시 실행하지 않는다.
 desktop release asset/설치본은 갱신하지 않았고, Pocket 배포는 계속 `49a012f`다.
+이후 Codex 단일 프로필 pace 구현의 로컬 증거는 아래 §9.5다. 새로운 SHA별 CI는 push
+후 별도로 기록하며, 로컬 통과를 CI 또는 실제 설치 성공으로 대체하지 않는다.
 
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 51 pass/259 expect, `scripts/release-verify.sh`, 기존 forecast Engine CI `37944984558`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude local pace 예측 알림 구현. Codex 예측 없음. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 54 pass/292 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Codex는 단일 프로필/유효 이벤트·reset 조건부. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -35,7 +37,7 @@ desktop release asset/설치본은 갱신하지 않았고, Pocket 배포는 계�
 | R3 | 인증 만료를 명시 상태·사용자 실행 안내로 전환 | `autoRenew:false` 기본값; 명시적 `autoRenew:true`일 때만 401/403 이후 10분 제한 갱신; 메뉴 정책 표시와 `--renew-login`; `tests/engine.test.js` opt-in/opt-out/수동 실행 테스트 | 코드·자동 검증 완료. 0 model-call은 2026-10-05 Claude CLI 2.1.238 실측에 한정(버전 변경 시 재검증); 실제 계정 재로그인·Keychain 및 Claude Team/조직 정책 확인은 pending |
 | R4 | 429 Retry-After·backoff | `fetchClaudeUsage()`, 429 tests | 자동 검증 완료 |
 | R5 | wake refresh single debounce | `scripts/ensure-swiftbar-visible.sh`, wake helper test | 코드·fixture 완료; 실제 sleep/wake 장비는 pending |
-| R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect·reset-soon·forecast tests | 지원 범위 구현: threshold·잔여량 회복·reconnect·별도 opt-in reset-soon/Claude local forecast 발화. Codex forecast는 미지원. macOS presentation pending; Windows sender 미구현 |
+| R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect·reset-soon·forecast tests | 지원 범위 구현: threshold·잔여량 회복·reconnect·별도 opt-in reset-soon/Claude 및 Codex local forecast 발화. Codex는 별도 수집/알림 동의와 유효 미래 reset 필요. macOS presentation pending; Windows sender 미구현 |
 | R7 | official quota와 local context/cost 분리 | `kind` contract, session/context/cost tests, Pocket cards | 코드·자동 검증 완료 |
 | R8 | secret-free copyable diagnostics | `--diagnostics`, `--copy-diagnostics`, diagnostics privacy test | 자동 검증 완료; 실제 support workflow는 pending |
 | R9 | first-run onboarding/permission/keychain choice | `--init-config`, `guide.html`, starter config test | artifact·자동 검증 완료; 신규 사용자 comprehension pending |
@@ -47,7 +49,7 @@ desktop release asset/설치본은 갱신하지 않았고, Pocket 배포는 계�
 | R15 | data contract/fixtures/regression | `docs/DATA_CONTRACT.md`, `tests/engine.test.js`, CI matrix | 자동 검증 완료; undocumented provider contracts remain risk |
 | R16 | trust badges/source labels | `trustBadge()`, menu/Pocket source/freshness assertions | 코드·자동 검증 완료 |
 | R17 | opt-in session status | `getAllSessions()`, session status test, snapshot/Pocket context | 코드·fixture 완료; 실제 agent 상태 정확도는 user/device pending |
-| R18 | opt-in pace forecast | `forecastForItem()`, 7-day export/history test, Pocket forecast assertions | Claude quota만 구현·자동 검증; Codex pace history/forecast는 없음. 실제 행동 전환 pending |
+| R18 | opt-in pace forecast | `forecastForItem()`, `codexForecastForItem()`, 7-day export/history·primary/secondary·privacy tests, Pocket forecast assertions | Claude/Codex quota 구현·자동 검증. Codex는 단일 프로필, 명시적 최근 이벤트 시각·미래 reset·충분한 표본 조건부. 실제 행동 전환 pending |
 | R19 | notch/compact view | `CCB_COMPACT`, compact test, Windows/macOS release build | 코드·CI 완료; 실제 notch clipping/legibility pending |
 | R20 | project/context/cost report | project report and explicit rate-table tests | 코드·fixture 완료; 실제 user pricing setup/interpretation pending |
 
@@ -159,7 +161,7 @@ detached child 로그보다 먼저 끝나는 재현 가능한 race가 드러났�
 
 | 문서/범위 | 구현된 범위 | 남은 범위·정확한 성격 |
 |---|---|---|
-| master §6 R1~R20·UX1~UX12, §7 종료 조건 | 위 §2~§3 매핑 | R6 Claude 예측/reset-soon은 이번 로컬 코드로 구현. R10 다중 Codex 계정 및 Codex pace 예측은 **미구현 코드**. R11 Windows toast는 설치 경계 결정 선행 |
+| master §6 R1~R20·UX1~UX12, §7 종료 조건 | 위 §2~§3 매핑 | R6 Claude/Codex 단일 프로필 예측과 reset-soon은 로컬 코드로 구현. R10 다중 Codex 계정은 **미구현 코드**. R11 Windows toast는 설치 경계 결정 선행 |
 | master §13 Phase A trust | 로컬 source/last success/상태 분류 | 독립 provider-health/outage 수집 없음. HTTP failure를 provider outage로 단정하지 않음 |
 | master §13 Phase B continuity | context 80/90%, 프로젝트·브랜치 등 metadata checkpoint | 최근 파일·마지막 작업 의도를 담은 resume brief 및 수동 provider 전환 안내 전체는 미구현. §16.5는 이를 좁힌 안전한 slice일 뿐 Phase B 전체 완료가 아님 |
 | master §13 Phase C~E | Claude/Codex local read, opt-in API, 암호화 수동 quota 전달 | 직접 reset-credit 실행·자동 checkpoint sync·push·team dashboard 없음. credentials/외부 전송·동의/보존 계약 또는 제품 선택 선행 |
@@ -193,8 +195,8 @@ v1.2.0~v1.2.2 공개 자산을 확인했다. release의 `targetCommitish:main` �
    저장 경계에서 검사한 뒤, 내부 오류 14종의 기존 화면/저장본 보존·손상 저장본 startup
    복구·optional 필드 없는 이전 v1 호환·정상 암호화 상호운용 회귀가 통과했다.
 2. **후속 로컬 코드:** R10 Codex root/계정 alias·stable notification key·출력 계약의
-   호환 설계와 Codex pace history가 남아 있다. Claude R6는 아래 §9.2~§9.3에서 이어서
-   구현했다. 미구현을 “외부 입력만 기다림”으로 바꾸지 않는다.
+   호환 설계가 남아 있다. Claude R6는 아래 §9.2~§9.3, 단일 프로필 Codex pace는 §9.5에서
+   구현했다. 다중 계정 미구현을 “외부 입력만 기다림”으로 바꾸지 않는다.
 3. **외부 입력:** 현재 후보 source를 설치해도 되는지 기기 소유자의 승인, 실제 Mac UI/
    sleep-wake 관찰, Windows tray·스크린리더 장비, 5명/10명 참가자와 동의·diary가 필요하다.
    Windows sender/모바일 설정·스토어/외부 전송/유료화 결정은 위 gate와 분리한다.
@@ -253,7 +255,7 @@ Claude 여러 창·Codex 98% 사용·높은 context·stale local cache·HTTP 실
 검증한다. 동일 단위의 사용률을 위험 순서로만 비교하며 quota와 context를 합산하지 않는다.
 
 직전 forecast 커밋 `39c6579` Engine `37944984558`·Windows `37944984754`는 success다.
-현재 local release-verify는 engine 51 pass/259 assertions, browser·bundle·syntax·격리
+이 단계 당시 local release-verify는 engine 51 pass/259 assertions, browser·bundle·syntax·격리
 notification 단계 통과 후 installed-source mismatch로 exit 1이다. 새 NOW 소스가
 현재 SwiftBar 설치본 또는 v1.2.2 자산에 이미 반영됐다고 주장하지 않는다.
 
@@ -261,4 +263,19 @@ notification 단계 통과 후 installed-source mismatch로 exit 1이다. 새 NO
 success임을 확인했다. 이번 engine/tests 변경은 Pages push paths 대상이 아니며, 성공한
 Pocket 배포는 `49a012f`/`37943107852` 그대로다. 참가자 결과나 OS presentation 기록을
 새로 생성하지 않았다. 다음 독립 코드 백로그는 Codex 다중 계정/안정적인 계정 키와 Codex
-pace history이며, 그 계약을 기존 v2 consumer와 호환되도록 먼저 설계해야 한다.
+pace history였으며, 아래 §9.5에서 단일 프로필 pace slice를 먼저 구현했다.
+
+### 9.5 Codex 단일 프로필 pace history / forecast
+
+Claude와 독립적인 `codexForecast.enabled` 수집 동의와 `notify.codexForecast` 발화 동의를
+추가했다. fresh `rate_limits`의 타임존 포함 이벤트 시각이 최근 15분 이내이고 창 길이와
+미래 reset이 알려진 경우만 관측한다. file mtime을 pace 표본 시각으로 사용하지 않는다.
+primary/secondary·reset 구간별 opaque key와 `{key,at,used}`만 별도 로컬 history에 저장한다.
+계정 식별자·세션 경로·prompt 수집 또는 계정 전환 구분을 뜻하지 않으며 R10은 남아 있다.
+
+3개 fixture/33 assertions로 별도 동의·표본 부족·불명/과거 reset·missing/old/future timestamp·
+잘못된 사용률·동일 표시 이름의 두 창·reset 변경·stale·중복 억제·export 무발화·개인정보 제외·
+Claude history 보존·메뉴/developer/widget 호환을 검증했다. 전체 54 pass/292 assertions,
+bundle·syntax·격리 알림 dry-run·Pocket browser·diff 검증은 통과했다. release-verify 전체는
+installed SwiftBar source mismatch로 exit 1이다. 설치본·OS 권한·실계정·공개 desktop 자산은
+변경하지 않았다. 새 Engine/Windows CI 증거는 push 후 별도로 확인한다.

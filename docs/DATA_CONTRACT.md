@@ -106,8 +106,33 @@ Claude pace 소진 예측은 `forecast.enabled:true`(history 수집)와 effectiv
 `forecast`를 우선한다. local CLI `--notify-forecast-on`/`--notify-forecast-off`는 알림 정책만
 바꾸며 history 수집을 대신 켜지 않는다. fresh 상태, 최근 15분 내 관측, 표본 2개 이상,
 미래 소진 시각과 알려진 미래 reset 비교가 모두 유효할 때 한 quota/reset 구간당 한 번
-`local pace estimate`와 수동 next action으로 알린다. Codex는 pace history/예측이 없어
-예측 알림 대상이 아니다. 임계치·reset-soon/forecast marker는 서로 덮어쓰지 않는다.
+`local pace estimate`와 수동 next action으로 알린다. 임계치·reset-soon/forecast marker는
+서로 덮어쓰지 않는다.
+
+## Codex pace history / forecast (단일 프로필, 별도 opt-in)
+
+- `codexForecast.enabled:true`는 Codex history 수집 동의다. Claude의 `forecast.enabled`를
+  상속하지 않는다. `codex-quota-history.json`에 version 1과 최대 320개 관측을 저장하고
+  기록 시 8일 이전을 제거한다. `--codex-forecast-history`는 최근 7일을 별도 format
+  `tokenjuice-codex-forecast-history-v1`로 내보낸다.
+- 관측은 `{key,at,used}`만 포함한다. key는 `cw_` + SHA-256(role/window_minutes/resets_at)이며
+  primary/secondary가 같은 표시 이름이어도 분리하고 reset 구간 변경 시 새 baseline을 만든다.
+  계정 인증 식별자가 아니다. 현재 고정 Codex root의 단일 프로필만 지원하며, 계정을 바꾼
+  기록들을 확실히 구별하는 다중 계정 계약은 R10에 남아 있다. 경로·prompt·account ID를
+  해시 입력 또는 history 필드로 수집하지 않는다.
+- fresh 상태와 최근 15분 이내의 명시적 타임존 포함 이벤트 timestamp, 숫자 used 0~100,
+  양의 정수 window_minutes 및 알려진 미래 Unix-seconds reset이 모두 필요하다. 파일 mtime은
+  pace 관측 timestamp를 대신하지 않는다. 누락·미래·오래된 timestamp와 불명/과거 reset은
+  수집/계산에서 제외한다. 동일/역순 timestamp는 중복 표본으로 저장하지 않는다.
+- 증가하는 사용률의 같은 구간에 표본 2개 이상, 최소 10분의 관측 범위와 양의 속도가 있어야
+  `local_pace_estimate`를 계산한다. v2 Codex item의 `paceKey`·`forecast`는 추가 필드다.
+  `forecast.observedAt`은 마지막 표본 시각이다. 기존 quota 필드/형식은 변경하지 않는다. v1 widget forecast도
+  기존 선택적 필드를 사용한다. 메뉴·developer·widget 표시가 provider 공식 예측이라는 뜻은 아니다.
+- 알림은 effective `enabled:true`와 `notify.codexForecast:true`가 별도로 필요하다.
+  window override의 `codexForecast`를 우선하며 `notify.forecast`는 Codex 알림을 켜지 않는다.
+  CLI `--notify-codex-forecast-on/off`는 알림 정책만 변경한다. 최근·충분한 관측의 미래
+  소진 시각이 알려진 reset보다 먼저일 때 opaque window/period별 한 번만 발화한다.
+  JSON/text/widget/history export는 알림을 발화하지 않는다. Windows native toast는 미지원이다.
 
 ## 위젯 스냅샷 계약 v1
 

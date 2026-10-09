@@ -1307,7 +1307,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `51 pass`·`259 expect()` 엔진 회귀; opt-in reset-soon/Claude local forecast 구현, Codex 예측 미지원. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
+| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `54 pass`·`292 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 단일 프로필 Codex local forecast 구현. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 멀티 계정·표시 구현 / Codex 멀티 계정·Windows toast 미구현 | `6cacedb` Engine `37886745999`, Windows `37886745975` 성공은 구현된 코드 범위만 증명. 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
@@ -1318,7 +1318,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | UX10 랜딩/설치 경로 | 코드·배포 완료 / 사용자 검증 대기 | `6cacedb` Pages `37886745971` 성공. `6245fad`에서 README의 두 구버전 inline 이미지를 제거하고 현재 Pocket 링크로 대체; 원본 파일 보존. 현재 Pocket 화면과 immutable v1.2.2 desktop 화면은 별개. 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | local history export 구현 / 제품 우선순위 근거 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 diary 실행 순서, 분모/판정 기준 보완; 시각적 trend·Usage Coach는 행동 전환 데이터와 의사결정 전까지 보류 |
 | P1 작은 화면·checkpoint·설정 | 안전한 로컬 subset 완료 / history·제품·보안 gate 대기 | `679f079` 80%/90% 로컬 checkpoint 내보내기 CTA; `6cacedb` 상태·NEXT를 유지하고 상세만 접는 Pocket disclosure. trend/Usage Coach는 실제 시계열 snapshot 계약·10명 interview·14일 diary 근거 대기; `016a60a` Pocket 설정 경계는 제품·보안 결정 전 gated |
-| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline` 추가; prompt-free fixture를 포함한 현재 51개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
+| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline`과 별도 `--codex-forecast-history` 추가; prompt-free fixture를 포함한 현재 54개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자 지표와 provider 안전·정책 검증 필요; 의사결정 전 구현 보류 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
@@ -1365,8 +1365,8 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   history/statusline, 계정 reconnect·window override, 접근성·복구 개선은 이후 커밋이다.
 - `v1.2.2` desktop 자산은 `12efce2`에 고정돼 있다. 현재 main이나 Pocket 변경을 이미
   내려받은 exe/SwiftBar 설치본에 자동 반영됐다고 설명하지 않는다.
-- 남은 일은 외부 gate만이 아니다. Codex pace 예측과 R10 다중 Codex 계정은
-  별도 코드 백로그다. Phase B의 작업 의도·최근 파일을 담은 resume brief도 metadata-only
+- 남은 일은 외부 gate만이 아니다. 단일 프로필 Codex pace 예측은 아래에서 구현했으나
+  R10 다중 Codex 계정은 별도 코드 백로그다. Phase B의 작업 의도·최근 파일을 담은 resume brief도 metadata-only
   checkpoint로 대체 완료 처리하지 않는다. §16.5의 개인정보·자동 전환 금지 경계를 유지한다.
 - 이번 최소 안전 수정은 Pocket 손상 파일 가져오기였다. 내부 구조 오류 14종의 기존
   화면·저장본 보존, 구버전 v1 호환, 손상된 저장본 복구와 정상 암호화 상호운용을
@@ -1382,13 +1382,24 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
 - `f1ed2c6` reset-soon의 Engine `37944170751`·Windows `37944170598` 성공 후 Claude
   local forecast 알림을 추가했다. history 동의와 알림 동의 분리, fresh/최근 관측/충분한
   표본·알려진 reset 전 소진 조건, window override, 구간별 중복 방지와 수동 next action을
-  fixture 3개로 검증했다. 이 단계 당시 전체 49 tests/252 assertions 통과. Codex pace 예측은 없고
+  fixture 3개로 검증했다. 이 단계 당시 전체 49 tests/252 assertions 통과. 당시 Codex pace 예측은 없고
   Windows sender·실기기/사용자 acceptance는 별도 gate다.
 - P0 menu NOW의 quota 위험 정렬 역전도 수정했다. `used`는 제공자 사용률인데 이전
   점수는 `100-used`라 여유 있는 창을 먼저 표시했다. 위험 점수를 used로 바꾸고 remaining
   표시와 trust 경고 우선순위는 유지했다. Claude 다중 창·Codex 고사용률·context 경쟁 및
-  stale/unavailable 우선순위 회귀를 추가해 현재 51 tests/259 assertions가 통과했다.
-- 최신 desktop 소스 후보 `6f7184b`의 Engine [37945674193](https://github.com/kendrick-na/tokenjuice/actions/runs/37945674193)·Windows [37945674232](https://github.com/kendrick-na/tokenjuice/actions/runs/37945674232)는 모두 success다. Pocket 배포는 `49a012f`이며 이번 engine/tests 변경은 Pages 필터 대상이 아니다. 새 desktop 태그·설치본·실기기 결과를 생성하지 않았다. 다음 코드는 Codex 다중 계정/안정 계정 키·pace history의 기존 consumer 호환 계약부터 진행한다.
+  stale/unavailable 우선순위 회귀를 추가해 당시 51 tests/259 assertions가 통과했다.
+- 직전 desktop 소스 후보 `6f7184b`의 Engine [37945674193](https://github.com/kendrick-na/tokenjuice/actions/runs/37945674193)·Windows [37945674232](https://github.com/kendrick-na/tokenjuice/actions/runs/37945674232)는 모두 success다. Pocket 배포는 `49a012f`다. 새 desktop 태그·설치본·실기기 결과를 생성하지 않았다.
+- 이어서 Codex 단일 프로필 pace history/forecast와 별도 opt-in 알림을 구현했다.
+  `codexForecast.enabled` 수집 동의는 Claude와 독립적이며, `notify.codexForecast` 알림도
+  별도로 켠다. fresh·최근 15분 내 타임존 포함 이벤트 timestamp·알려진 미래 reset·충분한
+  표본만 사용한다. file mtime을 관측 시각으로 대체하지 않는다. primary/secondary 및 reset
+  구간별 opaque key로 동일 이름 창의 forecast 중복 억제를 분리한다. history에는
+  `{key,at,used}`만 저장하고 경로·prompt·계정 식별자는 넣지 않는다. 메뉴/developer/widget
+  표시와 7일 export를 제공하지만, 계정 전환/다중 Codex 계정 식별 지원은 아니다.
+  3개 fixture/33 assertions, 전체 54 tests/292 assertions 및 Pocket browser/bundle/syntax/
+  격리 알림 검증이 통과했다. release-verify 전체는 installed-source mismatch로 exit 1이며
+  실제 노트북 작동·OS notification·사용자 acceptance는 그대로 pending이다. 새 CI는 push
+  후 확인한다. 이 engine/tests 변경은 Pages 필터 대상이 아니므로 PWA 배포 SHA는 유지된다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
