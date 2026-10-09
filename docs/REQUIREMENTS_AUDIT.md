@@ -377,4 +377,16 @@ focus-visible에 매치돼도 computed outline이 아직 0인 갱신 race를 확
 로컬 release-verify의 engine 62 pass/422 assertions와 자동 browser/bundle/syntax/dry-run은
 통과했고 마지막 installed-source mismatch는 exit 1이다. 생성 실패 테스트의 visible feedback/
 sr-only 중복 locator는 기존 패턴대로 feedback 영역으로 한정한 후 전체 자동 단계를 다시
-통과했다. 원격 CI/Pages는 push 단계에서 확인한다. 공개 desktop asset v1.2.2 및 기기 설치본은 유지한다.
+통과했다. 공개 desktop asset v1.2.2 및 기기 설치본은 유지한다.
+
+기능 커밋 `4d326d3491510df486f506e946fe90bbbdf58a74`의 Engine
+[37955457646](https://github.com/kendrick-na/tokenjuice/actions/runs/37955457646)는 Linux/macOS 및
+확장된 Pocket browser, Windows
+[37955457689](https://github.com/kendrick-na/tokenjuice/actions/runs/37955457689)는 engine/selftest/exe
+빌드·실행, Pages [37955457796](https://github.com/kendrick-na/tokenjuice/actions/runs/37955457796)는
+browser 검사·정적 업로드·배포까지 모두 success다. Windows release는 tag가 없어 skipped다.
+공개 PWA는 이제 `4d326d3`이며, HTTP의 resume-panel/checkpoint input·sw v11을 확인하고
+resume.js (`9f727616…57220c`) 및 app.js (`1de7bdff…47a7e6`)의 SHA-256을 로컬과 대조해
+일치를 확인했다. 이는 정적 배포/자동 검증이지 실제 노트북 설치·사용자 resume 성공이 아니다.
+기존 Pocket 탭에 구캐시가 남아 있으면 모든 Pocket 탭을 닫고 다시 열어 새 서비스 워커의
+활성화를 확인한다. 이 절차를 실제 사용자 기기에서 실행/통과했다고 기록하지 않는다.

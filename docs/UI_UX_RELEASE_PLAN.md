@@ -82,6 +82,8 @@ reduced motion·dark token 대비·copy/download/clipboard 거절·오류 보존
 모바일/desktop 합성 fixture 캡처를 시각 확인했다. 기존 context/account 헤더의 큰 글자
 overflow도 재현 후 flex 줄바꿈으로 수정했다. VoiceOver/TalkBack·실기기·사용자 효과는 pending이다.
 
+`4d326d3`의 Engine [37955457646](https://github.com/kendrick-na/tokenjuice/actions/runs/37955457646), Windows [37955457689](https://github.com/kendrick-na/tokenjuice/actions/runs/37955457689), Pages [37955457796](https://github.com/kendrick-na/tokenjuice/actions/runs/37955457796)는 success다. 공개 HTML의 resume 상세·sw v11과 새 모듈/app.js의 소스 해시 일치를 확인했다. desktop release job은 tag가 없어 skipped이며 실제 설치본/실기기·사용자 gate는 유지한다.
+
 ## 5. 출시 전 UX 검증 시나리오
 
 참가자에게 설명하지 않고 아래를 수행하게 한다.

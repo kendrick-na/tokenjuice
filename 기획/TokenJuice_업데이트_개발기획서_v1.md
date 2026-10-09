@@ -1337,7 +1337,7 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
 않으므로, 임시 HOME/config와 provider 자격증명 부재를 보장하는 실행 도구가 별도 준비되기 전에는
 실기기 notification을 실행하지 않는다.
 
-최신 Pocket 배포는 `49a012f`이며 Engine [37943107693](https://github.com/kendrick-na/tokenjuice/actions/runs/37943107693), Windows [37943107732](https://github.com/kendrick-na/tokenjuice/actions/runs/37943107732), Pages [37943107852](https://github.com/kendrick-na/tokenjuice/actions/runs/37943107852)가 모두 success임을 GitHub에서 확인했다. 공개 app.js의 가져오기 내부 검사·신뢰 상태별 숫자 표시와 sw.js v10도 HTTP 응답으로 확인했다. 위 `12efce2` 릴리스 기록은 immutable v1.2.2의 과거 기준이며 현재 PWA 소스와 구분한다.
+이전 Pocket 배포 `49a012f`의 Engine [37943107693](https://github.com/kendrick-na/tokenjuice/actions/runs/37943107693), Windows [37943107732](https://github.com/kendrick-na/tokenjuice/actions/runs/37943107732), Pages [37943107852](https://github.com/kendrick-na/tokenjuice/actions/runs/37943107852)는 모두 success로 확인했고 당시 공개 app.js의 가져오기 내부 검사·신뢰 상태별 숫자 표시와 sw.js v10도 HTTP 응답으로 확인했다. 최신 PWA는 아래 §17.2의 `4d326d3`/sw v11이다. 위 `12efce2` 릴리스 기록은 immutable v1.2.2의 과거 기준이며 현재 PWA 소스와 구분한다.
 
 `17d02c8`(README historical 이미지 표기)과 `016a60a`(Pocket 설정 경계)는 문서만 변경했다. `.github/workflows/engine-verify.yml`, `windows-build.yml`, `companion-pages.yml`의 push paths에 해당 문서 경로가 없고 두 커밋의 run도 없다. 문서 변경이 새 CI/Pages 배포를 뜻하지 않는다. 이번 문서 정합성 검증의 release-verify 결과는 엔진 42 pass/217 assertions·브라우저·번들·스크립트·알림 dry-run 자동 단계 통과, 마지막 SwiftBar 설치본 불일치로 exit 1이다. 설치본 갱신, notch/tray·스크린리더 실기기 확인, 5명 사용성, 10명 인터뷰·14일 diary는 pending이다.
 
@@ -1437,7 +1437,7 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   키보드·copy/download·오프라인을 구현/검증하고 합성 화면을 시각 확인했다. 기존 헤더의
   large-text overflow도 재현해 줄바꿈으로 수정했다. 시각적 7-day trend/Usage Coach의 계약·
   diary/우선순위 gate와 Phase B 전체 resume, 설치/실기기·사용자 gate는 유지한다. 상세 증거는
-  [`docs/REQUIREMENTS_AUDIT.md` §9.9](../docs/REQUIREMENTS_AUDIT.md#99-승인된-metadata-only-resume-기능-2026-10-10)에 기록했다. 원격 CI/Pages는 push 후 별도 확인한다.
+  [`docs/REQUIREMENTS_AUDIT.md` §9.9](../docs/REQUIREMENTS_AUDIT.md#99-승인된-metadata-only-resume-기능-2026-10-10)에 기록했다. `4d326d3`의 Engine [37955457646](https://github.com/kendrick-na/tokenjuice/actions/runs/37955457646)·Windows [37955457689](https://github.com/kendrick-na/tokenjuice/actions/runs/37955457689)·Pages [37955457796](https://github.com/kendrick-na/tokenjuice/actions/runs/37955457796)는 모두 success다. 공개 PWA는 `4d326d3`로 갱신됐으며 HTTP의 resume 상세/sw v11과 resume.js/app.js 해시 일치를 확인했다. desktop release는 tag가 없어 skipped이며 immutable asset v1.2.2와 설치본은 변경하지 않았다. 구캐시가 남은 기존 Pocket 탭은 모두 닫고 다시 열어야 새 worker가 활성화될 수 있다. 실제 노트북 UI·재개 성공으로 승격하지 않는다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
