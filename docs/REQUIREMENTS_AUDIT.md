@@ -601,3 +601,9 @@ selftest는 세 state/reason 조합의 단일 NEXT·자동 약속 부재·숫자
 알림/diff 단계는 통과했다. 마지막 SwiftBar 설치본 불일치로 전체 exit 1이다. Windows
 renderer/selftest와 macOS 한정 갱신 계약 문서만 변경하며 실제 인증/설치/OS 권한은 바꾸지
 않았다. Pages 재배포 대상이 아니고 공개 Pocket 4d326d3/sw v11·desktop v1.2.2는 유지한다.
+
+소스 7ff5a444083a2440c99ccb60f8b195f08f094268의 Engine
+[37962206185](https://github.com/kendrick-na/tokenjuice/actions/runs/37962206185)와 Windows
+[37962206168](https://github.com/kendrick-na/tokenjuice/actions/runs/37962206168)는 success다.
+macOS 76 pass/829 assertions 및 Windows 새 manual-auth selftest·exe build/run/artifact를
+확인했다. tag가 없어 release는 skipped이며 Pages 변경 대상이 아니다. 실제 로그인은 실행하지 않았다.

@@ -1522,6 +1522,11 @@ disabled다. JSON/engine·macOS opt-in 갱신과 credential/settings는 변경�
 설치본 비교는 여전히 불일치로 전체 exit 1이며 자동 검증을 실제 재로그인·기기 성공으로
 승격하지 않는다. Windows 합성 selftest는 CLI/engine poll 미실행도 확인했다.
 
+7ff5a44의 Engine [37962206185](https://github.com/kendrick-na/tokenjuice/actions/runs/37962206185)·
+Windows [37962206168](https://github.com/kendrick-na/tokenjuice/actions/runs/37962206168)는
+success다. macOS 76 pass/829 assertions와 Windows 새 수동 인증 안내 selftest·exe build/run을
+확인했다. release는 skipped이고 Pages 재배포·실제 로그인 성공을 뜻하지 않는다.
+
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
 스토어 심사 완료를 기다리지 않고 실제 피드백을 받기 위해 출시 채널을 분리한다. 현재 실행 계획과 체크리스트는 [`docs/LAUNCH_FEEDBACK_PLAN.md`](../docs/LAUNCH_FEEDBACK_PLAN.md)에 기록한다.
