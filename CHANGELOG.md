@@ -7,6 +7,11 @@
 
 ### 변경
 
+- macOS Claude Desktop 표본의 잘못된 quota와 미래/불명 관측 시각을 제외한다.
+  clamp·boolean/null/blank 강제 변환으로 숫자나 마지막 성공을 만들지 않는다.
+  유효한 숫자 문자열·0/100·기존 표본 선택/소스 우선순위는 유지한다. 일반 provider
+  reset 스키마를 새로 정하거나 실제 설치본을 변경한 것은 아니다.
+
 - Claude API/local usage-cache/정규화 캐시의 잘못된 사용률을 `invalid_quota`로
   안전 실패 처리한다. 과거 숫자로 fallback하거나 잘못된 값을 알림/history에 넣지 않으며,
   malformed API 응답의 60초 재시도 제한과 정상 응답 뒤 회복을 추가했다.

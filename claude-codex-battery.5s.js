@@ -431,39 +431,46 @@ function readLocalUsageCache(acc = {}) {
 // `fh` is the rolling five-hour usage percentage and `sd` is the seven-day
 // usage percentage. Prefer a recent app sample so the battery matches what
 // the desktop app shows; API/local Claude Code data remains the fallback.
+function parseClaudeAppSample(sample, now) {
+  // Preserve the old Desktop reader's numeric-string compatibility, but never
+  // coerce null/boolean/array/blank fields into apparent quota or timestamps.
+  const number = (value) => typeof value === "number" || (typeof value === "string" && value.trim()) ? Number(value) : NaN;
+  const at = number(sample?.t), fh = number(sample?.u?.fh), sd = number(sample?.u?.sd);
+  if (!Number.isFinite(at) || at <= 0 || at > now || !Number.isFinite(new Date(at).getTime())
+    || !validQuotaPercent(fh) || !validQuotaPercent(sd)) return null;
+  return { at, fh, sd };
+}
 function readClaudeAppUsage() {
   const f = path.join(HOME, "Library", "Application Support", "Claude", "plan-usage-history.json");
   try {
     const j = JSON.parse(readFileSync(f, "utf8"));
+    if (!j || typeof j !== "object" || Array.isArray(j) || (j.samples != null && !Array.isArray(j.samples))) return invalidClaudeQuota("claude-app");
     const samples = Array.isArray(j.samples) ? j.samples : [];
-    const valid = samples.filter((x) => {
-      const age = Date.now() - Number(x?.t);
-      return age >= 0 && age < 2 * 60 * 60 * 1000 && x?.u &&
-        Number.isFinite(Number(x.u.fh)) && Number.isFinite(Number(x.u.sd));
-    });
+    const now = Date.now();
+    const parsed = samples.map((sample) => parseClaudeAppSample(sample, now)).filter(Boolean);
+    const valid = parsed.filter((sample) => now - sample.at < 2 * 60 * 60 * 1000);
     const s = [...valid].reverse()[0];
     if (!s) {
       // Claude desktop only polls while its tray usage view was opened in the
       // last 24h; otherwise samples just stop. Report that instead of nothing,
       // with the last sample for context (never used as a live value).
-      const last = [...samples].reverse().find((x) => x?.u && Number.isFinite(Number(x.u.fh)));
+      const last = [...parsed].reverse()[0];
       return last ? {
         ok: false,
         items: [],
         reason: "app-stale",
-        appLast: { at: Number(last.t), fh: Number(last.u.fh), sd: Number(last.u.sd) },
+        appLast: last,
         ...usageState({
           state: "stale",
           source: "claude-app",
-          at: Number(last.t),
-          observedAt: Number(last.t),
-          lastSuccessAt: Number(last.t),
+          at: last.at,
+          observedAt: last.at,
+          lastSuccessAt: last.at,
           stale: true,
         }),
-      } : null;
+      } : samples.length ? invalidClaudeQuota("claude-app") : null;
     }
-    const clamp = (n) => Math.max(0, Math.min(100, Number(n)));
-    const fh = clamp(s.u.fh), sd = clamp(s.u.sd);
+    const { fh, sd } = s;
 
     // A 0% sample is taken at face value. On large plans (e.g. Team) real use
     // rounds to 0-2% for hours, so "stuck at zero" cannot be told apart from
@@ -478,7 +485,7 @@ function readClaudeAppUsage() {
         return r && Date.parse(r) > Date.now() ? r : null;
       } catch { return null; }
     };
-    const at = Number(s.t);
+    const at = s.at;
     return {
       ok: true,
       items: [
@@ -941,6 +948,7 @@ async function getClaude(acc = {}, idx = 0) {
   if (!apiModeEnabled()) {
     if (app?.ok) return app;
     if (local) return local;
+    if (app?.reason === "invalid_quota") return app;
     return {
       ok: false,
       items: [],

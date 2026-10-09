@@ -1307,7 +1307,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `66 pass`·`557 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization 검사와 malformed 응답 backoff 추가. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
+| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `69 pass`·`669 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization·Desktop 표본 검사 및 malformed 응답 backoff 추가. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 및 수동 Codex 프로필 구현 / 실계정·OS 검증 대기 | Codex explicit root/alias/ID/표시 선택·stable notification/history key 구현. `862d50f` Engine `37950615407`·Windows `37950615519`, Windows 호환 수정 `70abf9e`의 `37950833358`는 success. 실제 Windows/macOS UI와 신규 설치는 validation kit pending. Windows toast 미구현 |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | metadata-only 생성/재개 상세 코드 구현·browser 검증 / 전체 resume·사용자 검증 대기 | 기존 다운로드에 checkpoint 다시 열기·메타데이터 확인·재개 안내 복사/텍스트 저장·오류 보존·메모리 전용 보관을 추가. 작업 의도/최근 파일 복원이나 실제 resume 행동 전환 완료가 아니며 `docs/VALIDATION_KIT.md` diary gate 유지 |
@@ -1318,7 +1318,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | UX10 랜딩/설치 경로 | 코드·배포 완료 / 사용자 검증 대기 | `6cacedb` Pages `37886745971` 성공. `6245fad`에서 README의 두 구버전 inline 이미지를 제거하고 현재 Pocket 링크로 대체; 원본 파일 보존. 현재 Pocket 화면과 immutable v1.2.2 desktop 화면은 별개. 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | local history export 구현 / 제품 우선순위 근거 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 diary 실행 순서, 분모/판정 기준 보완; 시각적 trend·Usage Coach는 행동 전환 데이터와 의사결정 전까지 보류 |
 | P1 작은 화면·checkpoint·설정 | 안전한 로컬 subset 완료 / history·제품·보안 gate 대기 | `679f079` 80%/90% 로컬 checkpoint 내보내기 CTA; `6cacedb` 상태·NEXT를 유지하고 상세만 접는 Pocket disclosure. trend/Usage Coach는 실제 시계열 snapshot 계약·10명 interview·14일 diary 근거 대기; `016a60a` Pocket 설정 경계는 제품·보안 결정 전 gated |
-| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline`과 별도 `--codex-forecast-history`, additive `codexAccounts[]` 추가; prompt-free fixture를 포함한 현재 66개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
+| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline`과 별도 `--codex-forecast-history`, additive `codexAccounts[]` 추가; prompt-free fixture를 포함한 현재 69개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자 지표와 provider 안전·정책 검증 필요; 의사결정 전 구현 보류 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
@@ -1453,6 +1453,15 @@ Windows [37957418881](https://github.com/kendrick-na/tokenjuice/actions/runs/379
 success이며 Windows exe build/run도 통과했다. tag가 없어 release job은 skipped다.
 이번 engine-only 변경은 Pages 배포 대상이 아니다. 공개 Pocket `4d326d3`/sw v11의
 HTTP/module hash를 다시 확인했으며 immutable desktop v1.2.2와 실제 설치본은 유지한다.
+
+§17.2 이어서(2026-10-10): Claude Desktop fh/sd의 boolean/null/blank/배열 coercion·clamp를
+차단하고 미래/불명 t를 표본 및 마지막 성공에서 제외했다. 정상 0/100·기존 숫자 문자열,
+2시간/배열상 마지막 valid 표본·local/API 우선순위·과거 note/HTTP 상태 규칙은 유지한다.
+Mac-only fixture 3개/112 assertions, 전체 로컬 69 pass/669 assertions와 release-verify
+자동 단계 통과를 확인했다. 마지막 installed-source mismatch로 전체 exit 1이다. 일반
+reset 스키마·source별 시간대/시계 오차는 새로 정하지 않았다. 다음 안전 후보는 API/local
+cache 관측 시각 검사이며 설치/실기기/인터뷰/스토어와 전체 resume gate는 pending이다.
+상세 범위·후속 CI는 [`docs/REQUIREMENTS_AUDIT.md` §9.11](../docs/REQUIREMENTS_AUDIT.md#911-claude-desktop-표본관측-시각-최소-검증-2026-10-10) 참조.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

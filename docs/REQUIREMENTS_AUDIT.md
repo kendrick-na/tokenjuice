@@ -22,14 +22,14 @@ Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 증거�
 Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 실제 설치 성공으로 대체하지 않는다.
 
 현재 공개 Pocket은 §9.9의 `4d326d3`/sw v11, desktop 자산은 immutable `v1.2.2`다.
-최신 로컬 엔진 후보에는 §9.10의 Claude utilization 검사를 추가했다. 아래 과거 커밋/테스트
+최신 로컬 엔진 후보에는 §9.10~§9.11의 Claude utilization/Desktop 표본 검사를 추가했다. 아래 과거 커밋/테스트
 수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
 
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 66 pass/557 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization과 Codex used_percent의 malformed 사용률은 unavailable. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 69 pass/669 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -435,3 +435,32 @@ skipped다. companion 변경이 없어 Pages push filter 대상이 아니며 PWA
 desktop asset `v1.2.2`는 유지한다. 공개 sw v11과 resume.js의 로컬/HTTP SHA-256
 `9f7276165052f679d8c697f4996d98f1443f11167e859029fd2767f70a57220c` 일치를 다시 확인했다.
 CI 성공·public HTTP 확인을 실제 설치/노트북·resume 효과로 승격하지 않는다.
+
+### 9.11 Claude Desktop 표본·관측 시각 최소 검증 (2026-10-10)
+
+clean `a677fb6`=origin/main과 `8c39895`의 두 CI success, master §9.2/9.3와 정확한
+데이터 계약을 재확인했다. Desktop 기록은 공개 안정 계약이 아니므로 일반 reset 형식이나
+새 시간대/시계 오차 규칙을 만들지 않고, 기존 sample 경로의 잘못된 숫자/관측 시각만 보강했다.
+systematic-debugging으로 fixture의 fh=true가 fallback 1%로 표시되는 실패를 먼저 재현했다.
+Number()의 boolean/null/blank/array coercion과 clamp가 원인이었다.
+
+fh/sd 숫자·비어 있지 않은 유효 숫자 문자열의 0~100 정규화는 유지하며 다른 타입/범위는
+제외한다. t는 동일한 문자열 호환성을 유지하되 양의 Date-valid/nonfuture Unix ms만 허용한다.
+기존 최근 2시간·배열상 마지막 유효 표본 선택, 정상 local/API 우선순위, 과거 note와 HTTP
+실패 상태 우선순위는 바꾸지 않는다. invalid row는 과거 성공 시각이나 quota가 되지 않는다.
+유효한 이전 표본으로 fallback하는 기존 Desktop 선택 규칙은 유지했으므로 Codex의 최신
+malformed 레코드 fail-closed 규칙과 같다고 설명하지 않는다. 별도 계정 탐색/인증은 없다.
+
+Mac 전용 합성 fixture 3개/112 assertions로 fh/sd 타입·비유한 수·0/100·legacy 문자열,
+빈/잘못된 history 구조·미래/불명/0/음수 시각, 과거 valid note 보존, invalid 행 제외,
+정상 local/API 우선순위와 snapshot/알림/history/진단 비노출을 검증했다. 첫 timestamp
+테스트의 stale 기대는 기존 getClaude의 HTTP 실패 우선순위와 다르다는 것을 확인해
+테스트만 unavailable 기대값으로 정정했다. 전체 로컬 69 pass/669 assertions와 release-verify
+자동 browser/bundle/syntax/격리 알림/diff 단계는 통과했다. 마지막 SwiftBar 설치본 비교로
+전체 exit 1이며 설치·앱 실행·OS 권한·실계정은 변경하지 않았다. Linux/Windows는 이 Desktop
+source를 읽지 않아 세 fixture를 실행하지 않는 기존 플랫폼 경계를 유지한다.
+
+남은 로컬 코드 후보는 API/local cache 관측 시각의 미래/불명 값 검사다. 일반 reset의
+source별 계약·시간대/시계 오차 해석은 근거 확인 전까지 이번 표본 수정에 포함하지 않는다.
+전체 work-content resume·시계열/Coach·Pocket 설정/Windows sender·보안/정책/스토어 결정,
+설치본·실기기·사용성·10명 interview/14일 diary 및 작업 재개 효과는 계속 pending이다.

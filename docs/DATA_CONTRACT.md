@@ -76,8 +76,20 @@ HTTP 200의 빈/잘못된 quota 응답은 성공으로 기록하지 않고 이�
 잘못된 local usage-cache는 다른 후보/계정/API로 조용히 fallback하지 않는다.
 정규화된 API 캐시도 사용률을 검사해 fresh나 HTTP 실패 뒤 성공 fallback으로 쓰지 않는다.
 invalid quota는 snapshot·알림·pace history에 숫자를 제공하지 않는다. 실제 인증/접근 권한은
-바꾸지 않는다. 이 검사는 utilization 경로에 한정하며 Claude Desktop의 별도 `fh/sd`
-기록·reset/시각 필드·JSON 파일 문법 등 모든 provider 스키마 검증 완료를 뜻하지 않는다.
+바꾸지 않는다. 이 utilization 검사는 reset/시각 필드·JSON 파일 문법 등 모든 provider
+스키마 검증 완료를 뜻하지 않는다. Desktop 별도 경로의 제한된 검사는 아래와 구분한다.
+
+macOS Claude Desktop `samples[].u.fh/sd`는 숫자 또는 기존 reader가 지원한 비어 있지 않은
+숫자 문자열을 0~100 범위에서만 정규화한다. boolean/null/blank/배열/객체/비유한 수·범위
+밖 값은 clamp하지 않고 해당 표본을 제외한다. `t`도 같은 숫자/숫자 문자열 호환성을 유지하되
+양의 Date-valid Unix ms이며 미래가 아니어야 한다. 최근 2시간의 유효 표본 중 배열상 마지막
+표본을 사용하는 기존 선택 규칙을 유지한다. 정렬·새 계정 추론·인증 접근은 추가하지 않는다.
+유효한 과거 표본만 historic last-success note로 남길 수 있고 잘못된 표본 시각은 성공으로
+기록하지 않는다. 유효 표본이 없는 nonempty/malformed history는 invalid_quota이며 API가
+꺼져 있고 정상 local cache가 없을 때 unavailable/items[]/lastSuccessAt null로 표시한다.
+정상 local cache 또는 명시적으로 켠 API는 기존 우선순위대로 사용할 수 있다. 숫자 문자열
+허용은 이전 reader 호환성이지 제공자의 안정된 공식 형식 보증이 아니다. API/local의 strict
+numeric utilization 검사와 다르며 일반 reset 형식·시계 오차 정책·파일 문법 검증은 남아 있다.
 
 Codex quota를 읽을 때 존재하는 각 창의 `used_percent`는 유한한 숫자형 0~100이어야
 한다. 숫자처럼 보이는 문자열·boolean·배열·객체·범위 밖 값·비유한 수는 변환하지 않는다.

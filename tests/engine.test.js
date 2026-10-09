@@ -352,6 +352,78 @@ test("recent Claude Desktop sample is a labelled fallback", () => {
   expect(c.trust.level).toBe("fallback");
 });
 
+test("Claude Desktop rejects coerced or out-of-range samples without fake success", () => {
+  if (process.platform !== "darwin") return;
+  config({ api: false, forecast: { enabled: true }, notify: { enabled: true } });
+  const file = "Library/Application Support/Claude/plan-usage-history.json";
+  for (const used of [true, false, null, "", "  ", [], [99], {}, -1, 101, "101", SECRET_PROMPT]) {
+    write(file, { samples: [{ t: Date.now() - 60000, u: { fh: used, sd: 30 } }] });
+    const c = json().claude[0];
+    expect(c.state).toBe("unavailable");
+    expect(c.reason).toBe("invalid_quota");
+    expect(c.lastSuccessAt).toBeNull();
+    expect(c.items).toEqual([]);
+    expect(JSON.parse(run("--widget-snapshot")).claude[0].items).toEqual([]);
+  }
+  write(file, '{"samples":[{"t":' + (Date.now() - 60000) + ',"u":{"fh":10,"sd":1e999}}]}');
+  expect(json().claude[0].reason).toBe("invalid_quota");
+  for (const history of [null, [], { samples: {} }, { samples: [null] }, { samples: [{ t: Date.now(), u: {} }] }]) {
+    write(file, history);
+    expect(json().claude[0].reason).toBe("invalid_quota");
+  }
+  run();
+  expect(notifications()).toEqual([]);
+  expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
+  expect(run("--diagnostics")).not.toContain(SECRET_PROMPT);
+});
+
+test("Claude Desktop invalid observation times cannot become last-success timestamps", () => {
+  if (process.platform !== "darwin") return;
+  config({ api: false });
+  const file = "Library/Application Support/Claude/plan-usage-history.json";
+  for (const at of [Date.now() + 60000, "bad time", null, true, [], 0, -1, 1e20]) {
+    write(file, { samples: [{ t: at, u: { fh: 10, sd: 20 } }] });
+    const c = json().claude[0];
+    expect(c.state).toBe("unavailable");
+    expect(c.reason).toBe("invalid_quota");
+    expect(c.lastSuccessAt).toBeNull();
+    expect(c.items).toEqual([]);
+  }
+  const oldAt = Date.now() - 3 * 3600000;
+  config({ api: true });
+  usage(500);
+  write(file, { samples: [{ t: oldAt, u: { fh: 10, sd: 20 } }, { t: Date.now() + 60000, u: { fh: 99, sd: 99 } }] });
+  const old = json().claude[0];
+  // Preserve HTTP-failure precedence; only the valid historic success is retained.
+  expect(old.state).toBe("unavailable");
+  expect(old.lastSuccessAt).toBe(oldAt);
+  expect(old.items).toEqual([]);
+});
+
+test("Claude Desktop preserves valid boundaries, numeric strings and source priority", () => {
+  if (process.platform !== "darwin") return;
+  config({ api: false });
+  const file = "Library/Application Support/Claude/plan-usage-history.json";
+  const at = Date.now() - 5 * 60000;
+  write(file, { samples: [{ t: String(at), u: { fh: "0", sd: "100" } }] });
+  const valid = json().claude[0];
+  expect(valid.state).toBe("fallback");
+  expect(valid.items.map((item) => item.used)).toEqual([0, 100]);
+  expect(valid.lastSuccessAt).toBe(at);
+  // Invalid rows are ignored; the existing valid-sample selection is preserved.
+  write(file, { samples: [{ t: at, u: { fh: 12, sd: 30 } }, { t: Date.now(), u: { fh: null, sd: 99 } }] });
+  expect(json().claude[0].items.map((item) => item.used)).toEqual([12, 30]);
+  expect(json().claude[0].lastSuccessAt).toBe(at);
+  write(file, { samples: [{ t: Date.now(), u: { fh: false, sd: 99 } }] });
+  write(".claude/usage-cache.json", okUsage(20, 40));
+  expect(json().claude[0].source).toBe("local");
+  rmSync(path.join(home, ".claude"), { recursive: true });
+  config({ api: true });
+  usage(200, okUsage(30, 50));
+  expect(json().claude[0].source).toBe("api");
+  expect(json().claude[0].items.map((item) => item.used)).toEqual([30, 50]);
+});
+
 test("multiple Claude config directories keep their own local usage cache", () => {
   config({ api: false });
   write(".config/claude-codex-battery/accounts.json", [
