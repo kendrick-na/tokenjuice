@@ -190,6 +190,103 @@ test("60s cache: a second render makes no new request", () => {
   expect(calls()).toBe(1);
 });
 
+test("Claude rejects malformed API utilization without promoting old quota or emitting alerts", () => {
+  config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 20, forecast: true } });
+  const previous = { ok: true, source: "api", at: Date.now() - 120000, items: [{ name: "5-hour", used: 20 }] };
+  cache("claude-0.json", previous);
+  for (const used of ["99", true, false, [], {}, -1, 101, "", SECRET_PROMPT, null]) {
+    cache("claude-0.fail.json", {});
+    usage(200, okUsage(used, 40));
+    run();
+    const c = json().claude[0];
+    expect(c.state).toBe("unavailable");
+    expect(c.reason).toBe("invalid_quota");
+    expect(c.lastSuccessAt).toBeNull();
+    expect(c.items).toEqual([]);
+    expect(JSON.parse(run("--widget-snapshot")).claude[0].items).toEqual([]);
+    expect(JSON.parse(readFileSync(path.join(home, ".cache/claude-codex-battery/claude-0.json"), "utf8"))).toEqual(previous);
+  }
+  for (const body of [null, true, [], "99", {}, { five_hour: [] }, { seven_day: 99 }, { five_hour: {} }, { five_hour: { utilization: 10 }, seven_day_opus: { utilization: "99" } }]) {
+    cache("claude-0.fail.json", {});
+    usage(200, body);
+    expect(json().claude[0].reason).toBe("invalid_quota");
+  }
+  cache("claude-0.fail.json", {});
+  writeFileSync(fx, '{"status":200,"body":{"five_hour":{"utilization":1e999}}}');
+  expect(json().claude[0].reason).toBe("invalid_quota");
+  expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
+  expect(notifications()).toEqual([]);
+  expect(run("--diagnostics")).not.toContain(SECRET_PROMPT);
+});
+
+test("Claude rejects malformed local and normalized caches before fallback or credential access", () => {
+  config({ api: true, forecast: { enabled: true }, notify: { enabled: true } });
+  usage(200, okUsage());
+  cache("claude-0.json", { ok: true, source: "api", at: Date.now(), items: [{ name: "Weekly", used: 30 }] });
+  const local = write(".claude/usage-cache.json", okUsage("99", 40));
+  // A newer malformed cache must not fall through to a different local candidate.
+  write(".claude/cache/usage-cache.json", okUsage(20, 40));
+  for (const used of ["99", true, false, [], {}, -1, 101, "", null]) {
+    write(".claude/usage-cache.json", okUsage(used, 40));
+    const c = json().claude[0];
+    expect(c.reason).toBe("invalid_quota");
+    expect(c.items).toEqual([]);
+    expect(c.lastSuccessAt).toBeNull();
+  }
+  const old = (Date.now() - 31 * 60000) / 1000;
+  utimesSync(local, old, old);
+  expect(json().claude[0].reason).toBe("invalid_quota");
+  expect(calls()).toBe(0);
+  rmSync(path.join(home, ".claude"), { recursive: true });
+  for (const used of ["99", true, {}, -1, 101, null]) {
+    cache("claude-0.json", { ok: true, source: "api", at: Date.now(), items: [{ name: "5-hour", used }] });
+    const c = json().claude[0];
+    expect(c.reason).toBe("invalid_quota");
+    expect(c.lastSuccessAt).toBeNull();
+    expect(c.items).toEqual([]);
+  }
+  // A bad old normalized cache is not a successful fallback after a real HTTP failure.
+  cache("claude-0.json", { ok: true, source: "api", at: Date.now() - 120000, items: [{ name: "5-hour", used: "99" }] });
+  usage(500);
+  expect(json().claude[0].lastSuccessAt).toBeNull();
+  expect(json().claude[0].items).toEqual([]);
+  run();
+  expect(notifications()).toEqual([]);
+  expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
+});
+
+test("Claude malformed response backoff avoids repeated fetch and recovers only after retry", () => {
+  usage(200, okUsage("99", 40));
+  const first = json().claude[0];
+  expect(first.reason).toBe("invalid_quota");
+  expect(first.retryAt).toBeGreaterThan(Date.now());
+  expect(run()).toContain("잘못된 사용량 형식으로 숫자를 표시하지 않습니다");
+  usage(200, okUsage(0, 100));
+  expect(json().claude[0].reason).toBe("invalid_quota");
+  expect(calls()).toBe(1);
+  cache("claude-0.fail.json", { reason: "invalid_quota", at: Date.now() - 61000, until: Date.now() - 1000 });
+  expect(json().claude[0].items.map((item) => item.used)).toEqual([0, 100]);
+  expect(json().claude[0].state).toBe("fresh");
+  expect(calls()).toBe(2);
+});
+
+test("Claude numeric boundaries, optional windows and account isolation remain compatible", () => {
+  config({ api: false });
+  const valid = okUsage(0, 100);
+  valid.seven_day_opus = null;
+  valid.seven_day_sonnet = { utilization: null };
+  write(".claude/usage-cache.json", valid);
+  expect(json().claude[0].items.map((item) => item.used)).toEqual([0, 100]);
+  write(".config/claude-codex-battery/accounts.json", [
+    { name: "Personal", configDir: "~/.claude-personal" },
+    { name: "Work", configDir: "~/.claude-work" },
+  ]);
+  write(".claude-personal/usage-cache.json", okUsage("99", 40));
+  write(".claude-work/usage-cache.json", valid);
+  expect(json().claude.map((account) => account.state)).toEqual(["unavailable", "fresh"]);
+  expect(json().claude[1].items.map((item) => item.used)).toEqual([0, 100]);
+});
+
 test("old good value after a failure is stale, never live", () => {
   cache("claude-0.json", { ok: true, source: "api", at: Date.now() - 30 * 60000, items: [{ name: "5-hour", used: 10 }, { name: "Weekly", used: 35 }] });
   usage(500);

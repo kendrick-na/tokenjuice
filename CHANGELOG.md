@@ -7,6 +7,11 @@
 
 ### 변경
 
+- Claude API/local usage-cache/정규화 캐시의 잘못된 사용률을 `invalid_quota`로
+  안전 실패 처리한다. 과거 숫자로 fallback하거나 잘못된 값을 알림/history에 넣지 않으며,
+  malformed API 응답의 60초 재시도 제한과 정상 응답 뒤 회복을 추가했다.
+  Claude Desktop 별도 기록이나 모든 시각/reset 필드의 검증 완료는 아니다.
+
 - Pocket의 metadata-only checkpoint를 다시 열고 재개 안내를 복사·텍스트 저장하는
   로컬 상세 흐름을 추가했다. 저장 메타데이터를 현재 상태/작업 요약과 구분하고, 손상 파일
   보존·필드 whitelist·메모리 전용 보관·클립보드 실패 대체 경로를 제공한다. 작업 의도·

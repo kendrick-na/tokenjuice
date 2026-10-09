@@ -67,6 +67,18 @@ adapter 결과다. 항목은 `{ id, label, usageFile }`이며, 파일에는 `ite
 
 ## 데이터 경로와 한계
 
+Claude usage API와 Claude Code local usage-cache의 존재하는 주요 창 `utilization`도
+유한한 숫자형 0~100만 받는다. 문자열·boolean·배열·객체·범위 밖 값은 변환하거나
+clamp하지 않고 계정 단위 `unavailable / invalid_quota / items: []`로 반환한다.
+모델별 optional 창의 null utilization과 누락/null 창은 기존대로 건너뛰며 정상 0·100은 유지한다.
+HTTP 200의 빈/잘못된 quota 응답은 성공으로 기록하지 않고 이전 정상 캐시를 보존한다.
+60초 재시도 제한 동안 실패 관측/`retryAt`만 표시하며 `lastSuccessAt`은 null이다.
+잘못된 local usage-cache는 다른 후보/계정/API로 조용히 fallback하지 않는다.
+정규화된 API 캐시도 사용률을 검사해 fresh나 HTTP 실패 뒤 성공 fallback으로 쓰지 않는다.
+invalid quota는 snapshot·알림·pace history에 숫자를 제공하지 않는다. 실제 인증/접근 권한은
+바꾸지 않는다. 이 검사는 utilization 경로에 한정하며 Claude Desktop의 별도 `fh/sd`
+기록·reset/시각 필드·JSON 파일 문법 등 모든 provider 스키마 검증 완료를 뜻하지 않는다.
+
 Codex quota를 읽을 때 존재하는 각 창의 `used_percent`는 유한한 숫자형 0~100이어야
 한다. 숫자처럼 보이는 문자열·boolean·배열·객체·범위 밖 값·비유한 수는 변환하지 않는다.
 최신 탐색 레코드의 primary 또는 secondary가 이 검사를 실패하면 해당 프로필 전체를

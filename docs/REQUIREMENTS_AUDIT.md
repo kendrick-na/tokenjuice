@@ -7,25 +7,29 @@
 실사용자·실기기·정책 결정을 대신하지 않는다.
 
 기준 release asset은 `v1.2.2` (`12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`)다.
-2026-10-09 최신 배포된 Pocket PWA 소스 기준은 `49a012f`이며, 이 커밋의 Engine verification
+2026-10-09 당시 배포된 Pocket PWA 소스 기준은 `49a012f`이며, 이 커밋의 Engine verification
 `37943107693`, Windows build `37943107732`, Publish TokenJuice Pocket `37943107852`는 모두
 성공했다. 이는 GitHub Pages의 PWA 소스 배포 증거이며, immutable macOS/Windows release asset이나
 실기기 acceptance를 대체하지 않는다.
 
-최신 desktop **소스 후보**는 `70abf9e85cd51f4a8d5ba32205606b0e538b3f3b`다.
+이전 desktop **소스 후보**는 `70abf9e85cd51f4a8d5ba32205606b0e538b3f3b`다.
 프로필 엔진/브라우저 커밋 `862d50f41734ffc35321fddeb453854a27263427`의 Engine verification
 `37950615407`·Windows build `37950615519`는 success다. 이후 Windows 구버전 menu fallback
 수정 `70abf9e`의 Windows build `37950833358`도 selftest/exe 실행까지 success다.
 이후 audit/기획서 문서-only 변경은 해당 CI 필터나 Pages 배포를 다시 실행하지 않는다.
-desktop release asset/설치본은 갱신하지 않았고, Pocket 배포는 계속 `49a012f`다.
+당시 desktop release asset/설치본은 갱신하지 않았고, Pocket 배포는 `49a012f`였다.
 Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 증거는 §9.6이다. `70abf9e`는
 Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 실제 설치 성공으로 대체하지 않는다.
+
+현재 공개 Pocket은 §9.9의 `4d326d3`/sw v11, desktop 자산은 immutable `v1.2.2`다.
+최신 로컬 엔진 후보에는 §9.10의 Claude utilization 검사를 추가했다. 아래 과거 커밋/테스트
+수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
 
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 62 pass/422 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Codex는 명시적 로컬 프로필/유효 이벤트·reset 조건부이며 malformed 사용률은 unavailable. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 66 pass/557 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization과 Codex used_percent의 malformed 사용률은 unavailable. 실계정·OS presentation은 별도; release-verify의 마지막 설치본 일치 단계는 실패 상태 |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -390,3 +394,34 @@ resume.js (`9f727616…57220c`) 및 app.js (`1de7bdff…47a7e6`)의 SHA-256을 �
 일치를 확인했다. 이는 정적 배포/자동 검증이지 실제 노트북 설치·사용자 resume 성공이 아니다.
 기존 Pocket 탭에 구캐시가 남아 있으면 모든 Pocket 탭을 닫고 다시 열어 새 서비스 워커의
 활성화를 확인한다. 이 절차를 실제 사용자 기기에서 실행/통과했다고 기록하지 않는다.
+
+### 9.10 R1/R15 Claude utilization 안전 실패 (2026-10-10)
+
+clean main `ee95ca0`=origin/main, 직전 `4d326d3`의 Engine/Windows/Pages success와
+master 전체·UI release plan·audit·validation kit를 재확인했다. Phase B 작업 내용 복원,
+7-day trend/Coach, Pocket 설정·Windows sender는 계약/제품/행동 근거가 필요한 gate여서
+대체 기능으로 닫지 않았다. 승인된 §9.2 provider schema 안전 실패의 다음 항목을 선택했다.
+
+수정 전 API fixture `utilization: "99"`가 fresh로 출력되는 실패를 먼저 재현했다.
+원인은 parseUsageItems의 검사 없는 값 전달이었다. API/local usage-cache의 창 구조 및
+유한한 숫자형 0~100 검사, 정규화 API cache의 사용률 검사를 추가했다. 잘못된 값은 계정
+단위 unavailable/invalid_quota/items[]로 반환하고 다른 후보/과거 정상값으로 fallback하지
+않는다. 정상 캐시는 덮어쓰지 않고 실패 관측은 observedAt에만 남긴다. malformed API
+응답은 60초 backoff와 retryAt을 기록해 재호출 폭주를 방지하며 재시도 뒤 정상값으로 회복한다.
+메뉴에 원인과 다음 확인 시각을 설명하고 잘못된 quota를 알림/history/export에 넣지 않는다.
+
+4개 fixture test/135 assertions로 타입·범위·비유한 값·빈/잘못된 창, optional null 창,
+0/100, local 후보 우회 차단, 정규화 캐시, 기존 캐시 보존, backoff/recovery, 계정 격리,
+lastSuccessAt null, snapshot/알림/history/진단 비노출을 검증했다. 전체 66 pass/557
+assertions다. release-verify의 bundle/syntax/격리 notification dry-run/Pocket browser/diff
+자동 단계는 통과했으며 마지막 installed-source mismatch로 전체 exit 1이다.
+설치·SwiftBar 실행·OS 권한·실계정·새 태그는 변경하지 않았다.
+webapp-testing helper로 정적 companion 서버를 격리 실행한 별도 전체 browser 회귀도
+exit 0이다. validation kit의 과거 public PWA 참조를 실제 `4d326d3`/Pages run으로
+정정했지만 참가자/기기 결과표는 빈 pending 상태를 유지했다.
+
+다음 남은 로컬 신뢰성 백로그는 Claude Desktop 별도 fh/sd 기록의 타입/범위·시점 검증 및
+provider reset/관측 시각 검사다. 이번 utilization 수정으로 모든 스키마 검증을 닫지 않는다.
+전체 resume는 의도/최근 파일·동의/보존 계약, trend/Coach는 시계열 계약·10명 interview/
+14일 diary, Pocket 설정/Windows toast/스토어는 제품·보안/배포 결정을 각각 기다린다.
+5명 설치/사용성·실기기·screen reader 및 실제 작업 재개 효과는 여전히 pending이다.

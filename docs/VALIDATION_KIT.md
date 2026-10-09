@@ -1,6 +1,6 @@
 # TokenJuice 검증 키트
 
-확인일: 2026-10-09
+확인일: 2026-10-10
 
 이 문서는 코드가 아닌 실제 사용자·실기기 검증을 실행하기 위한 빈 프로토콜이다.
 아래 표의 결과·통과율·참여자 수는 실제 세션 전에는 기입하지 않는다. 누구에게도
@@ -26,7 +26,7 @@
 - 목적: 신규 사용자가 Pocket/guide에서 위험 상태, 근거, 다음 행동, 설치 경로를 스스로 찾는지 확인한다.
 - 대상: 실제 참가자 5명. 개발자·연구자 여부는 분석 필드로 저장하지 않는다.
 - 시간: 1명당 20분(소개 2분, 과제 12분, 회고 4분, 철회/삭제 안내 2분).
-- 준비: 최신 GitHub Pages Pocket URL(현재 product source `c08fa49`가 배포된 URL), synthetic demo 화면, 빈 기록표, 타이머. `v1.2.2`는 immutable desktop release asset이므로 PWA source와 같은 버전이라고 가정하지 않는다.
+- 준비: 최신 GitHub Pages Pocket URL(현재 public PWA source `4d326d3`가 배포된 URL), synthetic demo 화면, 빈 기록표, 타이머. `v1.2.2`는 immutable desktop release asset이므로 PWA source와 같은 버전이라고 가정하지 않는다. metadata-only 재개 안내는 작업 내용 복원 기능이 아니다.
 - 금지: 실제 설치·로그인·계정 연결·화면 녹화·스크린샷·브라우저 파일 업로드.
 
 ### Facilitator script
@@ -155,7 +155,7 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 ### 공통 사전조건
 
 - immutable desktop baseline: `v1.2.2` / `12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`
-- current public PWA source: `c08fa49` (Pages workflow `37885325558` 성공). 이는 desktop release asset이 아니다.
+- current public PWA source: `4d326d3` (Pages workflow `37955457796` 성공, resume 상세·sw v11 HTTP 확인). 이는 desktop release asset이 아니다. 이후 engine-only 수정은 Pages 재배포 대상이 아니다.
 - desktop presentation은 **한 번에 하나의 기준만** 검증한다. 기존 `v1.2.2` 설치본을 관찰할 때는 tag 기준을, 사용자 승인 후 최신 소스를 설치했을 때는 현재 checkout 기준을 사용한다. 두 기준을 섞어 pass로 기록하지 않는다.
 - 실제 계정 대신 엔진 fixture 또는 synthetic config를 사용한다.
 - 기기 소유자가 현재 권한·집중 모드 상태를 직접 확인한다. 이 절차에서 설정을 열거나 바꾸지 않는다. 상태 확인을 원하지 않거나 권한이 꺼져 있으면 presentation은 pending이다.

@@ -371,13 +371,30 @@ function readClaudeToken(acc = {}) {
 
 // 사용량 JSON → items 배열 (로컬 캐시 파일과 API 응답이 같은 스키마라 공용)
 function parseUsageItems(d) {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return null;
   const items = [];
-  if (d.five_hour) items.push({ name: "5-hour", used: d.five_hour.utilization, resets: d.five_hour.resets_at });
-  if (d.seven_day) items.push({ name: "Weekly", used: d.seven_day.utilization, resets: d.seven_day.resets_at });
-  for (const [k, label] of [["seven_day_opus", "Weekly Opus"], ["seven_day_sonnet", "Weekly Sonnet"], ["seven_day_cowork", "Weekly Cowork"]]) {
-    if (d[k] && d[k].utilization != null) items.push({ name: label, used: d[k].utilization, resets: d[k].resets_at });
+  for (const [key, name] of [["five_hour", "5-hour"], ["seven_day", "Weekly"], ["seven_day_opus", "Weekly Opus"], ["seven_day_sonnet", "Weekly Sonnet"], ["seven_day_cowork", "Weekly Cowork"]]) {
+    const window = d[key];
+    if (window == null) continue;
+    if (typeof window !== "object" || Array.isArray(window)) return null;
+    // Model-scoped meters may be explicitly unavailable on this plan.
+    if (key !== "five_hour" && key !== "seven_day" && window.utilization == null) continue;
+    if (!validQuotaPercent(window.utilization)) return null;
+    items.push({ name, used: window.utilization, resets: window.resets_at });
   }
   return items;
+}
+
+function validQuotaPercent(value) { return Number.isFinite(value) && value >= 0 && value <= 100; }
+function validClaudeCache(cached) {
+  return Array.isArray(cached?.items) && cached.items.length > 0 && cached.items.every((item) =>
+    item && typeof item === "object" && !Array.isArray(item) && typeof item.name === "string" && validQuotaPercent(item.used));
+}
+function invalidClaudeQuota(source, observedAt = Date.now()) {
+  // A failed read is not a last successful observation. Do not give usageState
+  // an at/observedAt it could promote via its legacy success-time fallback.
+  return { ok: false, items: [], reason: "invalid_quota",
+    ...usageState({ state: "unavailable", source }), observedAt };
 }
 
 // Claude Code가 스스로 갱신하는 로컬 사용량 캐시 (버전에 따라 경로가 다르거나 없을 수 있음)
@@ -395,6 +412,7 @@ function readLocalUsageCache(acc = {}) {
       if (!existsSync(f)) continue;
       const d = JSON.parse(readFileSync(f, "utf8"));
       const items = parseUsageItems(d);
+      if (items === null) return invalidClaudeQuota("local", statSync(f).mtimeMs);
       if (items.length) {
         let at = Date.now();
         try { at = statSync(f).mtimeMs; } catch {}
@@ -916,6 +934,7 @@ async function getClaude(acc = {}, idx = 0) {
   const app = IS_MAC && idx === 0 ? readClaudeAppUsage() : null;
   // 1순위: Claude Code 로컬 사용량 캐시 (원본 dennykim123 방식) — 실시간·무네트워크·키체인 X
   const local = readLocalUsageCache(acc);
+  if (local?.reason === "invalid_quota") return local;
   if (local?.state === "fresh") return local;
 
   // API 모드가 꺼져 있으면 → 키체인을 건드리지 않고 앱 값 또는 안내만 반환
@@ -936,6 +955,7 @@ async function getClaude(acc = {}, idx = 0) {
     try {
       const cached = JSON.parse(readFileSync(cacheFile, "utf8"));
       if (cached.at && Date.now() - cached.at < CLAUDE_TTL_MS) {
+        if (!validClaudeCache(cached)) return invalidClaudeQuota(cached.source || "api");
         return {
           ...cached,
           ...usageState({
@@ -955,6 +975,11 @@ async function getClaude(acc = {}, idx = 0) {
   // 3순위: usage API 직접 호출 (여기서만 키체인 토큰을 읽음 — 옵트인 상태에서만 도달)
   // 실패하면 대기시간을 기록해 둔다. 안 그러면 5초 실행마다 API를 두드려 429가 풀리지 않는다.
   const failFile = path.join(CACHE_DIR, `claude-${idx}.fail.json`);
+  const rejectResponse = () => {
+    const at = Date.now(), retryAt = at + CLAUDE_TTL_MS;
+    try { writeFileSync(failFile, JSON.stringify({ reason: "invalid_quota", at, until: retryAt })); } catch {}
+    return { ...invalidClaudeQuota("api", at), retryAt };
+  };
   let refreshing = false;
   let failStatus = null;
   let retryAt = null;
@@ -962,6 +987,7 @@ async function getClaude(acc = {}, idx = 0) {
     let fail = null;
     try { fail = JSON.parse(readFileSync(failFile, "utf8")); } catch {}
     if (fail && Date.now() < Number(fail.until)) {
+      if (fail.reason === "invalid_quota") return { ...invalidClaudeQuota("api", fail.at), retryAt: fail.until };
       refreshing = !!fail.refreshing;
       failStatus = Number(fail.status) || null;
       retryAt = Number(fail.until) || null;
@@ -981,8 +1007,12 @@ async function getClaude(acc = {}, idx = 0) {
       try { writeFileSync(failFile, JSON.stringify({ status: res.status, at: Date.now(), until: retryAt, refreshing })); } catch {}
       throw new Error(`usage api ${res.status}`);
     }
-    const d = await res.json();
+    let d;
+    try { d = await res.json(); } catch { return rejectResponse(); }
     const items = parseUsageItems(d);
+    // A malformed successful response must not overwrite the last good cache
+    // or silently fall back to another source. HTTP failure behavior is separate.
+    if (!items?.length) return rejectResponse();
     const now = Date.now();
     const out = {
       ok: true,
@@ -1016,7 +1046,7 @@ async function getClaude(acc = {}, idx = 0) {
     // "?" for it and the dropdown says how old it is.
     const cached = (() => { try { return JSON.parse(readFileSync(cacheFile, "utf8")); } catch { return null; } })();
     for (const c of [local, app?.ok ? app : null, cached]
-      .filter((c) => c?.ok && (c.lastSuccessAt ?? c.at) && Date.now() - (c.lastSuccessAt ?? c.at) <= CLAUDE_CACHE_MAX_STALE_MS)
+      .filter((c) => c?.ok && validClaudeCache(c) && (c.lastSuccessAt ?? c.at) && Date.now() - (c.lastSuccessAt ?? c.at) <= CLAUDE_CACHE_MAX_STALE_MS)
       .sort((a, b) => (b.lastSuccessAt ?? b.at) - (a.lastSuccessAt ?? a.at))) {
       const at = c.lastSuccessAt ?? c.at;
       return {
@@ -2382,6 +2412,10 @@ for (let ai = 0; ai < accounts.length; ai++) {
     out.push("--Sessions & Codex work without this. | size=11 color=#8b949e");
   } else if (cl.reason === "app-stale") {
     out.push("⏸ 업데이트 필요 · Claude 앱의 사용량 수집이 멈췄습니다 | size=12 color=#ffcc00");
+  } else if (cl.reason === "invalid_quota") {
+    out.push("⚠️ 확인할 수 없음 · 잘못된 사용량 형식으로 숫자를 표시하지 않습니다 | size=12 color=#ffcc00");
+    const retry = fmtRetryAt(cl.retryAt);
+    if (retry) out.push(`--다음 확인 ${retry} · 그때까지 API를 재호출하지 않습니다 | size=11 color=#8b949e`);
   } else if (cl.reason === "auth" || state === "auth_expired") {
     out.push("🔐 다시 연결 필요 · Claude 로그인 만료 (실시간 숫자 없음) | size=12 color=#ff453a");
     if (cl.appLast) {
