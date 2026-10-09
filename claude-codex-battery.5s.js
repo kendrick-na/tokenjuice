@@ -2115,6 +2115,17 @@ const out = [];
 out.push(`| image=${renderImage(groups, dark)}`);
 out.push("---");
 
+// A compact/notch header can only show lettered batteries. Put an explicit
+// text legend at the very top of the click panel so C/S/X never becomes the
+// only way to learn provider, freshness, or context meaning.
+if (COMPACT) {
+  const claudeStates = claudes.map((cl) => stateDisplayLabel(cl.state ?? (cl.stale ? "stale" : cl.items.length ? "fresh" : "unavailable"))).join(", ");
+  const codexState = stateDisplayLabel(codex.state ?? (codex.items.length ? "fresh" : "unavailable"));
+  const sessionState = activeClaudeSessions.length || activeCodexSessions.length ? "local context estimate" : "no active context";
+  out.push(`Compact header key · C = Claude (${claudeStates || "unavailable"}) · S = ${sessionState} · X = Codex (${codexState}) | size=11 color=#8b949e`);
+  out.push("---");
+}
+
 const SELF = path.resolve(process.argv[1] || "");
 for (let ai = 0; ai < accounts.length; ai++) {
   const cl = claudes[ai];

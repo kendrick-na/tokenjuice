@@ -601,6 +601,10 @@ test("compact mode is an explicit safe layout override", () => {
   });
   expect(r.status).toBe(0);
   expect(r.stdout).toContain("compact true");
+  const menu = spawnSync(process.execPath, [ENGINE], { encoding: "utf8", env: engineEnv({ CCB_COMPACT: "1", CCB_API: "", CCB_TEST_USAGE_FIXTURE: fx }) });
+  expect(menu.stdout).toContain("Compact header key · C = Claude");
+  expect(menu.stdout).toContain("S = no active context");
+  expect(menu.stdout).toContain("X = Codex");
 });
 
 // ── Codex states ─────────────────────────────────────────────────────────

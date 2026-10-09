@@ -44,7 +44,7 @@ TokenJuice의 시각적 방향은 화려한 대시보드가 아니라 **작업�
 
 ### 메뉴바·트레이
 
-- [ ] compact 상태에서도 provider 약어만 남기지 않고 `fresh/stale/reconnect`를 접근 가능한 텍스트로 제공
+- [x] compact 상태에서도 provider 약어만 남기지 않고 `fresh/stale/reconnect`를 접근 가능한 텍스트로 제공
 - [x] Windows tray와 Pocket에서 stale/auth/rate-limit/unavailable의 의미를 같은 평문으로 설명
 - [ ] 클릭 패널 첫 줄에 가장 위험한 quota 또는 context를 표시
 - [ ] 각 오류 상태에 사용자가 실행할 수 있는 단일 복구 행동 제공
