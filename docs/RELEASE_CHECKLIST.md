@@ -11,6 +11,11 @@
 > 사전 템플릿이며, 이번 릴리스의 실제 결과는 `docs/REQUIREMENTS_AUDIT.md`,
 > `docs/VALIDATION_KIT.md`, 공개 release/CI 근거로 판정한다.
 
+> 2026-10-10 로컬 후보: 74157c2의 source/Windows CI artifact·해시·검증 키트를 준비했다.
+> [후보 검토 원장](RELEASE_CANDIDATE_REVIEW.md)의 완료/차단 판정을 우선 확인한다.
+> 이 패키지는 새 tag/release 또는 스토어 제출물이 아니며 아래 과거 원격 template을
+> 현재 출시 차단 원인으로 혼동하지 않는다.
+
 > 현재 상태 참고: `c08fa49`의 Engine verification, Windows build, Publish TokenJuice Pocket은
 > 모두 성공했고 GitHub Pages는 Actions 원본으로 활성화되어 있다. 아래 2026-10-08 원격
 > 사전조건은 historical template이며, 다음 immutable release 후보에서는 새 SHA 기준으로

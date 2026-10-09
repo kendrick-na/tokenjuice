@@ -1567,6 +1567,15 @@ source/install cmp 및 release-verify 전체 exit 0을 확인했다. hash/증거
 Coach의 interview/diary·행동 근거, Windows sender/Pocket 설정·실기기·스토어/보안
 결정은 계속 미완료다. 이번 수정이나 metadata-only 안내를 그 기능의 완료로 대체하지 않는다.
 
+§17.2 이어서(2026-10-10): 실제 메뉴바 관찰을 위한 read-only app inventory에서도 SwiftBar가
+노출되지 않았다. 프로세스와 installed wake helper/source 해시 일치는 확인했지만 UI·절전
+복귀를 완료로 승격하지 않았다. 반복 attach·restart/refresh·강제 절전·권한 변경은 없다.
+검증된 74157c2 source archive와 같은 Windows CI artifact, 원본 SHA256SUMS·프로토콜/
+제한 설명을 ignored 로컬 후보 검토 패키지로 준비했다. CRLF-only 본문 일치와 원본 bytes
+해시 검증을 분리했고 공개 release·스토어 제출은 하지 않았다. metadata-only 계약과
+trend/Coach의 입력·행동 근거 gate도 유지한다. 전체 TODO의 독립 완료/차단 원장은
+[`docs/RELEASE_CANDIDATE_REVIEW.md`](../docs/RELEASE_CANDIDATE_REVIEW.md)와 audit §9.19 참조.
+
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
 스토어 심사 완료를 기다리지 않고 실제 피드백을 받기 위해 출시 채널을 분리한다. 현재 실행 계획과 체크리스트는 [`docs/LAUNCH_FEEDBACK_PLAN.md`](../docs/LAUNCH_FEEDBACK_PLAN.md)에 기록한다.

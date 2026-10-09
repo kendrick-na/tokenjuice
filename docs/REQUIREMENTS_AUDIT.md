@@ -743,3 +743,31 @@ diagnostics last success never를 확인했다. 실제 credential·사용자 설
 반영 후 release-verify 전체 exit 0: 80 pass/1043 assertions·engine/bundle/browser/
 문법/격리 알림/diff와 실제 설치본 일치가 통과했다. 앱 restart/refresh·CUA 재시도·
 OS 권한·새 tag/스토어 제출은 하지 않았다. 실제 노트북 UI와 위 외부 gate는 pending이다.
+
+### 9.19 실제 UI 접근 재확인과 로컬 후보 패키지 (2026-10-10)
+
+clean cb6fa51=origin/main에서 새 착수를 진행했다. CUA read-only getState의 enabled app
+inventory는 SwiftBar를 노출하지 않고 SystemUIServer를 비활성으로 보고한다. shell은 기존
+SwiftBar PID를 확인했지만 이를 메뉴바 성공으로 기록하지 않는다. getApp 반복·launch/
+restart/refresh·강제 절전·권한/LaunchAgent 변경은 하지 않았다. installed wake helper와
+source의 SHA-256은 f54794aad83a3f8b89f0bea4435eae1cc38bc8e936c8adba67d3615c24cbe6f4로
+일치한다. 실제 sleep/wake는 여전히 pending이다.
+
+resume.js와 DATA_CONTRACT의 metadata-only whitelist 및 history/Coach backlog를 다시
+대조했다. 원시 작업 내용·tool-call 수집이나 미정 import schema로 안전 subset을 넘지 않았다.
+대신 지시된 출시 준비 중 로컬로 독립 완성 가능한 후보 검토 패키지를 만들었다. exact SHA
+74157c2의 git archive와 Windows CI 37965807177의 artifact를 다운로드해 원본 해시·본문/
+형식·SHA256SUMS를 검증했다. strict cmp의 CRLF 실패와 CRLF-only 정규화 일치를 분리 기록한다.
+설치/앱 실행·공개 배포·서명/스토어 제출·사용자 연락은 없다. 패키지는 ignored scratchpad에
+로컬 보관하며 source·바이너리·프로토콜·알려진 제한을 함께 제공한다.
+
+검증 키트의 낡은 installed mismatch/전체 installer 재실행 안내도 현재 승인된 한 파일
+갱신에 맞게 정정했다. 전체 TODO별 완료/차단·다음 입력과 패키지 provenance는
+[후보 검토 원장](RELEASE_CANDIDATE_REVIEW.md)에 기록한다. 이는 UI/전체 resume·trend/
+Coach·사용자·스토어 gate 해소가 아니다. 엔진/제품 코드는 이번 준비에서 바꾸지 않았다.
+
+준비 후 release-verify를 다시 실행해 80 pass/1043 assertions와 설치본 일치까지 전체
+exit 0을 확인했다. webapp-testing helper의 --help 확인 후 localhost 정적 서버에서
+기존 전체 Pocket browser suite를 별도 재실행해 exit 0이며 서버도 종료했다. 새 CI/Pages/
+desktop 자산을 생성한 것이 아니고 기존 74157c2 두 CI 증거를 유지한다. 다른 세션의 원문이나
+CUA inventory의 무관한 앱/탭·개인정보는 패키지/공개 원장에 저장하지 않는다.

@@ -152,6 +152,15 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 
 ## 3. macOS/Windows notification presentation checklist
 
+### 2026-10-10 현행 설치 체크포인트
+
+최신 엔진 후보 74157c2는 승인된 플러그인 한 파일 반영 뒤 source/install cmp와
+release-verify 전체 exit 0(80 tests/1043 assertions)을 통과했다. 절전 helper도 소스와
+SHA-256 f54794aad83a3f8b89f0bea4435eae1cc38bc8e936c8adba67d3615c24cbe6f4가 같다.
+CUA read-only inventory는 여전히 SwiftBar를 노출하지 않으며 실제 메뉴바/절전 복귀는
+pending이다. 프로세스/파일 일치를 UI pass로 기록하지 않는다. 이 기기에는 full installer를
+다시 실행하거나 앱 restart/refresh·권한/LaunchAgent 변경을 하지 않는다.
+
 ### 공통 사전조건
 
 - immutable desktop baseline: `v1.2.2` / `12efce26b5eb6dafcb6aaf64f92ef7804ef1b487`
@@ -192,7 +201,7 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 
 ### 실행 순서
 
-1. **Mac:** 먼저 `./install.sh --doctor`로 읽기 전용 상태를 확인한다. 현재는 installed plugin이 source보다 오래됐다고 보고되는 것이 정상이며, 이 결과는 UI pass가 아니다. 기기 소유자가 최신 source 설치를 명시적으로 승인한 경우에만 현재 checkout에서 `CCB_YES=1 ./install.sh`를 실행하고, 다시 `./install.sh --doctor`가 source match를 보고한 뒤 아래 관찰을 한다. 승인 전에는 기존 release 설치본을 덮어쓰거나 새로 실행하지 않는다. 앱/UI가 없으면 notch는 `pending: app/UI unavailable`이다.
+1. **Mac:** 먼저 선택한 후보와 설치 본문이 일치하는지 읽기 전용 비교로 확인한다. 위 현재 기기는 플러그인 갱신을 이미 마쳤으며 full installer를 다시 실행하지 않는다. 다른 신규 기기의 설치·갱신은 그 기기 소유자의 명시적 승인 후 해당 checkout에서만 진행한다. 기존 release와 최신 source 후보를 섞지 않는다. 앱/UI가 없으면 notch는 `pending: app/UI unavailable`이며 실제 sleep/wake 결과도 pending이다. UI 접근을 위해 앱을 강제 restart/refresh하거나 권한을 변경하지 않는다.
 2. Notification contract smoke는 macOS에서 `scripts/notification-smoke.sh`를 실행한다. 기본 모드는 분리된 임시 HOME/config, provider credential 부재, `CCB_TEST_USAGE_FIXTURE`, `CCB_TEST_NOTIFY_LOG`를 사용해 threshold → reset → reconnect를 각각 한 번씩 캡처하며 `osascript`를 호출하지 않는다. Linux/Windows에서는 명확히 skip한다. OS presentation은 이 harness의 통과와 별개로 pending이다. 실제 알림을 보려면 `--allow-os-notification`과 `TOKENJUICE_CONFIRM_OS_NOTIFICATION=I_UNDERSTAND_TOKENJUICE_WILL_NOTIFY`를 모두 명시해야 하며, 기기 소유자가 권한·집중 모드를 확인한 뒤 별도 실행해야 한다. 기본 프로필·credential·Keychain을 사용하지 않는다.
 3. **Windows:** 현재 toast 송신 기능이 없으므로 toast 테스트와 권한 조작은 하지 않는다. 기존 실행본이 있는 기기에서 tray icon·tooltip·menu만 관찰한다.
 4. 두 OS 모두 화면 캡처·알림 본문·계정 데이터를 수집하지 않는다. 실패는 defect ID와 OS major만 남긴다.
