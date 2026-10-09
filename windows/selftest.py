@@ -104,6 +104,35 @@ def check_tooltip() -> None:
     print(f"  tooltip {len(tip)} chars (limit 127), blank groups omitted")
 
 
+def check_manual_auth_recovery() -> None:
+    """Windows explains manual recovery but never runs login or promises renewal."""
+    app = t.TrayApp()
+    for state, reason in (("auth_expired", None), ("unavailable", "auth"), ("auth_expired", "auth")):
+        with patch.object(t.subprocess, "run") as invoke, patch.object(app, "_poll_once") as poll:
+            app.data = {"claude": [{"account": "Fixture", "state": state, "reason": reason,
+                                    "items": [], "lastSuccessAt": None, "observedAt": 1000}]}
+            rows = [item for item in app._menu_items() if hasattr(item, "text")]
+            labels = [item.text for item in rows]
+            assert sum("NEXT · Claude Code에서 다시 로그인" in label for label in labels) == 1, labels
+            assert any("Windows에서는 자동 로그인 갱신을 실행하지 않습니다" in label for label in labels), labels
+            assert not any("renewing automatically" in label for label in labels), labels
+            assert not any(" · last success " in label or "% left" in label for label in labels), labels
+            assert all(not row.enabled for row in rows if "NEXT ·" in row.text), labels
+            invoke.assert_not_called()
+            poll.assert_not_called()
+    app.data["claude"][0]["items"] = [{"name": "5-hour", "used": 25}]
+    app.data["claude"][0]["lastSuccessAt"] = 1000
+    labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+    assert any("다시 로그인" in label for label in labels), labels
+    assert any("위 값은 현재 값이 아닙니다" in label for label in labels), labels
+    assert not any("renewing automatically" in label for label in labels), labels
+    assert t.build_groups(app.data)[0]["bars"] == [None]
+    assert "CCB_API=1" in " ".join(t.explain_no_limits("needs-api"))
+    assert "terminal" in " ".join(t.explain_no_limits("login"))
+    assert "retry-after" in " ".join(t.explain_no_limits(None, "rate_limited"))
+    print("  manual auth recovery is explanatory only; no automatic Windows renewal")
+
+
 def check_failed_observation_menu() -> None:
     """A failed read must not become last success or disappear as no session."""
     app = t.TrayApp()
@@ -195,7 +224,7 @@ def check_codex_profiles() -> None:
 
 def main() -> int:
     print(f"tokenjuice self-test on {sys.platform}")
-    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_failed_observation_menu, check_cost_menu, check_local_provider_menu, check_codex_profiles):
+    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_manual_auth_recovery, check_failed_observation_menu, check_cost_menu, check_local_provider_menu, check_codex_profiles):
         print(f"- {fn.__name__}")
         fn()
     print("all checks passed")

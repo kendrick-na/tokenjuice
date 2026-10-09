@@ -71,6 +71,14 @@ why the engine caches responses for 60s and prefers the local cache.
 
 ## Debugging
 
+### Login recovery
+
+If the tray reports an expired Claude login, sign in again in Claude Code yourself.
+The Windows tray does not automatically renew login, including when the shared
+config contains `autoRenew:true`; that execution path is macOS-only. Its recovery
+text is an instruction, not a button that runs the CLI or changes credentials.
+Old successful values remain labelled as historical, never live after auth failure.
+
 ```powershell
 python tokenjuice_tray.py --once            # one reading, as text
 python tokenjuice_tray.py --once --topics   # include prompt topics

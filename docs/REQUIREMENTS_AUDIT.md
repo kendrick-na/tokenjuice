@@ -22,7 +22,7 @@ Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 증거�
 Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 실제 설치 성공으로 대체하지 않는다.
 
 현재 공개 Pocket은 §9.9의 `4d326d3`/sw v11, desktop 자산은 immutable `v1.2.2`다.
-최신 로컬 엔진 후보에는 §9.10~§9.14의 Claude/Codex 관측 검사와 실패 원인·성공 시각 renderer 일치를 추가했다. 아래 과거 커밋/테스트
+최신 로컬 후보에는 §9.10~§9.15의 관측 검사·실패 renderer 일치와 Windows 수동 인증 안내를 추가했다. 아래 과거 커밋/테스트
 수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
 
 ## 1. 단계별 완료 기준 감사
@@ -40,7 +40,7 @@ Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 �
 |---|---|---|---|
 | R1 | `fresh/stale/unavailable/rate_limited/auth_expired/fallback` 상태 모델 | `usageState()`, `usageStateForHttp()`, `stateLabel()`, engine state tests | 코드·fixture 완료; 실제 provider 형식 변화는 ongoing risk |
 | R2 | last success/source/retry 시각 | `buildDiagnostics()`, menu recovery rows, developer mode; stale/429/401 tests | 코드·자동 검증 완료; 실제 계정 메시지 이해는 pending |
-| R3 | 인증 만료를 명시 상태·사용자 실행 안내로 전환 | `autoRenew:false` 기본값; 명시적 `autoRenew:true`일 때만 401/403 이후 10분 제한 갱신; 메뉴 정책 표시와 `--renew-login`; `tests/engine.test.js` opt-in/opt-out/수동 실행 테스트 | 코드·자동 검증 완료. 0 model-call은 2026-10-05 Claude CLI 2.1.238 실측에 한정(버전 변경 시 재검증); 실제 계정 재로그인·Keychain 및 Claude Team/조직 정책 확인은 pending |
+| R3 | 인증 만료를 명시 상태·사용자 실행 안내로 전환 | macOS `autoRenew:false` 기본값; 명시적 `autoRenew:true`일 때만 401/403 이후 10분 제한 갱신; 메뉴 정책 표시와 `--renew-login`; `tests/engine.test.js` opt-in/opt-out/수동 실행 테스트 | macOS 코드·자동 검증 및 Windows 수동 설명 selftest 완료(§9.15). Windows 자동 갱신은 미지원. 0 model-call은 2026-10-05 Claude CLI 2.1.238 실측에 한정(버전 변경 시 재검증); 실제 계정 재로그인·Keychain 및 Claude Team/조직 정책 확인은 pending |
 | R4 | 429 Retry-After·backoff | `fetchClaudeUsage()`, 429 tests | 자동 검증 완료 |
 | R5 | wake refresh single debounce | `scripts/ensure-swiftbar-visible.sh`, wake helper test | 코드·fixture 완료; 실제 sleep/wake 장비는 pending |
 | R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect·reset-soon·forecast tests | 지원 범위 구현: threshold·잔여량 회복·reconnect·별도 opt-in reset-soon/Claude 및 Codex local forecast 발화. Codex는 별도 수집/알림 동의와 유효 미래 reset 필요. macOS presentation pending; Windows sender 미구현 |
@@ -577,3 +577,27 @@ Linux/macOS 엔진·bundle/Pocket browser, macOS 76 pass/829 assertions 및 Wind
 failed-observation menu selftest·exe build/run/artifact를 확인했다. Engine watch 조회 중
 GitHub API 502가 한 번 있었으나 완료 결과/로그를 다시 읽어 success와 exact SHA를 확인했다.
 release는 tag가 없어 skipped이고 Pages 재배포 대상이 아니다. 설치/실기기 성공은 아니다.
+
+### 9.15 R3 Windows 수동 인증 복구 안내 (2026-10-10)
+
+clean 2009e6e=origin/main에서 Windows 설명/메뉴와 engine의 triggerClaudeTokenRefresh,
+JSON renew 및 DATA_CONTRACT의 수동 기본·macOS 실행 경계를 대조했다. Windows는
+!IS_MAC에서 갱신 실행이 false인데 explain_no_limits는 renewing automatically를 약속했다.
+systematic-debugging으로 이 원인을 확인하고 합성 메뉴 selftest 실패를 먼저 재현했다.
+
+auth_expired 또는 auth reason의 빈 패널은 한 NEXT·Claude Code 재로그인 설명과 Windows
+자동 갱신 미지원 경계를 표시한다. 설명은 disabled 행이며 CLI/인증/설정 변경을 실행하지 않는다.
+기존 state/source/성공 없음·과거 성공 표시, 오래된 quota와 no-live battery, needs-api/login/429
+복구 안내를 유지한다. macOS opt-in 갱신·JSON/export 계약·엔진 동작은 변경하지 않는다.
+
+selftest는 세 state/reason 조합의 단일 NEXT·자동 약속 부재·숫자/가짜 성공 부재와 disabled
+행, subprocess/_poll_once 미호출을 검증한다. 과거 정상 quota가 있는 auth failure의 수동
+설명/과거값/blank battery와 기존 API/login/429 안내도 검사한다. 초기 테스트가 last successful
+설명 문장까지 성공 시각으로 오인해 timestamp 행과 구분하도록 기대값만 정정했다.
+임시 venv·dummy backend에서 전체 menu/ICO selftest는 통과하며 실제 앱은 실행하지 않았다.
+전체 release-verify 및 원격 CI는 후속 기록한다. 설치/기기/사용자/보안/스토어 gate는 pending이다.
+
+전체 로컬 엔진 76 pass/829 assertions, release-verify 자동 browser/bundle/syntax/격리
+알림/diff 단계는 통과했다. 마지막 SwiftBar 설치본 불일치로 전체 exit 1이다. Windows
+renderer/selftest와 macOS 한정 갱신 계약 문서만 변경하며 실제 인증/설치/OS 권한은 바꾸지
+않았다. Pages 재배포 대상이 아니고 공개 Pocket 4d326d3/sw v11·desktop v1.2.2는 유지한다.

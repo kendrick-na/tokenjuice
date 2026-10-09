@@ -306,7 +306,8 @@ def explain_no_limits(reason: str | None, state: str | None = None) -> list[str]
     if state == "auth_expired" or reason == "auth":
         return [
             "usage API login expired",
-            "renewing automatically when Claude CLI is available",
+            "NEXT · Claude Code에서 다시 로그인",
+            "Windows에서는 자동 로그인 갱신을 실행하지 않습니다",
             "last successful value is never shown as live",
         ]
     if state == "rate_limited" or reason == "rate-limit":

@@ -1511,6 +1511,17 @@ Windows [37961549103](https://github.com/kendrick-na/tokenjuice/actions/runs/379
 success다. macOS 76 pass/829 assertions와 Windows 새 failure-menu selftest·exe build/run을
 확인했다. release는 skipped이며 Pages 재배포/실제 설치·사용자 검증으로 승격하지 않는다.
 
+§17.2 이어서(2026-10-10): R3 Windows 인증 만료 화면의 잘못된 자동 갱신 약속을 제거했다.
+Claude Code 수동 재로그인 안내와 Windows 자동 실행 미지원 경계를 명시하며 설명 행은
+disabled다. JSON/engine·macOS opt-in 갱신과 credential/settings는 변경하지 않는다.
+격리 selftest에서 state/reason 세 조합·단일 NEXT·미실행·가짜 성공/숫자 부재 및 기존
+과거값/API/login/429 안내를 검증한다. 소스·자동 검증과 실제 재로그인/기기 검증을 분리한다.
+상세 범위/CI는 audit §9.15에 기록하며 공개 Pocket/desktop asset/설치본 및 외부 gate는 유지한다.
+
+전체 로컬 엔진 76 pass/829 assertions 및 release-verify 자동 단계는 통과했다. 마지막
+설치본 비교는 여전히 불일치로 전체 exit 1이며 자동 검증을 실제 재로그인·기기 성공으로
+승격하지 않는다. Windows 합성 selftest는 CLI/engine poll 미실행도 확인했다.
+
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
 스토어 심사 완료를 기다리지 않고 실제 피드백을 받기 위해 출시 채널을 분리한다. 현재 실행 계획과 체크리스트는 [`docs/LAUNCH_FEEDBACK_PLAN.md`](../docs/LAUNCH_FEEDBACK_PLAN.md)에 기록한다.
