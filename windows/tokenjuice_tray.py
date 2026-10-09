@@ -479,7 +479,7 @@ class TrayApp:
         codex_status = self.data.get("codexStatus") or {}
         profiles = self.data.get("codexAccounts") or []
         if not profiles and codex:
-            profiles = [{**codex_status, "account": "Codex", "items": codex, "selected": True}]
+            profiles = [{**codex_status, "state": codex_status.get("state", "fresh"), "account": "Codex", "items": codex, "selected": True}]
         for profile in profiles:
             if profile.get("id") == "default" and not profile.get("items"):
                 continue

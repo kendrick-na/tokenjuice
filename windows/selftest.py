@@ -149,6 +149,10 @@ def check_codex_profiles() -> None:
     assert any("Selected for X header" in label for label in labels), labels
     assert any("Use Work — local display only, not login" in label for label in labels), labels
     assert any("업데이트 필요" in label for label in labels), labels
+    app.data = {"codex": [{"name": "Weekly", "used": 25}]}
+    legacy_labels = [item.text for item in app._menu_items() if hasattr(item, "text")]
+    assert "Codex" in legacy_labels and any("75% left" in label for label in legacy_labels), legacy_labels
+    assert not any("확인할 수 없음" in label for label in legacy_labels), legacy_labels
     with patch.object(t, "find_bun", return_value="bun-fixture"), patch.object(t, "find_engine", return_value="engine-fixture.js"), patch.object(t.subprocess, "run") as invoke, patch.object(app, "_poll_once") as poll:
         callback = app._select_codex_account("work")
         callback()
