@@ -1577,18 +1577,20 @@ if (argv[0] === "--init-config") {
     process.exit(1);
   }
 }
-if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off"].includes(argv[0]) || argv[0]?.startsWith("--notify-threshold=") || argv[0]?.startsWith("--notify-reset-soon=")) {
+if (["--notify-on", "--notify-off", "--notify-reset-on", "--notify-reset-off", "--notify-forecast-on", "--notify-forecast-off"].includes(argv[0]) || argv[0]?.startsWith("--notify-threshold=") || argv[0]?.startsWith("--notify-reset-soon=")) {
   try {
     const patch = argv[0] === "--notify-on" ? { enabled: true }
       : argv[0] === "--notify-off" ? { enabled: false }
       : argv[0] === "--notify-reset-on" ? { reset: true }
       : argv[0] === "--notify-reset-off" ? { reset: false }
+      : argv[0] === "--notify-forecast-on" ? { forecast: true }
+      : argv[0] === "--notify-forecast-off" ? { forecast: false }
       : argv[0].startsWith("--notify-reset-soon=") ? { resetSoonMinutes: Number(argv[0].split("=")[1]) }
       : { threshold: Number(argv[0].split("=")[1]) };
     if (patch.threshold != null && (!Number.isFinite(patch.threshold) || patch.threshold <= 0 || patch.threshold >= 100)) throw new Error("threshold must be between 1 and 99");
     if (patch.resetSoonMinutes != null && (!Number.isInteger(patch.resetSoonMinutes) || patch.resetSoonMinutes < 0 || patch.resetSoonMinutes > 60)) throw new Error("reset-soon minutes must be an integer from 0 to 60 (0 disables)");
     const notify = updateNotifyConfig(patch);
-    console.log(`notifications updated: enabled=${notify.enabled === true} threshold=${notify.threshold ?? 20} reset=${notify.reset !== false} resetSoonMinutes=${notify.resetSoonMinutes ?? 0}`);
+    console.log(`notifications updated: enabled=${notify.enabled === true} threshold=${notify.threshold ?? 20} reset=${notify.reset !== false} resetSoonMinutes=${notify.resetSoonMinutes ?? 0} forecast=${notify.forecast === true}`);
     process.exit(0);
   } catch (e) {
     console.error(`could not update notifications: ${String(e.message || e)}`);
@@ -1780,6 +1782,7 @@ function notifyConfig() {
     threshold: Number.isFinite(threshold) && threshold > 0 && threshold < 100 ? threshold : 20,
     reset: n.reset !== false,
     resetSoonMinutes: resetSoonMinutes(n.resetSoonMinutes),
+    forecast: n.forecast === true,
     overrides: n.overrides && typeof n.overrides === "object" ? n.overrides : {},
   };
 }
@@ -1792,6 +1795,7 @@ function notificationPolicyFor(entry) {
     threshold: Number.isFinite(threshold) && threshold > 0 && threshold < 100 ? threshold : global.threshold,
     reset: override.reset == null ? global.reset : override.reset !== false,
     resetSoonMinutes: resetSoonMinutes(override.resetSoonMinutes, global.resetSoonMinutes),
+    forecast: override.forecast == null ? global.forecast : override.forecast === true,
   };
 }
 function notificationPolicyForAccount(accountIndex) {
@@ -1854,6 +1858,20 @@ function runNotifications(entries) {
       sendNotification("TokenJuice", `reset soon · ${e.label} · ${fmtReset(e.resets)} · next action: wait for the reset, then check fresh quota`);
       st[e.key] = { ...current, resetSoonAt: resetAt, at: Date.now() }; changed = true;
     }
+    const forecast = e.forecast;
+    const forecastState = st[e.key] || prev;
+    const now = Date.now();
+    // Showing a pace estimate does not opt the user in to notifications. A
+    // known future reset and recent, sufficient observations are required;
+    // unknown reset times must not turn "beforeReset" into a false claim.
+    if (cfg.forecast && forecast?.kind === "local_pace_estimate" && forecast.samples >= 2
+      && Number.isFinite(forecast.observedAt) && forecast.observedAt <= now && now - forecast.observedAt <= 15 * 60000
+      && Number.isFinite(resetAt) && resetAt > now
+      && Number.isFinite(forecast.exhaustionAt) && forecast.exhaustionAt > now && forecast.exhaustionAt < resetAt
+      && forecastState.forecastResetAt !== resetAt) {
+      sendNotification("TokenJuice", `forecast alert · ${e.label} · local pace estimate (${forecast.samples} samples): may run out before reset · next action: save a checkpoint or wait`);
+      st[e.key] = { ...forecastState, forecastResetAt: resetAt, at: now }; changed = true;
+    }
   }
   if (changed) { try { writeFileSync(NOTIFY_STATE_FILE, JSON.stringify(st)); } catch {} }
 }
@@ -1866,7 +1884,7 @@ function notificationEntries() {
       label: accounts[i]?.name || `Claude account ${i + 1}`, state, stale: !!cl.stale,
       lastSuccessAt: cl.lastSuccessAt ?? cl.at ?? null, retryAt: cl.retryAt ?? null,
     });
-    for (const it of cl.items) out.push({ key: `claude:${i}:${it.name}`, label: `Claude ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, state });
+    for (const it of cl.items) out.push({ key: `claude:${i}:${it.name}`, label: `Claude ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, forecast: it.forecast, state });
   });
   for (const it of codex.items) out.push({ key: `codex:${it.name}`, label: `Codex ${it.name}`, remain: 100 - Number(it.used), resets: it.resets, state: codex.state ?? "fresh" });
   return out;
@@ -2405,6 +2423,8 @@ out.push(`--Set alert threshold: 30% | bash='${SELF}' param1=--notify-threshold=
 out.push(`--Reset alerts: ${notificationPolicy.reset ? "off" : "on"} | bash='${SELF}' param1=--notify-reset-${notificationPolicy.reset ? "off" : "on"} terminal=false refresh=true`);
 out.push(`--Reset soon alerts: ${notificationPolicy.resetSoonMinutes ? `${notificationPolicy.resetSoonMinutes} min` : "off"} (fresh only) | size=11 color=#8b949e`);
 out.push(`----${notificationPolicy.resetSoonMinutes ? "Disable reset soon alerts" : "Enable 10-minute reset soon alerts"} | bash='${SELF}' param1=--notify-reset-soon=${notificationPolicy.resetSoonMinutes ? 0 : 10} terminal=false refresh=true`);
+out.push(`--Forecast alerts: ${notificationPolicy.forecast ? "on" : "off"} · Claude local estimate only · requires forecast.enabled=true | size=11 color=#8b949e`);
+out.push(`----Turn forecast alerts ${notificationPolicy.forecast ? "off" : "on"} | bash='${SELF}' param1=--notify-forecast-${notificationPolicy.forecast ? "off" : "on"} terminal=false refresh=true`);
 const notificationTargets = notificationEntries().slice(0, 8);
 if (notificationTargets.length) {
   out.push("--Per quota window overrides (otherwise global policy applies) | size=11 color=#6b7280");

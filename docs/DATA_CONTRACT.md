@@ -99,7 +99,15 @@ fresh quota와 provider가 알려 준 미래 reset 시각(Claude ISO/Codex Unix 
 적용하며 같은 quota/reset 시각의 중복 알림을 cache에서 막는다. 과거/불명/임계 구간 밖의
 reset, stale/fallback/blocked 값은 제외한다. 기존 threshold hysteresis와 상태를 공유해도
 각 marker를 보존한다. 모든 read-only export는 알림을 발화하지 않는다.
-이는 forecast 소진 예측 알림이나 Windows toast가 아니며 Pocket 설정 전달도 아니다.
+이는 Windows toast나 Pocket 설정 전달이 아니다.
+
+Claude pace 소진 예측은 `forecast.enabled:true`(history 수집)와 effective 알림 enabled 및
+`notify.forecast:true`(예측 발화)가 모두 필요하다. 둘 다 기본 꺼짐이며 window override의
+`forecast`를 우선한다. local CLI `--notify-forecast-on`/`--notify-forecast-off`는 알림 정책만
+바꾸며 history 수집을 대신 켜지 않는다. fresh 상태, 최근 15분 내 관측, 표본 2개 이상,
+미래 소진 시각과 알려진 미래 reset 비교가 모두 유효할 때 한 quota/reset 구간당 한 번
+`local pace estimate`와 수동 next action으로 알린다. Codex는 pace history/예측이 없어
+예측 알림 대상이 아니다. 임계치·reset-soon/forecast marker는 서로 덮어쓰지 않는다.
 
 ## 위젯 스냅샷 계약 v1
 

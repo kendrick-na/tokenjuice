@@ -464,7 +464,7 @@ Claude API 모드의 로그인 갱신은 **기본 수동**이다. 로그인 만�
 제공자가 알려 준 미래 reset 시각과 fresh 값이 있을 때만
 같은 quota/reset 시각에 한 번 경고한다. 절전 중 지나간 알림은 재생하지 않는다.
 window별 `notify.overrides["claude:0:5-hour"].resetSoonMinutes`로 상속값을 바꿀 수 있다.
-이는 예측 소진 알림이 아니며, Windows native toast는 아직 제공하지 않는다.
+리셋 임박과 예측 소진은 서로 다른 알림이다. Windows native toast는 아직 제공하지 않는다.
 pace forecast를 켠 경우 메뉴에서 최근 7일의 로컬 관측값을 JSON으로 내보낼 수도 있다.
 원문 prompt·코드·credential은 포함하지 않는다.
 
@@ -473,6 +473,12 @@ last success, forecast samples/pace, session context 근거를 확인할 수 있
 읽기 전용이며 prompt/topic 원문과 credential을 출력하지 않고 기본 메뉴 동작에도 영향을 주지 않는다.
 `forecast`는 최근의 **로컬 사용률 관측값**으로 소진 예상 시각을 계산한다. 제공자 공식 예측이 아니며,
 관측이 두 개 이상 쌓인 뒤에만 표시된다.
+Claude 예측 소진 알림은 `notify.forecast:true` 또는 `--notify-forecast-on`으로 별도
+opt-in한다(`--notify-forecast-off`로 해제). 로컬 history 수집은 `forecast.enabled:true`로
+따로 동의해야 하며 알림을 켠다고 자동 활성화하지 않는다. 최신 관측, 충분한 표본, 알려진
+미래 reset보다 먼저 소진될 가능성이 있을 때 한도 구간당 한 번만 로컬 추정으로 경고한다.
+window별 `notify.overrides["claude:0:Weekly"].forecast`로 상속값을 바꿀 수 있다.
+Codex pace 예측·예측 알림은 아직 제공하지 않는다.
 `sessionStatus`는 Claude/Codex의 마지막 로컬 로그를 읽어 작업 중·입력 대기·완료 같은
 상태를 **휴리스틱**으로 표시한다. 제공자나 에이전트의 공식 상태가 아니므로 기본값은 꺼짐이다.
 

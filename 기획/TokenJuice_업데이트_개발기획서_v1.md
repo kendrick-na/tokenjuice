@@ -22,13 +22,13 @@ TokenJuice의 다음 승부처는 지원 AI를 많이 늘리는 것이 아니라
 - 2026년 Product Hunt 신제품 흐름은 단순 quota 표시를 넘어 세션 상태·승인 요청·완료 알림·컨텍스트·비용까지 묶는 “AI agent command center”로 확장되고 있다.
 - 시장의 약점은 공통적이다. Claude·Cursor·Codex의 사용량 경로가 공식 공개 API가 아니거나 CLI/브라우저 세션에 의존하고, 토큰 만료·429·수면 복귀·계정 선택 오류가 쉽게 “0%” 또는 오래된 숫자로 보인다.
 - TokenJuice는 설치본을 이미 보유하고, Claude Team과 Codex를 한 메뉴바에서 읽으며, Windows 트레이 버전까지 있다는 점이 강점이다.
-- v1.1·v1.2의 신뢰성 엔진과 R12/R19/R20의 로컬 기반은 구현했지만 전체 요구사항 완료는 아니다. R6 소진 예측 알림과 R10 다중 Codex 계정은 미구현이며 리셋 임박은 이번 후속 코드에서 별도 opt-in으로 구현했다. 암호화 수동 전달은 자동 sync가 아니다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성 결정 전까지 `implementation boundary` blocker다.
+- v1.1·v1.2의 신뢰성 엔진과 R12/R19/R20의 로컬 기반은 구현했지만 전체 요구사항 완료는 아니다. R6 리셋 임박과 Claude local pace 예측 알림은 후속 코드에서 별도 opt-in으로 구현했다. R10 다중 Codex 계정과 Codex pace 예측은 미구현이다. 암호화 수동 전달은 자동 sync가 아니다. 후속 gate는 자동 CloudKit 동기화의 제품·보안 결정, 실기기 UI 검증, 스토어/배포 결정이며, Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성 결정 전까지 `implementation boundary` blocker다.
 
 ### 1.1 2026-10-08 구현 추적
 
 | 범위 | 구현 증거 | 상태 |
 |---|---|---|
-| R1~R8, R15~R16 | 상태 계약, Retry-After, 수동 기본 로그인 갱신, wake debounce, 비밀값 없는 진단, fixture 회귀 테스트 | R6는 threshold·잔여량 회복·opt-in reset-soon 구현, 예측 소진 알림은 없음. 나머지는 자동 검증 범위 내 구현; 실제 기기 acceptance는 별도 |
+| R1~R8, R15~R16 | 상태 계약, Retry-After, 수동 기본 로그인 갱신, wake debounce, 비밀값 없는 진단, fixture 회귀 테스트 | R6는 threshold·잔여량 회복·opt-in reset-soon/Claude local forecast 구현. Codex 예측 없음. 나머지는 자동 검증 범위 내 구현; 실제 기기 acceptance는 별도 |
 | R9~R11, R17~R18 | 안전한 starter config, Claude 멀티 계정 별칭, Windows renderer, opt-in 세션 상태·pace forecast | R10 다중 Codex 계정과 R11 Windows toast는 미구현. Engine `37881044425`, Windows `37881044414` 성공은 구현된 범위의 과거 CI 기록 |
 | R12 | 자격증명 없는 로컬 스냅샷 export와 TokenJuice Pocket PWA import | 구현·브라우저 자동 검증 완료 |
 | R13 | GitHub Copilot 공식 비용 adapter + 명시적 local quota-file adapter | 구현·fixture/PWA 검증 완료; Cursor/Antigravity는 쿠키 수집 없이 안전한 exporter 파일로만 연결 |
@@ -1307,7 +1307,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 알림 부분 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `46 pass`·`238 expect()` 엔진 회귀; opt-in reset-soon 구현, R6 소진 예측 알림 미구현. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
+| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `49 pass`·`252 expect()` 엔진 회귀; opt-in reset-soon/Claude local forecast 구현, Codex 예측 미지원. release-verify 자동 단계 통과·마지막 SwiftBar 설치본 불일치(exit 1). 실계정·OS notification presentation은 pending |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 멀티 계정·표시 구현 / Codex 멀티 계정·Windows toast 미구현 | `6cacedb` Engine `37886745999`, Windows `37886745975` 성공은 구현된 코드 범위만 증명. 실제 Windows/macOS UI와 신규 설치는 validation kit pending |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | 코드·fixture 검증 완료 | `6d30b56`, `1654b26`; metadata-only 다운로드와 topic 비노출 테스트; 실제 resume 행동 전환은 `docs/VALIDATION_KIT.md` diary gate |
@@ -1365,7 +1365,7 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   history/statusline, 계정 reconnect·window override, 접근성·복구 개선은 이후 커밋이다.
 - `v1.2.2` desktop 자산은 `12efce2`에 고정돼 있다. 현재 main이나 Pocket 변경을 이미
   내려받은 exe/SwiftBar 설치본에 자동 반영됐다고 설명하지 않는다.
-- 남은 일은 외부 gate만이 아니다. R6 예측 소진 알림과 R10 다중 Codex 계정은
+- 남은 일은 외부 gate만이 아니다. Codex pace 예측과 R10 다중 Codex 계정은
   별도 코드 백로그다. Phase B의 작업 의도·최근 파일을 담은 resume brief도 metadata-only
   checkpoint로 대체 완료 처리하지 않는다. §16.5의 개인정보·자동 전환 금지 경계를 유지한다.
 - 이번 최소 안전 수정은 Pocket 손상 파일 가져오기였다. 내부 구조 오류 14종의 기존
@@ -1379,6 +1379,11 @@ Windows tray renderer는 있으나 native toast sender는 없어 Windows toast�
   local CLI/menu 제어, fresh·미래 reset 조건, 동일 reset 중복 방지와 threshold 상태 보존을
   fixture 4개로 검증했다. 현재 전체 46 tests/238 assertions 통과; OS 실기기·Windows
   sender와 소진 예측 알림은 미완료다. Pocket 설정 전송/설치본 변경은 하지 않았다.
+- `f1ed2c6` reset-soon의 Engine `37944170751`·Windows `37944170598` 성공 후 Claude
+  local forecast 알림을 추가했다. history 동의와 알림 동의 분리, fresh/최근 관측/충분한
+  표본·알려진 reset 전 소진 조건, window override, 구간별 중복 방지와 수동 next action을
+  fixture 3개로 검증했다. 현재 전체 49 tests/252 assertions 통과. Codex pace 예측은 없고
+  Windows sender·실기기/사용자 acceptance는 별도 gate다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

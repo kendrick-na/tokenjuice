@@ -518,6 +518,73 @@ test("invalid reset-soon settings leave config unchanged and read-only exports n
   expect(notifications()).toEqual([]);
 });
 
+test("forecast alert is separately opted in, labelled as an estimate, and once per quota reset", () => {
+  config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 1 } });
+  const now = Date.now();
+  cache("quota-history.json", { version: 1, observations: [
+    { key: "0:Weekly", at: now - 2 * 3600e3, used: 45 },
+    { key: "0:Weekly", at: now - 3600e3, used: 65 },
+  ] });
+  usage(200, okUsage(10, 85));
+  run();
+  expect(notifications()).toEqual([]); // Showing forecast does not opt in to alerts.
+  expect(run("--notify-forecast-on")).toContain("forecast=true");
+  run(); run();
+  const alerts = notifications().filter((n) => n.includes("forecast alert"));
+  expect(alerts).toHaveLength(1);
+  expect(alerts[0]).toContain("local pace estimate");
+  expect(alerts[0]).toContain("next action: save a checkpoint or wait");
+  expect(alerts[0]).not.toContain(SECRET_PROMPT);
+  expect(run()).toContain("Forecast alerts: on");
+  expect(run("--notify-forecast-off")).toContain("forecast=false");
+  run();
+  expect(notifications().filter((n) => n.includes("forecast alert"))).toHaveLength(1);
+  run("--notify-forecast-on");
+  cache("claude-0.json", {});
+  usage(200, { ...okUsage(10, 85), seven_day: { utilization: 85, resets_at: new Date(now + 4 * 86400e3).toISOString() } });
+  run(); run();
+  expect(notifications().filter((n) => n.includes("forecast alert"))).toHaveLength(2);
+});
+
+test("forecast alert requires history opt-in, enough samples, fresh data and a known future reset", () => {
+  const now = Date.now();
+  const history = { version: 1, observations: [
+    { key: "0:Weekly", at: now - 2 * 3600e3, used: 45 },
+    { key: "0:Weekly", at: now - 3600e3, used: 65 },
+  ] };
+  config({ api: true, notify: { enabled: true, threshold: 1, forecast: true } });
+  cache("quota-history.json", history); usage(200, okUsage(10, 85)); run();
+  config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 1, forecast: true } });
+  cache("quota-history.json", { version: 1, observations: [] }); run();
+  for (const resets of [null, "not a date", new Date(now - 60000).toISOString(), new Date(now + 60000).toISOString()]) {
+    cache("claude-0.json", {}); cache("quota-history.json", history);
+    usage(200, { ...okUsage(10, 85), seven_day: { utilization: 85, resets_at: resets } }); run();
+  }
+  for (const status of [500, 401, 429]) {
+    cache("quota-history.json", history);
+    cache("claude-0.json", { ok: true, source: "api", at: now - 30 * 60000, items: [{ name: "Weekly", used: 85, resets: new Date(now + 3 * 86400e3).toISOString() }] });
+    usage(status); run();
+  }
+  expect(notifications()).toEqual([]);
+});
+
+test("forecast target override and read-only exports cannot accidentally alert", () => {
+  const now = Date.now();
+  const settings = { api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 1, forecast: true, overrides: { "claude:0:Weekly": { forecast: false } } } };
+  config(settings);
+  cache("quota-history.json", { version: 1, observations: [
+    { key: "0:Weekly", at: now - 2 * 3600e3, used: 45 },
+    { key: "0:Weekly", at: now - 3600e3, used: 65 },
+  ] });
+  usage(200, okUsage(10, 85)); run();
+  expect(notifications()).toEqual([]);
+  config({ ...settings, notify: { ...settings.notify, overrides: {} } });
+  run("--json"); run("--text"); run("--widget-snapshot");
+  expect(notifications()).toEqual([]);
+  run(); run();
+  expect(notifications().filter((n) => n.includes("forecast alert"))).toHaveLength(1);
+});
+
 test("--json and --text never send notifications", () => {
   config({ api: true, notify: { enabled: true, threshold: 20 } });
   usage(200, okUsage(99, 99));
