@@ -464,3 +464,12 @@ source를 읽지 않아 세 fixture를 실행하지 않는 기존 플랫폼 경�
 source별 계약·시간대/시계 오차 해석은 근거 확인 전까지 이번 표본 수정에 포함하지 않는다.
 전체 work-content resume·시계열/Coach·Pocket 설정/Windows sender·보안/정책/스토어 결정,
 설치본·실기기·사용성·10명 interview/14일 diary 및 작업 재개 효과는 계속 pending이다.
+
+소스 `d0d0fba1f913cda72777ef4d38ceaf8c8d6d8fd5`의 Engine
+[37958426947](https://github.com/kendrick-na/tokenjuice/actions/runs/37958426947)는 Linux/macOS
+엔진·bundle/Pocket browser까지 success다. macOS job 로그에서 Desktop 세 새 fixture와
+69 pass/669 assertions를 직접 확인했다. Windows
+[37958426948](https://github.com/kendrick-na/tokenjuice/actions/runs/37958426948)도 engine/
+selftest/exe build/run/artifact까지 success이며 release는 tag가 없어 skipped다. companion
+변경이 없어 Pages filter 대상이 아니고, public Pocket은 기존 `4d326d3`/sw v11 그대로다.
+HTTP의 sw v11을 다시 확인했다. 이는 소스/CI 증거이지 설치본 갱신·실기기 성공이 아니다.

@@ -1462,6 +1462,11 @@ Mac-only fixture 3개/112 assertions, 전체 로컬 69 pass/669 assertions와 re
 reset 스키마·source별 시간대/시계 오차는 새로 정하지 않았다. 다음 안전 후보는 API/local
 cache 관측 시각 검사이며 설치/실기기/인터뷰/스토어와 전체 resume gate는 pending이다.
 상세 범위·후속 CI는 [`docs/REQUIREMENTS_AUDIT.md` §9.11](../docs/REQUIREMENTS_AUDIT.md#911-claude-desktop-표본관측-시각-최소-검증-2026-10-10) 참조.
+`d0d0fba`의 Engine [37958426947](https://github.com/kendrick-na/tokenjuice/actions/runs/37958426947)·
+Windows [37958426948](https://github.com/kendrick-na/tokenjuice/actions/runs/37958426948)는 모두
+success다. macOS job의 Desktop fixture/69 pass/669 assertions 로그도 확인했다. release는
+tag가 없어 skipped이며 Pages 재배포 대상이 아니다. 공개 Pocket `4d326d3`/sw v11의
+HTTP 확인, immutable desktop v1.2.2·설치본·사용자/기기 gate는 분리해 유지한다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
