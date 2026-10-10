@@ -1505,6 +1505,7 @@ test("diagnostics and every output stay free of prompt text", () => {
 // ── R5 · wake helper debounce ────────────────────────────────────────────
 function helper(now, running) {
   const r = spawnSync("/bin/sh", [HELPER], { encoding: "utf8", env: { ...process.env, TJ_STATE_DIR: path.join(home, "tj"), TJ_DRY_RUN: "1", TJ_NOW: String(now), TJ_SWIFTBAR_RUNNING: running ? "1" : "0" } });
+  if (r.status !== 0) throw new Error(`wake helper exit ${r.status}: ${r.stderr}`);
   return r.stdout;
 }
 const refreshes = (o) => (o.match(/refreshallplugins/g) || []).length;
@@ -1520,4 +1521,55 @@ macOnlyTest("wake helper: idle ticks do nothing, one refresh per wake, debounced
   expect(restarted).toContain("open -a /Applications/SwiftBar.app");
   expect(refreshes(restarted)).toBe(0);            // debounced
   expect(refreshes(helper(1700, false))).toBe(1);  // later restart refreshes
+});
+
+macOnlyTest("wake helper repairs malformed tick state without losing a valid refresh debounce", () => {
+  for (const value of ["not a timestamp", "", "1000\n1001", "1+1", "0x20", "08", "-5", "999999999999999999999999999999", SECRET_PROMPT]) {
+    write("tj/last-tick", value);
+    write("tj/last-refresh", "990");
+    expect(refreshes(helper(1000, true))).toBe(0);
+    expect(readFileSync(path.join(home, "tj/last-tick"), "utf8").trim()).toBe("1000");
+    expect(readFileSync(path.join(home, "tj/last-refresh"), "utf8").trim()).toBe("990");
+    expect(refreshes(helper(1015, true))).toBe(0);
+  }
+  expect(refreshes(helper(1600, true))).toBe(1);
+  expect(refreshes(helper(1615, true))).toBe(0);
+});
+
+macOnlyTest("installed source check is read-only and catches stale wake helpers independently", () => {
+  const plugin = write("installed files/plugin.js", readFileSync(ENGINE, "utf8").replace(/^.*\n/, "#!/synthetic/bun\n"));
+  const wake = write("installed files/wake.sh", readFileSync(HELPER, "utf8"));
+  const check = () => spawnSync("/bin/bash", [path.join(ROOT, "scripts/check-installed-sources.sh"), plugin, wake], { encoding: "utf8" });
+  expect(check().status).toBe(0);
+  const marker = path.join(home, "should-not-execute");
+  writeFileSync(wake, `#!/bin/sh\ntouch '${marker}'\n`);
+  const stale = check();
+  expect(stale.status).toBe(1);
+  expect(stale.stderr).toContain("절전 복구 스크립트 불일치");
+  expect(stale.stdout).toContain("SwiftBar 설치본이 소스와 일치");
+  expect(existsSync(marker)).toBe(false);
+  writeFileSync(wake, readFileSync(HELPER, "utf8"));
+  writeFileSync(plugin, `#!/bin/sh\ntouch '${marker}'\n`);
+  expect(check().status).toBe(1);
+  expect(check().stderr).toContain("플러그인 본문 불일치");
+  expect(existsSync(marker)).toBe(false);
+  rmSync(plugin); rmSync(wake);
+  const absent = check();
+  expect(absent.status).toBe(0); // Missing installs remain an explicit external gate.
+  expect(absent.stdout).toContain("신규 설치·실기기 검증은 별도");
+  expect(absent.stdout).toContain("절전 복귀 검증은 미완료");
+});
+
+macOnlyTest("wake helper reinitializes malformed refresh state once and restores idle suppression", () => {
+  for (const value of ["not a timestamp", "", "1000\n1001", "1+1", "0x20", "08", "-5", "999999999999999999999999999999", SECRET_PROMPT]) {
+    write("tj/last-tick", "900");
+    write("tj/last-refresh", value);
+    const output = helper(1000, true);
+    expect(refreshes(output)).toBe(1);
+    expect(output).not.toContain(SECRET_PROMPT);
+    expect(readFileSync(path.join(home, "tj/last-refresh"), "utf8").trim()).toBe("1000");
+    expect(refreshes(helper(1015, true))).toBe(0);
+    expect(refreshes(helper(1620, true))).toBe(1);
+    expect(refreshes(helper(1630, true))).toBe(0);
+  }
 });

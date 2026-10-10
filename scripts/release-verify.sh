@@ -18,7 +18,7 @@ pass "엔진 회귀 테스트"
 bun build claude-codex-battery.5s.js --target bun --outfile /tmp/tokenjuice-engine-release-check.js >/dev/null
 pass "Bun 번들"
 
-bash -n install.sh scripts/ensure-swiftbar-visible.sh scripts/notification-smoke.sh scripts/release-verify.sh
+bash -n install.sh scripts/ensure-swiftbar-visible.sh scripts/notification-smoke.sh scripts/release-verify.sh scripts/check-installed-sources.sh
 pass "macOS 설치·복구 스크립트 문법"
 
 scripts/notification-smoke.sh
@@ -51,16 +51,7 @@ git diff --check
 pass "공백 오류 없음"
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
-  INSTALLED="$HOME/.swiftbar-plugins/tokenjuice-battery.5s.js"
-  if [[ -f "$INSTALLED" ]]; then
-    if diff -q <(tail -n +2 "$INSTALLED") <(tail -n +2 claude-codex-battery.5s.js) >/dev/null; then
-      pass "SwiftBar 설치본이 소스와 일치"
-    else
-      fail "SwiftBar 설치본이 소스보다 오래됐습니다. 설치 절차를 실행한 뒤 다시 확인하세요."
-    fi
-  else
-    printf '! SwiftBar 설치본이 없습니다. 새 설치 검증은 별도 macOS 환경에서 수행하세요.\n'
-  fi
+  bash scripts/check-installed-sources.sh
 fi
 
 printf '\n릴리스 후보 기본 검증을 통과했습니다. Windows 실제 트레이 테스트와 새 설치 검증은 CI/테스트 장비에서 별도로 확인해야 합니다.\n'

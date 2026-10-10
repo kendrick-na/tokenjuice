@@ -27,8 +27,21 @@ if [ -z "$running" ]; then
   if pgrep -x SwiftBar >/dev/null 2>&1; then running=1; else running=0; fi
 fi
 
-last_tick=$(cat "$STATE_DIR/last-tick" 2>/dev/null || echo 0)
-last_refresh=$(cat "$STATE_DIR/last-refresh" 2>/dev/null || echo 0)
+# These internal files are written as canonical decimal epoch seconds. Never
+# evaluate damaged contents as shell arithmetic (expressions/octal/overflow).
+# Treat malformed state like a missing file; valid debounce state stays intact.
+read_state_time() {
+  value=$(cat "$STATE_DIR/$1" 2>/dev/null || echo 0)
+  case "$value" in
+    ''|*[!0-9]*|0[0-9]*) echo 0 ;;
+    *)
+      # Keep subtraction within the signed 64-bit arithmetic of supported hosts.
+      if [ "${#value}" -gt 18 ]; then echo 0; else echo "$value"; fi
+      ;;
+  esac
+}
+last_tick=$(read_state_time last-tick)
+last_refresh=$(read_state_time last-refresh)
 echo "$NOW" > "$STATE_DIR/last-tick"
 
 reason=""
