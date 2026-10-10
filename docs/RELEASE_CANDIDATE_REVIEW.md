@@ -6,9 +6,9 @@
 
 **후속 개발 후보와 분리:** 최신 4423ab1에는 R5 상태 손상 복구와 설치 helper 독립 비교가
 추가됐다. Engine 38052165596·Windows 38052165597 success, 로컬 83 tests/1146 assertions다.
-plugin 본문은 일치하지만 helper 설치본이 이전 버전이므로 전체 release-verify는 exit 1이다.
+helper 한 파일을 백업·갱신해 plugin/helper 모두 일치하며 전체 release-verify는 exit 0이다.
 아래 74157c2 로컬 패키지는 과거 고정 후보이며 새 helper 코드가 포함돼 있지 않다.
-helper 교체 승인·실제 UI/절전 관찰은 VALIDATION_KIT 및 audit §9.20 참조.
+설치 증거·남은 실제 UI/절전 관찰은 VALIDATION_KIT 및 audit §9.21 참조.
 
 - 엔진 소스: `74157c242a79cda1b8a0acbe034483d2bc2eb336`
 - [Engine CI 37965807140](https://github.com/kendrick-na/tokenjuice/actions/runs/37965807140): success,

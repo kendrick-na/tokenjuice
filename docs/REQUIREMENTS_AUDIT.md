@@ -27,15 +27,15 @@ Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 �
 수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
 
 §9.18 이전 엔진 후보는 승인된 플러그인 한 파일 반영 뒤 release-verify exit 0이었다.
-§9.20 최신 후보는 엔진 플러그인이 일치하지만 복구 helper 설치본이 이전 버전이므로
-전체 release-verify는 exit 1이다. helper는 자동 교체하지 않았으며 현재 증거는 §9.20 참조.
+§9.20의 설치 helper 불일치는 §9.21의 한 파일 백업·갱신으로 해소했다.
+현재 plugin/helper 모두 소스와 일치하며 전체 release-verify는 exit 0이다.
 실제 메뉴바/실기기·사용자·스토어 gate는 계속 pending이다.
 
 ## 1. 단계별 완료 기준 감사
 
 | 단계/기준 | 코드·자동 증거 | 실제 gate / 판정 |
 |---|---|---|
-| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 83 pass/1146 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; 최신 CI success·plugin 일치/helper 불일치로 release-verify exit 1(§9.20); 실제 UI pending |
+| v1.1 신뢰성·진단·알림 | `claude-codex-battery.5s.js`, 로컬 `tests/engine.test.js` 83 pass/1146 expect, `scripts/release-verify.sh`, macOS notification dry-run | threshold/잔여량 회복·opt-in 리셋 임박 및 Claude/Codex local pace 예측 알림 구현. Claude API/local utilization·Desktop 표본/cache 관측과 Codex used_percent의 malformed 값 검사. 실계정·OS presentation은 별도; 최신 CI success·plugin/helper 일치로 release-verify exit 0(§9.21); 실제 UI pending |
 | v1.1.1 상품 표면·복구 UX | `companion/index.html`, `companion/app.js`, `tests/companion.test.py`, guide/Pocket browser test, Pages `37885325558` | 375px·desktop·a11y 기계 기준 완료, 스크린리더·5명 사용성 pending |
 | v1.2 온보딩·계정·Windows | `guide.html`, `accounts.json` loader, Windows tray, Windows CI `37885325588`, release workflow | 신규 사용자 설치와 실제 Windows/macOS UI presentation pending |
 | v2.0 확장 플랫폼·provider | Copilot/local quota adapter, metadata-only snapshot, encrypted manual bundle tests | 자동 CloudKit, team, additional OAuth/browser connector, widget/Watch selection pending |
@@ -48,7 +48,7 @@ Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 �
 | R2 | last success/source/retry 시각 | `buildDiagnostics()`, menu recovery rows, developer mode; stale/429/401 tests | 코드·자동 검증 완료; 실제 계정 메시지 이해는 pending |
 | R3 | 인증 만료를 명시 상태·사용자 실행 안내로 전환 | macOS `autoRenew:false` 기본값; 명시적 `autoRenew:true`일 때만 401/403 이후 10분 제한 갱신; 메뉴 정책 표시와 `--renew-login`; `tests/engine.test.js` opt-in/opt-out/수동 실행 테스트 | macOS 코드·자동 검증 및 Windows 수동 설명 selftest 완료(§9.15). Windows 자동 갱신은 미지원. 0 model-call은 2026-10-05 Claude CLI 2.1.238 실측에 한정(버전 변경 시 재검증); 실제 계정 재로그인·Keychain 및 Claude Team/조직 정책 확인은 pending |
 | R4 | 429 Retry-After·backoff | `fetchClaudeUsage()`, 429 tests | 자동 검증 완료 |
-| R5 | wake refresh single debounce | `scripts/ensure-swiftbar-visible.sh`, 손상 tick/refresh 회복·debounce fixture, `scripts/check-installed-sources.sh`, §9.20 CI | 코드·fixture 완료; 최신 helper는 아직 설치 전. 한 파일 교체 승인과 실제 sleep/wake 관찰 필요 |
+| R5 | wake refresh single debounce | `scripts/ensure-swiftbar-visible.sh`, 손상 tick/refresh 회복·debounce fixture, `scripts/check-installed-sources.sh`, §9.20 CI·§9.21 설치 | 코드·fixture·한 파일 백업/갱신 완료. 실제 sleep/wake 관찰 필요 |
 | R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect·reset-soon·forecast tests | 지원 범위 구현: threshold·잔여량 회복·reconnect·별도 opt-in reset-soon/Claude 및 Codex local forecast 발화. Codex는 별도 수집/알림 동의와 유효 미래 reset 필요. macOS presentation pending; Windows sender 미구현 |
 | R7 | official quota와 local context/cost 분리 | `kind` contract, session/context/cost tests, Pocket cards | 코드·자동 검증 완료 |
 | R8 | secret-free copyable diagnostics | `--diagnostics`, `--copy-diagnostics`, diagnostics privacy test | 자동 검증 완료; 실제 support workflow는 pending |
@@ -815,3 +815,29 @@ Windows [38052165597](https://github.com/kendrick-na/tokenjuice/actions/runs/380
 macOS 새 세 fixture/83 pass/1146 assertions, Linux/bundle/Pocket browser 및 Windows
 selftest/exe build/run/artifact를 확인했다. Windows release는 skipped이며 Pages 배포 대상이
 아니다. CI 성공을 실제 helper 갱신이나 sleep/wake·아이콘/패널 성공으로 승격하지 않는다.
+
+### 9.21 R5 설치 helper 한 파일 갱신과 전체 검증 (2026-10-10)
+
+기존 인간 승인의 TokenJuice 마무리 범위와 계속 진행 요청에 따라 helper 한 파일만
+반영했다. 수정 전 설치 파일이 `91b0235:scripts/ensure-swiftbar-visible.sh`와 같은지
+비교하고 `Library/Application Support/TokenJuice/backups/`에
+`ensure-swiftbar-visible.before-4423ab1-20261010.sh`를 `cp -p`로 백업했다.
+백업 해시는 `f54794aad83a3f8b89f0bea4435eae1cc38bc8e936c8adba67d3615c24cbe6f4`다.
+
+설치 helper에 상태 시각 검사 hunk만 반영한 뒤 source와 전체 cmp 일치, SHA-256
+`1848b287b191d68519da6af9c0ff93b39760aca1627d6a98ee93627ea36c8159`,
+기존 권한 `-rwx--x--x` 및 owner/group 보존을 확인했다. 설치 plugin은 변경하지 않았다.
+실제 helper를 `TJ_DRY_RUN=1` 및 격리 `TJ_STATE_DIR`로 실행했다. 손상 tick/정상
+last-refresh=990에서 NOW=1000 debounce SKIP, NOW=1600 wake refresh 1회,
+NOW=1615 idle 억제·last-tick=1615·last-refresh=1600·로그 1행을 확인했다.
+dry-run의 RUN은 출력뿐이며 실제 defaults write/open을 실행하지 않는다.
+
+`bash scripts/check-installed-sources.sh` exit 0, 전체 `bash scripts/release-verify.sh`
+exit 0을 확인했다. 엔진 83 pass/0 fail/1146 assertions, bundle·shell/Python 문법,
+격리 알림·Pocket 브라우저·diff 및 plugin/helper 설치 일치 검증을 모두 통과했다.
+§9.20의 exit 1은 갱신 전 기록으로 남긴다. full installer·앱 restart/refresh·설정·권한·
+LaunchAgent·실제 상태 파일·credential은 이번 작업에서 수정하지 않았다.
+
+기존 source 4423ab1의 CI 증거는 §9.20과 같다. 이번 문서 반영은 새 PWA/desktop
+배포나 스토어 제출이 아니다. 실제 메뉴바/클릭 패널·정상 절전 후 복귀, Windows 실제
+tray·신규 설치/사용성과 데이터 계약 미정인 확장 기능은 여전히 미완료다.

@@ -125,9 +125,9 @@ release-verify 전체 exit 0(80 pass/1043 assertions)을 확인했다. 빈 파�
 
 2026-10-10 최신 R5 검증: 손상 last-tick/last-refresh 회복과 읽기 전용 helper 설치 비교를
 보강해 83 tests/1146 assertions·Engine 38052165596/Windows 38052165597 success다.
-plugin은 일치하지만 installed helper가 이전 버전이라 release-verify exit 1이다. helper
-한 파일 교체 승인과 실제 icon/panel·절전 복귀 관찰이 필요하다. Finder AX/blank screenshot
-대체 관찰도 시스템 메뉴바를 보여주지 않아 UI gate를 완료하지 않았다. audit §9.20 참조.
+helper 한 파일을 백업·갱신해 plugin/helper 모두 일치하며 release-verify exit 0이다.
+실제 icon/panel·절전 복귀 관찰은 여전히 필요하다. Finder AX/blank screenshot
+대체 관찰도 시스템 메뉴바를 보여주지 않아 UI gate를 완료하지 않았다. audit §9.21 참조.
 
 1. 현재 Pocket의 빈 상태·import 오류·feedback 진입점 개선
 2. Mac 설치/메뉴바 실기기 문제를 재현하며 동일 상태 언어를 연결

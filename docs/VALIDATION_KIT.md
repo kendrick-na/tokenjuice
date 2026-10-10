@@ -155,10 +155,10 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 ### 2026-10-10 현행 행동 필요 항목
 
 최신 source 4423ab1의 helper 손상 상태 복구/독립 설치 비교가 CI success다.
-83 tests/1146 assertions·browser/bundle/격리 알림은 pass, plugin 본문도 일치하지만
-installed wake helper는 이전 버전이다. `bash scripts/check-installed-sources.sh`는
-실행/설정 변경 없이 이를 exit 1로 알린다. helper 한 파일의 백업·좁은 교체 승인 후
-다시 비교해야 하며 full installer/LaunchAgent 변경·앱 restart/refresh는 필요하지 않다.
+83 tests/1146 assertions·browser/bundle/격리 알림은 pass다. 기존 승인의 마무리 범위로
+helper 한 파일을 백업·갱신했으며 plugin 본문과 helper 전체가 현재 소스와 일치한다.
+`bash scripts/check-installed-sources.sh`와 전체 release-verify는 exit 0이다 (§9.21).
+설정·권한·LaunchAgent 변경·full installer·앱 restart/refresh는 하지 않았다.
 
 실제 메뉴바 도구는 SwiftBar를 노출하지 않는다. 실행 중 Finder의 AX에도 status-item이
 없고 screenshot은 빈 흰 화면이라 제품 미표시나 OS 권한 문제로 단정할 수 없다.

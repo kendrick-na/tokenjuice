@@ -1307,7 +1307,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `83 pass`·`1146 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization·Desktop 표본/cache 관측 검사 및 malformed 응답 backoff 추가. 최신 CI success·plugin 일치/helper 불일치로 release-verify exit 1(§9.20)·실제 UI pending. 실계정·OS notification presentation은 pending |
+| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `83 pass`·`1146 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization·Desktop 표본/cache 관측 검사 및 malformed 응답 backoff 추가. 최신 CI success·plugin/helper 일치로 release-verify exit 0(§9.21)·실제 UI pending. 실계정·OS notification presentation은 pending |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 및 수동 Codex 프로필 구현 / 실계정·OS 검증 대기 | Codex explicit root/alias/ID/표시 선택·stable notification/history key 구현. `862d50f` Engine `37950615407`·Windows `37950615519`, Windows 호환 수정 `70abf9e`의 `37950833358`는 success. 실제 Windows/macOS UI와 신규 설치는 validation kit pending. Windows toast 미구현 |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | metadata-only 생성/재개 상세 코드 구현·browser 검증 / 전체 resume·사용자 검증 대기 | 기존 다운로드에 checkpoint 다시 열기·메타데이터 확인·재개 안내 복사/텍스트 저장·오류 보존·메모리 전용 보관을 추가. 작업 의도/최근 파일 복원이나 실제 resume 행동 전환 완료가 아니며 `docs/VALIDATION_KIT.md` diary gate 유지 |
@@ -1586,6 +1586,13 @@ LaunchAgent·설정은 자동 갱신하지 않았다. Finder AX/blank screenshot
 메뉴바를 확인하지 못해 UI·절전 복귀는 사용자 관찰 필요다. 상세와 필요한 승인/행동은
 audit §9.20 및 VALIDATION_KIT의 현행 항목 참조. 전체 resume/trend/Coach·사용자/스토어
 gate는 유지하며 이전 로컬 검토 패키지 74157c2는 이번 helper 코드가 없는 과거 고정 후보다.
+
+§17.2 이어서(2026-10-10 설치 마무리): 기존 승인의 TokenJuice 마무리 범위 안에서
+복구 helper 한 파일을 백업·갱신했다. 소스 일치·권한 보존·설치 파일의 격리 dry-run
+(손상 tick과 정상 debounce, 이후 wake 1회·idle 억제)을 확인했다. 전체 release-verify는
+83 pass/1146 assertions·Pocket browser·알림 dry-run·plugin/helper 일치로 exit 0이다.
+full installer·앱 restart/refresh·설정·권한·LaunchAgent·credential은 변경하지 않았다.
+이 결과는 실제 UI/절전·신규 사용자·스토어 완료를 뜻하지 않는다. audit §9.21 참조.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
