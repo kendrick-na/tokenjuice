@@ -878,10 +878,27 @@ metadata-only checkpoint와 quota snapshot은 변경하지 않는다. 생성형 
 기능 테스트/브라우저 회귀/공개 배포 결과는 후속 확인해 기록한다. 전체 목표는 미완료이며
 실제 재개 효과·생성형 요약·변경 파일 연결·Windows toast·모바일/스토어 게이트는 남는다.
 
-ロ컬 검증: 기존 엔진 83 pass/1146 assertions, 새 초안 기능 6 pass/29 assertions,
+로컬 검증: 기존 엔진 83 pass/1146 assertions, 새 초안 기능 6 pass/29 assertions,
 기존 Pocket 전체 브라우저 및 새 초안 브라우저 모두 통과했다. 전체 release-verify exit 0.
 새 브라우저 검증은 375px 가로 넘침 없음, 검토 전 저장 차단·편집 후 검토 해제,
 편집값 export·재열기 시 재검토, 잘못된 파일에서 기존 초안 보존, memory clear,
 Local Storage 미보관·업로드 요청 없음·pageerror 없음을 확인했다. synthetic 대화만 사용했다.
 화면 캡처도 직접 확인해 기존 Calm Operations Console의 폰트·색·레이아웃을 유지했다.
 CI/Pages 결과는 소스 push 이후 확인 전까지 pending이며 공개 배포 완료를 주장하지 않는다.
+
+8cb7495의 Pocket [38063015428](https://github.com/kendrick-na/tokenjuice/actions/runs/38063015428)와
+Windows [38063015436](https://github.com/kendrick-na/tokenjuice/actions/runs/38063015436)는 success다.
+Engine [38063015418](https://github.com/kendrick-na/tokenjuice/actions/runs/38063015418)는 Linux/Pocket
+성공·macOS 실패다. 실패 로그는 기존 24-case cache observation matrix가 5000ms를 넘어
+중단됐음을 보였다. 동일 값을 검사하는 3개 필드별 테스트와 overflow/복구 테스트로 분리해
+default timeout은 그대로 유지했다. 24값/기존 모든 assertions를 보존하며 각 필드별 알림·
+history·호출수 검증을 추가했다. targeted 4 pass/109 assertions, 로컬 전체 engine
+86 pass/1152 assertions 및 work-summary 7 pass/31 assertions를 확인했다.
+
+공개 HTTP 응답에서 새 index/module 및 sw v12는 확인했지만 기존 IAB에서 새 화면이
+반복 reload 후에도 보이지 않았다. 기존 install은 skipWaiting이 없어 열린 클라이언트가
+새 worker의 활성화를 막는 경로가 있었다. precache 완료 후에만 skipWaiting을 호출하는
+v13로 바꿨고 lifecycle fixture에서 cache 준비 전 0회/완료 후 1회를 검증했다.
+자동 page reload/스냅샷 삭제는 추가하지 않는다. 관련 API 근거:
+[MDN skipWaiting](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting).
+v13 후속 CI·실제 브라우저 화면 확인은 성공 확인 이후 기록한다.

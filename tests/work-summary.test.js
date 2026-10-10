@@ -1,5 +1,18 @@
 import { test, expect } from "bun:test";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { draftSummary, sessionMessages, reviewedSummary, safeExcerpt } from "../companion/work-summary.js";
+
+test("Pocket updates activate only after precache completes, without forcing page reload", async () => {
+  const source=readFileSync(new URL("../companion/sw.js",import.meta.url),"utf8");
+  let install, pending, complete, skipped=0;
+  const ready=new Promise(resolve=>{complete=resolve;});
+  runInNewContext(source,{self:{addEventListener:(event,fn)=>{if(event==="install")install=fn;},skipWaiting:()=>{skipped++;}},
+    caches:{open:async()=>({addAll:()=>ready})}});
+  install({waitUntil:value=>{pending=value;}});
+  await Promise.resolve(); expect(skipped).toBe(0);
+  complete(); await pending; expect(skipped).toBe(1);
+});
 
 test("Claude draft extracts speaker evidence, excludes tool results and known secrets", () => {
   const rows = [

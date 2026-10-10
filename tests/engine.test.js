@@ -190,10 +190,13 @@ test("60s cache: a second render makes no new request", () => {
   expect(calls()).toBe(1);
 });
 
-test("Claude API cache rejects future or invalid observations instead of fake fresh success", () => {
+// Each field gets an isolated fixture and Bun's normal 5s budget. The original
+// 24-case subprocess matrix exceeded that budget on a slower macOS CI runner.
+// Keep every value/assertion, rather than increasing a global timeout or retrying.
+for (const field of ["at", "observedAt", "lastSuccessAt"]) {
+test(`Claude API cache rejects future or invalid ${field} instead of fake fresh success`, () => {
   config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 20 } });
   usage(500);
-  for (const field of ["at", "observedAt", "lastSuccessAt"]) {
     for (const value of [Date.now() + 60000, "99", true, [], {}, 0, -1, 1e20]) {
       cache("claude-0.fail.json", {});
       const reading = { ok: true, source: "api", at: Date.now() - 1000, items: [{ name: "5-hour", used: 99 }] };
@@ -206,10 +209,15 @@ test("Claude API cache rejects future or invalid observations instead of fake fr
       expect(JSON.parse(run("--widget-snapshot")).claude[0].lastSuccessAt).toBeNull();
       run();
     }
-  }
   expect(notifications()).toEqual([]);
   expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
-  expect(calls()).toBe(24);
+  expect(calls()).toBe(8);
+});
+}
+
+test("Claude API cache rejects overflow observations and recovers on a real refresh", () => {
+  config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 20 } });
+  usage(500);
   cache("claude-0.fail.json", {});
   cache("claude-0.json", '{"ok":true,"source":"api","at":1e999,"items":[{"name":"5-hour","used":99}]}');
   expect(json().claude[0].items).toEqual([]);
