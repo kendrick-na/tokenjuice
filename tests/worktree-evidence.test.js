@@ -1,7 +1,7 @@
 import {test,expect} from "bun:test";
 import {mkdtempSync,writeFileSync,rmSync,mkdirSync,readFileSync,realpathSync} from "node:fs";
 import {tmpdir} from "node:os";
-import {join} from "node:path";
+import {join,win32,posix} from "node:path";
 import {execFileSync} from "node:child_process";
 import {parseWorktreeStatus,collectWorktreeEvidence,sameRepositoryRoot} from "../scripts/worktree-evidence.mjs";
 test("repository root comparison follows Windows separators/case without accepting a child or sibling",()=>{
@@ -38,6 +38,13 @@ test("real isolated Git repository yields modified, staged rename and untracked 
     writeFileSync(join(root,"changed.txt"),"PRIVATE_CONTENT\n");writeFileSync(join(root,"fresh.txt"),"PRIVATE_CONTENT\n");
     writeFileSync(join(root,".env"),"PRIVATE_CONTENT\n");
     const status=git(["status","--porcelain=v1","-z"]);const before=readFileSync(join(root,".git/index"));
+    if(process.platform==="win32") {
+      // Synthetic fixture paths only: never print a user's repository or environment.
+      const localRoot=realpathSync(root), gitRoot=realpathSync(git(["rev-parse","--show-toplevel"]).trim());
+      console.log("synthetic root diagnostic",JSON.stringify({localRoot,gitRoot,
+        windowsRelative:win32.relative(localRoot,gitRoot),
+        posixCaseComparison:posix.relative("/tmp/Repo","/tmp/repo")}));
+    }
     const evidence=collectWorktreeEvidence({repo:root,includePaths:true});
     expect(evidence.files.map(x=>x.path)).toEqual(["changed.txt","new name.txt","fresh.txt"]);
     expect(evidence.excluded).toBe(1);expect(evidence.reviewed).toBe(false);
