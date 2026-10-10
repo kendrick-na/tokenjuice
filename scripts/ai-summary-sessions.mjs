@@ -3,7 +3,7 @@
 import { randomBytes } from "node:crypto";
 import { prepareAiSummary, generateAiSummary, reviewedAiSummary } from "./ai-work-summary.mjs";
 
-export function createSummarySessions({ apiKey, options, transport, now = Date.now } = {}) {
+export function createSummarySessions({ apiKey, options, transport, budgetLedger, now = Date.now } = {}) {
   const sessions = new Map();
   const ttl = 5 * 60000;
   const ownerValid = owner => typeof owner === "string" && owner.length >= 1 && owner.length <= 128;
@@ -43,6 +43,10 @@ export function createSummarySessions({ apiKey, options, transport, now = Date.n
       entry.state = "running";
       const raw = entry.raw; entry.raw = null;
       try {
+        if (typeof budgetLedger?.reserve !== "function") throw new Error("budget_ledger_required");
+        // Reserve the full approved per-request maximum before count_tokens or
+        // generation. Never refund uncertain failures or silently retry them.
+        budgetLedger.reserve(options?.budget?.maxUSD);
         const result = await generateAiSummary(raw, { ...options, apiKey, transport, approvedDigest });
         entry.state = "done"; entry.result = result;
         return result;

@@ -1,6 +1,7 @@
 import { test, expect } from "bun:test";
 import { createSummarySessions } from "../scripts/ai-summary-sessions.mjs";
 const raw = "테스트 작업 인계";
+const budgetLedger = { reserve() {} }; // Fixture only; production uses durable reservations.
 const options = { model: "test-model", budget: { model: "test-model", maxUSD: 0.02,
   inputUSDPerMillion: 1, outputUSDPerMillion: 5, verifiedAt: Date.now() } };
 const values = Object.fromEntries(["goal", "completed", "blocked", "next"].map(field => [field, "검토한 항목"]));
@@ -10,7 +11,7 @@ const providerResult = () => Response.json({ stop_reason: "end_turn", content: [
 
 test("summary preview approval is owner-bound, expiring, and cannot execute without explicit consent", async () => {
   let clock = Date.now(), calls = 0;
-  const controller = createSummarySessions({ options, apiKey: "TEST_KEY", now: () => clock,
+  const controller = createSummarySessions({ options, budgetLedger, apiKey: "TEST_KEY", now: () => clock,
     transport: async () => { calls++; return providerResult(); } });
   const preview = controller.preview("owner-a", raw);
   expect(preview.id).toMatch(/^[a-f0-9]{64}$/);
@@ -26,7 +27,7 @@ test("summary preview approval is owner-bound, expiring, and cannot execute with
 test("concurrent summary clicks consume one approval and review exports only checked values", async () => {
   let calls = 0, release;
   const pending = new Promise(resolve => { release = resolve; });
-  const controller = createSummarySessions({ options, apiKey: "TEST_KEY", transport: async url => {
+  const controller = createSummarySessions({ options, budgetLedger, apiKey: "TEST_KEY", transport: async url => {
     calls++;
     if (url.endsWith("/count_tokens")) return Response.json({ input_tokens: 10 });
     await pending; return providerResult();
@@ -47,7 +48,7 @@ test("concurrent summary clicks consume one approval and review exports only che
 
 test("failed summary approvals cannot retry silently and preview memory is bounded", async () => {
   let calls = 0;
-  const controller = createSummarySessions({ options, apiKey: "TEST_KEY", transport: async () => {
+  const controller = createSummarySessions({ options, budgetLedger, apiKey: "TEST_KEY", transport: async () => {
     calls++; return new Response("private error", { status: 429 });
   } });
   const preview = controller.preview("owner", raw);
@@ -59,4 +60,17 @@ test("failed summary approvals cannot retry silently and preview memory is bound
   controller.discard("owner", preview.id);
   expect(() => controller.preview("owner", raw)).not.toThrow();
   controller.dispose();
+});
+
+test("missing or exhausted daily ledger blocks all provider requests", async () => {
+  let calls = 0;
+  for (const ledger of [undefined, { reserve() { throw new Error("daily_summary_budget_exceeded"); } }]) {
+    const controller = createSummarySessions({ options, budgetLedger: ledger, apiKey: "TEST_KEY",
+      transport: async () => { calls++; return providerResult(); } });
+    const preview = controller.preview("owner", raw);
+    await expect(controller.generate("owner", preview.id, preview.digest, true)).rejects.toThrow(
+      ledger ? "daily_summary_budget_exceeded" : "budget_ledger_required");
+    controller.dispose();
+  }
+  expect(calls).toBe(0);
 });

@@ -1007,3 +1007,13 @@ reviewedAiSummary는 직접 확인한 네 항목만 새 AI 요약 형식으로 �
 `scripts/ai-summary-sessions.mjs`는 owner-bound 무작위 ID·5분 만료·최대 3개 메모리 세션과 동기적 1회 승인 소비를 구현했다. 반복 클릭·동시 실행·완료/실패 승인 재사용을 거부하며, 완료 세션에서만 별도 검토 후 export한다. 실행 중 discard는 요청 취소로 가장하지 않고 거부한다. 실제 사용자 인증은 모듈이 수행하지 않으며 인증된 HTTP route에서 owner를 제공해야 한다.
 
 합성 세션 테스트 3 pass/19 assertions: 다른 owner·미확인/변경 digest·만료는 provider 호출 0회, 동시 클릭은 count 1회+생성 1회만 실행, 실패는 1회 뒤 재사용 불가, 용량 제한·검토·private 필드 제외를 확인했다. 엄격 release-verify exit 0: 116 tests/1318 assertions, 두 browser suite·bundle·문법·격리 알림·설치 일치. 원문/키는 실제 사용자 데이터가 아닌 합성 fixture였다. 사용자 인증/CSRF·UI·보존/삭제 실운영·일별/동시 예산 원장·서버 재시작 예산 보존·실제 요약 품질·전체 출시 완료는 남았다.
+
+### 9.33 스토어 계정 확인과 AI 요약 일일 예산 후보
+
+공식 Google Play Console에서 ETERNAL EDITIONS 조직 개발자 계정과 기존 앱의 프로덕션 배포 상태를 확인했다. TokenJuice 앱 생성이나 제출은 하지 않았다. Chrome Web Store는 Google 재인증 화면, Apple Developer는 로그인 화면에서 멈췄으므로 두 플랫폼의 개발자 등록 여부는 미확인이다. 로그인 화면을 계정 미보유 증거로 취급하지 않는다.
+
+AI 요약 승인 세션에 필수 예산 원장을 연결했다. provider 호출 이전에 승인된 요청 최대 비용 전액을 예약하고 실패에도 유지한다. POSIX 디스크 저장·배타 lock·정수 금액·UTC 날짜·재시작 시 예약액 유지·손상/lock/시계 역행 시 안전 실패를 구현했다. Windows ACL 저장·실제 프로세스 경합/전원 손실·분산 환경·운영 가격 검증과 제공자 결제 제한은 남았다. 현재 로컬 backend 후보이며 정적 Pocket·설치 엔진·사용자 설정은 변경하지 않는다. 실제 대화/키/유료 API는 사용하지 않는다.
+
+예산 및 세션 합성 테스트 8 pass/37 assertions는 같은 저장소를 사용하는 객체 간 한도 유지, 날짜 rollover/rollback, 손상/잠금 보존, private mode/symlink 차단, 원장 미설정/소진 시 provider 호출 0회를 검증했다. 실제 서버 재시작/다중 프로세스 실운영 증거와 구분한다. P2 전체 요약 흐름과 P3 스토어 출시 완료를 뜻하지 않는다.
+
+엄격 release-verify exit 0: Bun 121 tests/1336 assertions, 두 browser suite·bundle·문법·격리 알림·설치 plugin/helper 일치. 플랫폼 가드 후 변경된 예산/세션 테스트도 다시 8 pass/37 assertions를 확인했다. Windows에서 예산 저장 모듈은 명시적으로 지원 거부하며 POSIX 저장 테스트를 건너뛴다. Windows 실제 실행/스토어 제출이나 AI 요약 UI 배포 증거로 승격하지 않는다.
