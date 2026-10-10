@@ -1050,4 +1050,12 @@ POSIX 로컬 launcher에 기존 인증 adapter·승인 세션·일일 예산을 
 
 최신 strict release-verify exit 0: **132 tests / 1439 assertions**, 기존 두 Pocket 브라우저 suite와 새 로컬 생성 브라우저 suite, 번들·문법·격리 알림·설치 plugin/helper 일치. CI에도 생성 화면 검증을 추가했지만 원격 CI 결과는 아직 확인 전이다. 테스트 서버는 종료했다. 실제 사용자 파일·API 키·유료 요청은 사용하지 않았다.
 
-현재 로컬 개발 후보이며 공개 Pocket v16, 사용자 메뉴바 설치본, desktop release/tag, 스토어 제출은 변경하지 않는다. 실제 모델 의미 요약/환각 평가·운영 가격/키 설정·실제 작업 재개·Windows ACL 예산·프로세스 경합/전원 손실·신규 사용자 검증은 남았다. P2/P3 전체 완료로 처리하지 않는다. 실행 계약은 LOCAL_AI_SUMMARY.md와 DATA_CONTRACT.md를 따른다.
+현재 로컬 개발 후보이며 공개 Pocket v16, 사용자 메뉴바 설치본, desktop release/tag, 스토어 제출은 변경하지 않는다. 실제 모델 의미 요약/환각 평가·운영 가격/키 설정·실제 작업 재개·Windows ACL 예산·프로세스 경합/전원 손실·신규 사용자 검증은 이 단계에서 남았다. 후속 프로세스 검증은 아래를 따른다. P2/P3 전체 완료로 처리하지 않는다. 실행 계약은 LOCAL_AI_SUMMARY.md와 DATA_CONTRACT.md를 따른다.
+
+### 9.37 별도 OS 프로세스의 일일 예약 한도 검증
+
+`tests/ai-summary-process.test.js`는 private 임시 디렉터리와 합성 금액으로 실제 Bun 자식 프로세스를 실행한다. 예약 뒤 살아 있는 프로세스를 SIGKILL하고 새 프로세스를 시작해 이전 예약액 유지·초과 예약 거부·잔여 한도 소진을 확인했다. 12개 프로세스를 ready 신호에서 대기시킨 뒤 동시에 해제해 성공한 예약 합계와 디스크 원장 값이 일치하고 한도를 넘지 않는 것을 검사했다. 경합 실패는 lock unavailable 또는 한도 초과로만 허용한다.
+
+실제 lock을 잡은 자식 프로세스를 SIGKILL한 뒤 새 프로세스의 예약이 차단되고 기존 원장·crash lock이 그대로 남는 것도 확인했다. 테스트는 자신이 만든 자식 핸들만 종료하고 자신이 만든 임시 디렉터리만 정리한다. 운영 원장과 사용자 프로세스는 건드리지 않는다. 물리적인 전원 손실·디스크 오류·분산 호스트·Windows ACL 검증으로 승격하지 않는다.
+
+신규 프로세스 테스트 3 pass / 62 assertions. 최신 전체 strict release-verify exit 0: **135 tests / 1501 assertions**, 세 브라우저 suite·번들·스크립트 문법·격리 알림·설치 plugin/helper 일치. API 키·실제 대화·유료 제공자 요청은 사용하지 않았다. 실행 안내와 개발기획서의 예산 검증 상태를 갱신했으며 전체 자동 요약 품질/스토어 출시 완료는 아니다.

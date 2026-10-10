@@ -1687,7 +1687,7 @@ success이며 공개 module/sw 소스 전체 일치와 실제 IAB의 새 초안 
 - [ ] P2-04 자동 요약의 데이터 범위/사용자 동의/토큰 비용/정확성/외부 전송 및 보존 계약 확정 후 구현·검증.
   - 로컬 생성 서비스/사용자 화면 후보 연결: 발언과 가격 미리보기→전송 승인→1회 생성→편집/재검토→로컬 인계 저장. 서버 만료 후 저장과 삭제 실패 안내를 포함한 합성 브라우저 흐름 통과. 운영 설정은 docs/LOCAL_AI_SUMMARY.md를 따른다. 실제 모델 품질/유료 API/실사용 재개/Windows 원장은 미완료이며 공개 Pocket과 메뉴바 설치본은 변경하지 않는다.
   - 로컬 승인 HTTP adapter 후보 추가: loopback origin/Host·Origin·Bearer 인증, schema, stream 본문/동시 요청 제한, 세션 digest/예산 연결. 합성 실제 loopback HTTP 테스트 통과. launcher·사용자 토큰 전달/생성 화면·실제 외부 호출 승인과 품질 검증은 남았다(audit §9.35).
-  - 일일 예산 POSIX backend 후보 추가: 승인 요청 최대 비용을 전송 전에 디스크에 예약하고 실패에도 유지한다. 저장소 공유 객체·손상/잠금/시계 역행 테스트 통과. 실제 프로세스 재시작/경합·Windows ACL·사용자 UI·운영 가격/제공자 결제 제한은 남았다. 상세 계약은 docs/DATA_CONTRACT.md, 증거는 docs/REQUIREMENTS_AUDIT.md §9.33.
+  - 일일 예산 POSIX backend 후보: 승인 요청 최대 비용을 전송 전에 디스크에 예약하고 실패에도 유지한다. 객체 테스트에 더해 별도 OS 프로세스 종료/재실행·12개 동시 경합·종료된 잠금 보유자 뒤 예약 차단 검증 통과. 사용자 생성 화면도 연결했다. 전원 손실·Windows ACL·운영 가격/제공자 결제 제한·장기 실운영은 남았다. 상세 계약은 docs/DATA_CONTRACT.md, 증거는 docs/REQUIREMENTS_AUDIT.md §9.33·9.36 및 후속 프로세스 검증.
 - [ ] P2-05 Claude/Codex 실제 작업 흐름에서 수집→알림→요약→재개 검증.
 - [ ] P2-06 기존 미완료 전체 resume/history/trend/Coach/멀티계정/Windows toast/자동 sync/native widget 항목 구현 및 요구사항별 증거 확보. 제품·권한·플랫폼 결정 필요 항목은 별도로 요청.
 
