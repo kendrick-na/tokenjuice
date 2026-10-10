@@ -290,11 +290,22 @@ def main() -> None:
             assert page.get_by_text("WHY", exact=True).is_visible()
             assert page.get_by_text("NEXT", exact=True).is_visible()
             assert page.locator("#priority-card").get_attribute("aria-labelledby") == "priority-label"
+            assert page.locator(".decision-block").first.locator("span").inner_text() != page.locator(".decision-block.next span").inner_text()
             assert page.get_by_text("새 스냅샷 가져오기").is_visible()
             assert page.get_by_text("NOW", exact=True).is_visible()
             assert page.get_by_text("WHY", exact=True).is_visible()
             assert page.get_by_text("NEXT", exact=True).is_visible()
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") is None
+            # Quota is the primary operational signal, not small secondary text.
+            assert page.locator(".metric-line strong").first.evaluate("el => parseFloat(getComputedStyle(el).fontSize)") >= 36
+            assert page.locator(".metric-meta").first.evaluate("el => parseFloat(getComputedStyle(el).fontSize)") >= 16
+            page.set_viewport_size({"width": 1280, "height": 900})
+            desktop_cards = page.locator(".account").evaluate_all("els => els.slice(0, 2).map(el => ({width: el.getBoundingClientRect().width, top: el.getBoundingClientRect().top}))")
+            assert len(desktop_cards) == 2
+            assert abs(desktop_cards[0]["width"] - desktop_cards[1]["width"]) < 1, desktop_cards
+            assert abs(desktop_cards[0]["top"] - desktop_cards[1]["top"]) < 1, desktop_cards
+            assert_no_horizontal_overflow(page)
+            page.set_viewport_size({"width": 375, "height": 812})
             if screenshot_dir:
                 page.locator(".dashboard").evaluate("el => Promise.all(el.getAnimations().map(animation => animation.finished.catch(() => {})))")
                 page.screenshot(path=str(Path(screenshot_dir) / "demo-mobile.png"), full_page=True)

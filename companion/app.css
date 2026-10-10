@@ -118,3 +118,35 @@ footer a, footer button { padding:.4rem .45rem; }
 #work-editor>details>summary { min-height:48px; padding:1rem 0; cursor:pointer; }
 #work-evidence { max-height:24rem; overflow:auto; border-left:2px solid var(--line); padding-left:.75rem; }
 @media (min-width:40rem) { .resume-metadata { grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:.75rem 1rem; }.resume-metadata dt { margin:0; } }
+
+/* Operational dashboard: quiet, matched instruments rather than a long
+   explanatory landing page. Keep quota, context and failure evidence distinct. */
+.app-shell:has(.dashboard:not([hidden])) { width:min(100%,68rem); }
+.account { display:flex; flex-direction:column; padding:clamp(1.2rem,3vw,1.75rem); border-radius:14px; background:var(--panel); }
+.account-head { align-items:center; margin-bottom:1.2rem; gap:.75rem; }
+.account-name { font:800 1.35rem/1.3 var(--sans); letter-spacing:-.025em; }
+.state { padding:.45rem .65rem; font-size:.75rem; line-height:1.2; }
+.metric { padding:1rem 0 1.25rem; }
+.metric-line { align-items:center; flex-wrap:wrap; font-size:1rem; line-height:1.5; }
+.metric-line strong { font:700 clamp(2.4rem,6vw,3.15rem)/1 var(--sans); font-variant-numeric:tabular-nums; letter-spacing:-.06em; }
+.metric-line small { display:block; margin:.35rem 0 0; font-size:.875rem; line-height:1.4; letter-spacing:0; }
+.bar { height:.5rem; margin-top:1rem; }
+.metric-meta { margin-top:.7rem; font-size:1rem; line-height:1.5; }
+.empty-card,.recovery,.failure-evidence,.state-explainer { font-size:1rem; line-height:1.65; }
+.recovery { margin-top:auto; padding-top:1rem; }
+.recovery b { font:700 .875rem/1.5 var(--sans); letter-spacing:0; }
+.account-detail summary { font-size:.875rem; }
+.account-detail .source,.last-success { font-size:.875rem; line-height:1.5; }
+.priority-card { padding:1.4rem; border-radius:14px; background:var(--panel-2); box-shadow:none; }
+.priority-card::after { display:none; }
+.priority-card h1 { max-width:none; margin:.7rem 0 1rem; font:800 clamp(1.4rem,4vw,1.85rem)/1.35 var(--sans); letter-spacing:-.035em; }
+.decision-block { font-size:1rem; line-height:1.55; }
+.decision-block b { font-size:.75rem; }
+.decision-grid { gap:.75rem; }
+.demo-notice { font-size:.875rem; line-height:1.55; border-radius:8px; }
+@media (min-width:48rem) {
+  .accounts { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; }
+  .account.codex { grid-column:auto; }
+  .decision-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.5rem; }
+  .decision-block { grid-template-columns:minmax(0,1fr); gap:.5rem; }
+}

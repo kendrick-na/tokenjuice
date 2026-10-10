@@ -113,7 +113,7 @@ function card(name, payload, kind) {
   const status = copyFor(payload);
   const displayable = ["fresh", "fallback"].includes(payload.state);
   const itemMarkup = displayable && payload.items?.length ? payload.items.map(metric).join("")
-    : `<p class="empty-card">${displayable ? "표시할 quota가 없습니다." : "최신 한도를 확인할 수 없어 잔여량 숫자를 숨겼습니다."} 이 값은 숨긴 상태가 더 안전합니다.</p>`;
+    : `<p class="empty-card">${displayable ? "표시할 quota가 없습니다." : "최신 한도를 확인할 수 없어 잔여량 숫자를 숨겼습니다."}</p>`;
   const source = payload.sourceLabel || payload.source || "데이터 경로 정보 없음";
   // A failed observation is not a successful read. Keep the known success
   // visible on failure, instead of hiding the recovery evidence in details.
@@ -193,7 +193,7 @@ function priority(snapshot) {
     return {
       eyebrow: "지금 확인할 일",
       title: `${issue.account || issue.label || "한도"} · ${state.label}`,
-      copy: state.action,
+      copy: "최신 값을 확인할 때까지 잔여량 숫자를 표시하지 않습니다.",
       tone: state.tone,
       cta: issue.state === "auth_expired" ? "연결 상태 확인" : "새 스냅샷 가져오기",
       why: `${issue.sourceLabel || issue.source || "데이터 경로 정보 없음"} · ${issue.lastSuccessAt ? timeText(issue.lastSuccessAt, "마지막 성공") : "성공한 확인 없음"}`,

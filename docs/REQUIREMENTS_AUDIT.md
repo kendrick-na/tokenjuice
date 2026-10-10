@@ -963,3 +963,15 @@ repo와 설치본에서 **헤더만 기존 이미지 방식으로 복원**했다
 후속 검증(01:56 KST): 로컬 `e86799c` checkpoint 후 clean/ahead 1·behind 0을 확인하고 기존 설치본을 `backups/tokenjuice-battery.before-renew-backoff-e86799c.js`로 보존했다. 설치본에 새 429 보호 8줄만 반영, shebang·권한·고정폭 헤더를 유지했다. 실제 설치본 `--renew-login`은 `renew skipped (provider retry after 2026-10-10T16:59:38.829Z)`로 종료하고 원래 fail cache의 at/until/status를 그대로 보존했다. CLI/API 요청을 새로 강행하지 않았다.
 
 엄격 `bash scripts/release-verify.sh --require-browser` 최종 exit 0: Bun 101 tests/1222 assertions, 두 browser suite, bundle/문법/격리 알림, plugin/helper 소스 일치. 별도 시각 capture 실행도 exit 0이다. 실제 설치본 JSON은 여전히 `state=rate_limited`, `errorCode=429`, `items=[]`; statusLine callback 파일 없음. **실제 Claude 복구·UI 품질 통과·공개 배포·전체 TODO 완료는 아니다.** 다음 안전한 단계는 제한 종료 후 정상 수집 결과 확인과 P1 화면 재설계이며, 웹 세션 접근은 여전히 명시적 승인 대기다.
+
+### 9.27 Claude 실제 숫자 복구와 Pocket 디자인 후보 검증 (2026-10-11)
+
+- 01:59:38 KST 제한 종료 뒤 정상 polling은 401을 반환했다. 기존 Keychain 자격증명의 만료 메타데이터를 확인했다. 토큰 본문을 출력하지 않았다.
+- 기존 설치본 `--renew-login`으로 Claude Code CLI 갱신을 1회 실행, exit 0 및 새 만료 시각을 확인했다. autoRenew=false는 유지했다. 웹 쿠키 접근이나 추가 로그인 권한은 사용하지 않았다.
+- 02:01 KST 실제 API 결과는 fresh, errorCode=null, retryAt=null, 세션 35% 사용·주간 18% 사용이었다. 공식 앱은 세션 35% 사용·39분 후 reset으로 표시했다. 02:04에는 API 세션 36% 사용·주간 18% 사용으로 새 관측 시각이 갱신됐다.
+- 사용자 답변 **“실제 숫자가 보임”**으로 메뉴바 숫자 복구를 확인했다. statusLine bridge callback은 여전히 미확인이며 이번 복구의 원인으로 기록하지 않는다. 공식 주간 reset·계정 대조와 재부팅/절전/신규 설치는 남았다.
+- Pocket 로컬 후보는 큰 잔여량 숫자·읽기 쉬운 reset·동일 폭 계정 카드로 개선했다. 오류 원인/복구를 유지하고 NOW/NEXT 중복 문구를 제거했다. 설치/데모/사용자 실제 데이터는 서로 구분한다. worker v15는 로컬 후보이며 공개 서비스는 v13이다.
+- 엄격 release-verify exit 0: Bun 101 tests/1222 assertions, 두 browser suite, bundle/문법/격리 알림, 설치 plugin/helper 일치. 브라우저는 잔여량 36px 이상·reset 16px 이상·desktop 카드 정렬 및 NOW/NEXT 문구 분리를 추가 검증했다. 경쟁사 대비 품질 동등성이나 실제 사용자 5명 검증을 뜻하지 않는다.
+- 인증 실패 시 자동 갱신 선택을 사용자에게 요청했다. 응답 전 설정을 바꾸지 않는다. 공개 배포·스토어 제출·전체 TODO 완료는 미완료다.
+
+후속 화면 검증: 최신 NOW/NEXT 수정본으로 브라우저 테스트를 다시 실행해 exit 0을 확인했다. `/tmp/tokenjuice-ui-current.o7yiDV/`의 desktop/mobile 캡처를 직접 관찰했다. 이 캡처는 예시 데이터이며 사용자 실제 quota 증거가 아니다. LAUNCH_FEEDBACK_PLAN과 UI_UX_RELEASE_PLAN의 순서를 사용자가 요청한 공개 베타 후 피드백/인터뷰 흐름으로 맞췄다. 핵심 작동·안전·실기기 조건 및 5명/10명/14일 검증 목표는 유지한다.

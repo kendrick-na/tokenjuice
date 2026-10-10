@@ -1,9 +1,11 @@
 # TokenJuice 경쟁 격차 지도 · 개선 체크리스트
 
 확인일: 2026-10-11. 기준 checkout d16ce3d / 공개 Pocket sw v13.
-판정: **핵심 Claude 표시가 사용자 컴퓨터에서 실패 중이므로 출시 품질 미달.** 테스트 통과·아이콘 표시·기능 파일 존재를 제품 완성으로 보지 않는다.
+현재 판정: **Claude 수집·메뉴바 숫자 복구 확인 / 디자인 로컬 후보 / 전체 출시 품질 검증 미완료.** 테스트 통과·아이콘 표시·기능 파일 존재를 제품 완성으로 보지 않는다.
 
 ## 1. 실제 Claude `?` 진단
+
+**최신 상태(02:04 KST 이후):** 429 제한 종료 후 401 및 기존 OAuth 만료를 확인하고 기존 Claude Code CLI 수동 갱신이 exit 0으로 완료됐다. 실제 API 세션 35% 사용과 공식 앱 35%를 대조했고 후속 API 36%/주간 18% 재갱신 및 사용자 “실제 숫자가 보임”을 확인했다. 아래 표는 초기 조사 이력이다. 현재 주간 reset·계정 대조, 신규 설치·절전 및 자동 갱신 정책은 미완료다. statusLine callback으로 복구됐다는 증거는 없고 웹 쿠키도 사용하지 않았다(audit §9.27).
 
 **후속 갱신(01:54 KST):** 아래 표와 재로그인 제안은 00:29의 401 조사 기록이다. 현재 fail cache는 00:59:38의 HTTP **429**, retry는 01:59:38까지로 바뀌었다. 공식 Desktop 화면에서 세션 28%/주간 17% 사용은 확인했으나 history 파일은 갱신되지 않았다. statusLine bridge는 quota-only 구현/회귀 검증만 완료, Team의 실제 callback 없음. 지금은 재로그인 반복이나 backoff 제거를 제안하지 않는다. 현재 단계와 승인 경계는 개발기획서 §20 및 audit §9.25~9.26을 따른다.
 
@@ -38,7 +40,7 @@
 | [OpenUsage](https://openusage.sh/) | terminal·tmux·statusline | 다중 provider, spend/quota/history; 현 화면 34개 표시 | 별도 웹을 열지 않아도 됨. 범위는 provider별 확인 필요 |
 | [ClaudeCodeUsage](https://github.com/ClaudeCodeUsage/ClaudeCodeUsage) | VS Code status bar·dashboard | 기간/프로젝트/토큰 구성, 추정 비용, 관측 quota | 코딩 환경 안의 분석. live quota와 로컬 관측 구분 |
 | [VibeUsage](https://vibeusage.com/) | CLI | 사용 습관 분석·절감 조언; 다른 tool 일부는 예정 | 수치에서 구체적 절감 행동으로 연결 |
-| TokenJuice 현재 | SwiftBar/Windows tray·Pocket | Claude/Codex, trust, checkpoint, 선택 파일의 로컬 추출 초안 | Claude 실제 표시 실패. Pocket 수동 import. 생성형 요약·native 기기간 sync·스토어 앱 아님 |
+| TokenJuice 현재 | SwiftBar/Windows tray·Pocket | Claude/Codex, trust, checkpoint, 선택 파일의 로컬 추출 초안 | Claude 실제 숫자 복구 확인, 장기 실행 검증 미완료. Pocket 수동 import. 생성형 요약·native 기기간 sync·스토어 앱 아님 |
 
 기능 확장의 순서 지도:
 

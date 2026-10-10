@@ -1,4 +1,4 @@
-const CACHE = "tokenjuice-pocket-v14";
+const CACHE = "tokenjuice-pocket-v15";
 const ASSETS = ["./", "./index.html", "./guide.html", "./privacy.html", "./app.css", "./app.js", "./resume.js", "./work-summary.js", "./guide.js", "./manifest.webmanifest", "./icons/tokenjuice-192.png", "./icons/tokenjuice-512.png"];
 // Activate only a complete cache. Do not reload clients: unsaved drafts stay in
 // their current page until the user chooses to refresh for the new interface.
