@@ -17,6 +17,7 @@ export function startSummaryService({ apiKey, options, budgetDirectory, dailyMax
     ["/app.js", [new URL("../local-summary/app.js", import.meta.url), "text/javascript; charset=utf-8"]],
     ["/app.css", [new URL("../local-summary/app.css", import.meta.url), "text/css; charset=utf-8"]],
     ["/work-summary.js", [new URL("../companion/work-summary.js", import.meta.url), "text/javascript; charset=utf-8"]],
+    ["/work-files.js", [new URL("../companion/work-files.js", import.meta.url), "text/javascript; charset=utf-8"]],
   ].map(([path, [file, type]]) => [path, { body: readFileSync(file), type }]));
   const token = randomBytes(32).toString("hex");
   const headers = { "cache-control":"no-store", "x-content-type-options":"nosniff", "referrer-policy":"no-referrer",

@@ -162,3 +162,12 @@ footer a, footer button { padding:.4rem .45rem; }
   .decision-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.5rem; }
   .decision-block { grid-template-columns:minmax(0,1fr); gap:.5rem; }
 }
+ .work-files-panel {border:1px solid var(--line);padding:16px;border-radius:8px;margin:16px 0}
+ .work-files-panel > summary {font-size:1rem;min-height:48px}
+ .work-files-panel > summary span {display:block;color:var(--muted);font-size:.875rem}
+ .work-files-panel button:not(.secondary-action) {min-height:48px;border:1px solid var(--line);background:transparent;color:var(--ink);padding:.6rem .9rem;border-radius:2px;margin-top:16px}
+ .resume-body .work-file-row {display:flex;align-items:center;gap:12px;min-height:48px;margin-top:0;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+ .work-file-row input {flex:0 0 auto;width:22px;height:22px}
+ .work-file-row span {min-width:0;overflow-wrap:anywhere}
+ .work-file-row strong {display:block;font-size:1rem;font-weight:500}
+ .work-file-row small {display:block;color:var(--muted);line-height:1.6;font-size:.875rem}

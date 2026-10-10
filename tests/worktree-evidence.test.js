@@ -3,7 +3,13 @@ import {mkdtempSync,writeFileSync,rmSync,mkdirSync,readFileSync,realpathSync} fr
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {execFileSync} from "node:child_process";
-import {parseWorktreeStatus,collectWorktreeEvidence} from "../scripts/worktree-evidence.mjs";
+import {parseWorktreeStatus,collectWorktreeEvidence,sameRepositoryRoot} from "../scripts/worktree-evidence.mjs";
+test("repository root comparison follows Windows separators/case without accepting a child or sibling",()=>{
+  expect(sameRepositoryRoot("C:\\Temp\\Repo","c:/temp/repo","win32")).toBe(true);
+  expect(sameRepositoryRoot("C:\\Temp\\Repo","C:\\Temp\\Repo\\child","win32")).toBe(false);
+  expect(sameRepositoryRoot("C:\\Temp\\Repo","C:\\Temp\\Repo-other","win32")).toBe(false);
+  expect(sameRepositoryRoot("/tmp/Repo","/tmp/repo","darwin")).toBe(false);
+});
 test("NUL status preserves spaces and Unicode, consumes renames and excludes sensitive paths",()=>{
   const result=parseWorktreeStatus(" M 한글 파일.js\0R  new name.js\0old name.js\0?? .env.local\0?? private.key\0?? README.md\0");
   expect(result.files.map(x=>x.path)).toEqual(["한글 파일.js","new name.js","README.md"]);

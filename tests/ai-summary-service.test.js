@@ -13,6 +13,8 @@ hostTest("local service serves allowlisted UI, bootstraps only same-origin clien
     const page=await fetch(service.origin);expect(page.status).toBe(200);
     expect(page.headers.get("content-security-policy")).toContain("connect-src 'self'");
     const html=await page.text();expect(html).toContain("HANDOFF");expect(html).not.toContain("TEST_PRIVATE_PROVIDER_KEY");
+    const dependency=await fetch(`${service.origin}/work-files.js`);expect(dependency.status).toBe(200);
+    expect(dependency.headers.get("content-type")).toContain("text/javascript");
     for(const path of ["/api/session","/scripts/ai-summary-service.mjs","/config.json"])
       expect((await fetch(`${service.origin}${path}`)).status).not.toBe(200);
     const bootstrap=()=>fetch(`${service.origin}/api/session`,{method:"POST",headers:{origin:service.origin,

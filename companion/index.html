@@ -109,8 +109,20 @@
             <label for="work-blocked">막힌 부분</label><textarea id="work-blocked" rows="3" maxlength="4000"></textarea>
             <label for="work-next">다음 할 일</label><textarea id="work-next" rows="3" maxlength="4000"></textarea>
             <details><summary>초안의 근거 문장 확인</summary><div id="work-evidence" class="resume-limit"></div></details>
+            <details class="work-files-panel"><summary>변경 파일 연결 <span>선택 사항 · 읽기 전용</span></summary>
+              <p class="resume-limit">같은 프로젝트의 worktree-evidence JSON을 열고 공유할 파일명만 선택하세요. 파일 본문·Git 접근·자동 전송은 없습니다. 이름에도 비밀이 있을 수 있습니다. 목록은 완료·테스트 성공 증거가 아닙니다.</p>
+              <p class="resume-limit">CLI에서 <code>bun scripts/worktree-evidence.mjs --repo /절대경로/저장소 --include-paths</code> 출력을 JSON 파일로 저장하세요. 경로 포함 동의가 필요합니다.</p>
+              <button id="work-files-open" class="secondary-action" type="button">변경 파일 JSON 열기</button>
+              <input id="work-files-input" type="file" accept=".json,application/json" aria-label="변경 파일 관측 JSON" hidden>
+              <p id="work-files-feedback" class="resume-feedback" role="status" aria-live="polite"></p>
+              <section id="work-files-content" hidden aria-label="공유할 변경 파일 선택">
+                <p id="work-files-meta" class="resume-limit"></p><div id="work-files-list"></div>
+                <label class="work-review-label"><input id="work-files-review" type="checkbox"> 요약과 같은 프로젝트인지, 선택한 파일의 실제 상태와 파일명 비밀값을 확인했습니다</label>
+                <button id="work-files-remove" type="button">연결한 파일 목록 지우기</button>
+              </section>
+            </details>
             <label class="work-review-label"><input id="work-review" type="checkbox"> 근거·완료 여부·비밀값을 확인하고 초안을 수정했습니다</label>
-            <div class="resume-actions"><button id="work-copy" type="button" disabled>검토한 인계 내용 복사</button><button id="work-download" type="button" disabled>확인한 요약 저장</button><button id="work-clear" type="button">초안과 근거 지우기</button></div>
+            <div class="resume-actions"><button id="work-copy" type="button" disabled>검토한 인계 내용 복사</button><button id="work-download" type="button" disabled>확인한 요약 저장</button><button id="work-package" type="button" disabled>요약과 선택 파일 함께 저장</button><button id="work-clear" type="button">초안과 근거 지우기</button></div>
           </section>
         </div>
       </details>

@@ -1101,3 +1101,17 @@ worker v18은 로컬 후보이며 공개 v17과 구분한다. 최신 strict rele
 5 tests/46 assertions로 NUL·공백·한글·rename·민감 이전 경로·잘못된/과다/중복 경로·동의 전 무실행·격리 실제 Git·인덱스/상태 보존·HEAD 변경을 검증했다. 초기 경합 테스트 fixture는 macOS /var의 realpath 정규화 차이로 실패했고 canonical fixture root로 맞춰 통과했다. pending 파일 관측은 최근 커밋·내용 복원·구현/테스트 완료의 증거가 아니다. Pocket 연결·검토된 인계 파일·실제 재개 효과는 남았다. 계약은 DATA_CONTRACT의 별도 Git 변경 파일 관측을 따른다.
 
 로컬 strict release-verify exit 0: 151 tests/1603 assertions·다섯 browser suite·번들·문법·격리 알림·설치본 일치. 엔진/설치본/Pocket 파일/사용자 설정은 변경하지 않았다. 원격 검증은 push 이후 확인한다.
+
+후속 `329f6d8`의 Engine 38076099925 success, Windows 38076099959 failure. Windows는 새 격리 Git 테스트의 repository_root_required에서 실패했다. macOS 자동 통과를 Windows 지원으로 승격하지 않는다.
+
+### 9.42 요약과 선택 변경 파일의 인계 화면 후보
+
+Pocket work-summary에 work-files를 연결했다. 미선택/미검토 가져오기·민감 이름 제외·과거 관측 안내·1~50개 공유 선택·프로젝트/상태/비밀값 확인·요약 재확인·합친 복사/JSON 저장·재열기·독립 취소를 제공한다. 네 항목 요약만 저장은 유지한다. 새 handoff 파일의 로컬/클라우드 provenance를 보존하고 raw/unknown/미선택 경로를 내보내지 않는다. 요약/선택 편집과 재열기는 확인을 초기화하며 지우기 중 pending read가 자료를 되살리지 않게 한다.
+
+frontend-design의 기존 ink/teal/lime 스타일과 ui-ux-pro-max의 접근성/점진적 공개/터치 원칙을 적용했다. 모바일 screenshot을 직접 확인해 체크박스 정렬과 목록 지우기 48px를 조정했다. 합성 browser 검증은 인계/단독 요약 저장·복사·재검토·손상 보존·재열기·키보드·375px/landscape/desktop·큰 글꼴·지우기·외부 요청/영구 저장 없음을 확인한다. 실제 사용자 로그/프로젝트를 입력하거나 외부 제공자를 호출하지 않았다.
+
+Windows root 비교는 strict string equality 대신 플랫폼의 path.relative로 canonical root 동일성을 확인하도록 후보 수정했다. Windows separator/case 동등성·child/sibling 거부 regression은 수정 전 실패→후 통과이며 실제 Windows CI는 push 후 확인한다. 경로 문자열 표현 차이라는 가설은 로컬 regression으로 검증했으나 이전 runner의 두 실제 root 문자열을 기록하지 않아 정확한 문자 차이는 확정하지 않는다. 형식/플랫폼 근거는 [Node path 문서](https://nodejs.org/api/path.html#pathrelativefrom-to).
+
+worker v19는 로컬 후보이며 공개 v18과 구분한다. 전체 work continuity 효과·스토어/실기기 gate는 유지한다. 계약은 DATA_CONTRACT의 요약과 선택 파일의 검토된 인계에 반영했다.
+
+전체 검사 첫 실행은 로컬 AI 요약 브라우저에서 file 입력이 disabled로 남아 exit 1이었다. 서비스 dependency HTTP 회귀를 추가해 /work-files.js 404를 재현했고 명시 static allowlist에 모듈을 추가했다. 재검증 strict exit 0: 156 tests/1633 assertions, 여섯 browser suite·번들·문법·격리 알림·설치본 일치. 새 파일 브라우저 검사는 읽기 중 초안 지우기 이후 자료가 되살아나지 않는 경계도 포함한다. 사용자 원문·유료 API·설치 설정은 사용/변경하지 않았다. 공개/Windows 후속 확인은 별도로 기록한다.

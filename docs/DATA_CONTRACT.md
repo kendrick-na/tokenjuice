@@ -301,6 +301,16 @@ Phase B의 의미 있는 resume brief 전체 및 실제 재개 시간 단축은 
 
 명령은 fsmonitor와 optional index writes를 끄고 inherited GIT_* 환경 덮어쓰기를 제거한다. 조회 전후 HEAD가 달라지면 거부한다. 전체 파일시스템의 원자적 snapshot은 아니므로 재개 직전 다시 확인해야 한다. 첫 커밋 없는 저장소나 저장소 내부 하위 폴더는 거부한다. pending 변경 목록은 최근 커밋 목록·작업 완료·테스트 성공·요약과의 같은 프로젝트 관계를 증명하지 않는다. 기존 metadata-only checkpoint/네 항목 요약 schema는 변경하지 않으며 Pocket 연결·사용자 선택/재검토·실제 재개 효과 검증은 별도 작업이다. 형식 근거: [Git status porcelain v1](https://git-scm.com/docs/git-status#_porcelain_format_version_1).
 
+## 요약과 선택 파일의 검토된 인계
+
+Pocket 요약 편집기에서 worktree-evidence JSON(1 MiB 이하)을 선택적으로 연결한다. 시각/head/branch/타입/경로/status/최대 500개 및 excluded 합계·중복을 검증하고 알려진 민감 경로를 제외한다. unknown/raw/이전 경로는 보관·표시하지 않는다. 파일명은 textContent로만 표시하며 실행하거나 URL로 해석하지 않는다. 1시간 지난 관측은 오래된 기록이라고 표시하고 모든 기록에 현재 실제 Git 상태 대조를 요구한다. 출처·같은 프로젝트·완료/테스트 성공을 자동 증명하지 않는다.
+
+가져온 파일은 기본 미선택·미검토다. 사용자가 1~50개 이름을 선택하고 같은 프로젝트·실제 상태·비밀값을 확인한 뒤 요약도 확인해야 합친 복사/다운로드가 가능하다. 요약 편집·선택 변경은 검토를 초기화한다. 파일을 연결한 상태에서 선택/파일 확인이 없으면 합친 복사는 차단하지만 기존 네 항목의 요약만 저장은 유지한다. 목록 지우기로 연결을 취소할 수 있다. 비동기 읽기 중 초안을 지우거나 다른 요약을 열면 이전 읽기 결과를 무시해 지운 자료를 되살리지 않는다.
+
+합친 파일은 tokenjuice-work-handoff-v1, privacy:reviewed_summary_and_relative_paths, reviewed=true, createdAt, summary, worktree만 포함한다. summary는 기존 로컬/클라우드 요약의 provenance와 네 편집 항목을 유지하며 worktree는 선택 파일명·상태와 관측 metadata만 담는다. 원문/근거 목록/diff/절대 루트/remote는 포함되지 않는다. 다시 열 때 이전 reviewed를 현재 확인으로 인정하지 않고 요약과 파일을 모두 재검토한다. 요약만 저장하는 기존 schema는 변경하지 않는다. 클립보드에는 사용자가 누를 때만 요약과 선택 파일의 데이터/실제 상태 대조 안내를 쓴다.
+
+브라우저 메모리 전용이며 외부 전송·영구 저장·Git 접근·자동 세션 실행은 없다. 지우기/새로고침은 화면 데이터만 제거하고 원본·다운로드·클립보드는 삭제하지 않는다. 파일명도 민감할 수 있고 사용자 확인은 진위나 안전의 보장이 아니다. 실제 코드 복원·최근 커밋 연결·AI 의미 요약 품질·사용자 재개 시간 단축은 별도 검증이다.
+
 ## 선택한 대화의 로컬 자동 추출 초안 (2026-10-11)
 
 사용자가 자동 초안+검토 방향의 개발을 요청했다. metadata-only checkpoint v1 및 quota
