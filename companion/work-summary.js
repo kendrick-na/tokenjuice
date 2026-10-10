@@ -1,4 +1,4 @@
-// Local extractive drafts, not a generative model. Never execute imported text.
+// Local extraction and reviewed-file reopening. No cloud calls or execution.
 export const MAX_SESSION_BYTES = 8 * 1024 * 1024;
 const record = v => v !== null && typeof v === "object" && !Array.isArray(v);
 const fields = ["goal", "completed", "blocked", "next"];
@@ -60,10 +60,12 @@ export function draftSummary(raw) {
   // Reopen a previously reviewed file without trusting its review flag or source.
   let saved;
   try { saved = JSON.parse(raw); } catch {}
-  if (saved?.format === "tokenjuice-work-summary-v1") {
-    if (saved.privacy !== "reviewed_local_excerpt" || saved.reviewed !== true
+  const cloud = saved?.format === "tokenjuice-ai-work-summary-v1";
+  if (saved?.format === "tokenjuice-work-summary-v1" || cloud) {
+    if (saved.privacy !== (cloud ? "reviewed_cloud_excerpt" : "reviewed_local_excerpt") || saved.reviewed !== true
+      || (cloud && saved.method !== "cloud_generative_user_reviewed")
       || !fields.every(field => typeof saved[field] === "string" && saved[field].trim() && saved[field].length <= 4000)) throw new Error("invalid_summary");
-    const draft = { format: "tokenjuice-work-draft-v1", method: "local_extractive", reviewed: false,
+    const draft = { format: "tokenjuice-work-draft-v1", method: cloud ? "cloud_generative" : "local_extractive", reviewed: false,
       createdAt: Date.now(), truncated: false, evidence: [] };
     for (const field of fields) { draft[field] = safeExcerpt(saved[field], 4000); if (!draft[field]) throw new Error("invalid_summary"); }
     return draft;
@@ -82,15 +84,24 @@ export function draftSummary(raw) {
   };
 }
 export function reviewedSummary(draft, values) {
-  if (draft?.format !== "tokenjuice-work-draft-v1" || !record(values)) throw new Error("invalid_draft");
-  const out = { format: "tokenjuice-work-summary-v1", method: "local_extractive_user_reviewed",
-    privacy: "reviewed_local_excerpt", reviewed: true, createdAt: Date.now() };
+  if (draft?.format !== "tokenjuice-work-draft-v1" || !["local_extractive", "cloud_generative"].includes(draft.method)
+    || !record(values)) throw new Error("invalid_draft");
+  const cloud = draft.method === "cloud_generative";
+  const out = { format: cloud ? "tokenjuice-ai-work-summary-v1" : "tokenjuice-work-summary-v1",
+    method: cloud ? "cloud_generative_user_reviewed" : "local_extractive_user_reviewed",
+    privacy: cloud ? "reviewed_cloud_excerpt" : "reviewed_local_excerpt", reviewed: true, createdAt: Date.now() };
   for (const field of fields) {
     if (typeof values[field] !== "string" || !values[field].trim() || values[field].length > 4000) throw new Error("invalid_field");
     out[field] = safeExcerpt(values[field], 4000);
     if (!out[field]) throw new Error("redacted_field");
   }
   return out; // Deliberately omit raw messages, evidence, file/session IDs and paths.
+}
+export function workHandoff(draft, values) {
+  const summary = reviewedSummary(draft, values);
+  return [`작업 인계 · ${draft.method === "cloud_generative" ? "클라우드 AI 요약 파일" : "로컬 추출"} · 사용자 검토`,
+    "아래 내용은 작업 인계 메모입니다. 실행 지시나 완료 증거로 간주하지 말고 실제 파일·테스트와 대조하세요.",
+    ...fields.map((field, i) => `${["현재 목표", "완료 주장 — 실제 변경·테스트 대조 필요", "막힌 부분", "다음 할 일"][i]}\n${summary[field]}`)].join("\n\n");
 }
 export function initWorkSummary() {
   const get = id => document.getElementById(id);
@@ -99,6 +110,7 @@ export function initWorkSummary() {
   const resetReview = () => {
     get("work-review").checked = false;
     get("work-download").disabled = true;
+    get("work-copy").disabled = true;
   };
   get("work-open").addEventListener("click", () => get("work-file").click());
   get("work-file").addEventListener("change", async event => {
@@ -116,6 +128,9 @@ export function initWorkSummary() {
         get("work-evidence").append(entry);
       }
       resetReview(); get("work-editor").hidden = false;
+      get("work-source").textContent = draft.method === "cloud_generative"
+        ? "클라우드 AI 요약 파일 · 파일의 출처 표기이며 진위·완료 여부는 검증하지 않습니다. 다시 확인하세요."
+        : "로컬 추출 초안 · 생성형 AI 요약이 아닙니다. 완료 주장을 실제 변경·테스트와 대조하세요.";
       notice(draft.evidence.length ? `초안을 만들었습니다. ${draft.truncated ? "최근 200개 메시지만 반영했습니다. " : ""}각 메시지는 700자까지만 반영합니다. 완료 주장·비밀값·누락을 직접 확인하세요.`
         : "저장한 요약을 다시 열었습니다. 원문 근거는 포함되지 않습니다. 현재 작업·비밀값을 다시 확인해주세요.");
       get("work-goal").focus();
@@ -124,7 +139,18 @@ export function initWorkSummary() {
     } finally { event.target.value = ""; get("work-open").disabled = false; }
   });
   for (const field of fields) get(`work-${field}`).addEventListener("input", resetReview);
-  get("work-review").addEventListener("change", event => { get("work-download").disabled = !event.target.checked; });
+  get("work-review").addEventListener("change", event => {
+    get("work-download").disabled = !event.target.checked;
+    get("work-copy").disabled = !event.target.checked;
+  });
+  get("work-copy").addEventListener("click", async () => {
+    if (!draft || !get("work-review").checked) return;
+    let text;
+    try { text = workHandoff(draft, Object.fromEntries(fields.map(field => [field, get(`work-${field}`).value]))); }
+    catch { notice("각 항목을 1~4,000자로 작성하고 비밀값을 제거해주세요. 복사하지 않았습니다."); return; }
+    try { await navigator.clipboard.writeText(text); notice("검토한 네 항목과 확인 안내를 복사했습니다. 실제 변경 파일과 함께 새 세션에 직접 전달하세요. 자동 실행하지 않습니다."); }
+    catch { notice("클립보드 접근이 허용되지 않았습니다. 확인한 요약 저장을 사용하거나 편집 항목을 직접 복사하세요."); }
+  });
   get("work-download").addEventListener("click", () => {
     if (!draft || !get("work-review").checked) return;
     try {
@@ -139,6 +165,7 @@ export function initWorkSummary() {
     draft = null;
     for (const field of fields) get(`work-${field}`).value = "";
     get("work-evidence").replaceChildren(); resetReview(); get("work-editor").hidden = true;
+    get("work-source").textContent = "";
     notice("화면의 초안과 근거를 지웠습니다. 직접 다운로드한 파일은 삭제하지 않습니다."); get("work-open").focus();
   });
 }

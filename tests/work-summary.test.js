@@ -1,7 +1,8 @@
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
-import { draftSummary, sessionMessages, reviewedSummary, safeExcerpt } from "../companion/work-summary.js";
+import { draftSummary, sessionMessages, reviewedSummary, safeExcerpt, workHandoff } from "../companion/work-summary.js";
+import { reviewedAiSummary } from "../scripts/ai-work-summary.mjs";
 
 test("Pocket updates activate only after precache completes, without forcing page reload", async () => {
   const source=readFileSync(new URL("../companion/sw.js",import.meta.url),"utf8");
@@ -47,6 +48,22 @@ test("saved summaries reopen as unreviewed drafts, excluding unknown fields", ()
   expect(reopened.reviewed).toBe(false); expect(reopened.evidence).toEqual([]);
   expect(reopened.next).toBe("test"); expect(JSON.stringify(reopened)).not.toContain("SECRET_RAW");
   expect(()=>draftSummary(JSON.stringify({...saved,next:[]}))).toThrow();
+});
+test("reviewed AI backend exports reopen without mislabelling them as local extraction", () => {
+  const values = {goal:"goal",completed:"completion claim",blocked:"none",next:"check real tests"};
+  const saved = reviewedAiSummary({format:"tokenjuice-ai-work-draft-v1"}, values, true);
+  const draft = draftSummary(JSON.stringify({...saved, raw:"SECRET_RAW", evidence:["SECRET_EVIDENCE"]}));
+  expect(draft.method).toBe("cloud_generative"); expect(draft.reviewed).toBe(false);
+  expect(draft.evidence).toEqual([]); expect(JSON.stringify(draft)).not.toContain("SECRET_");
+  const again = reviewedSummary(draft, {...values, next:"edited next", apiKey:"SECRET_KEY"});
+  expect(again.format).toBe("tokenjuice-ai-work-summary-v1");
+  expect(again.privacy).toBe("reviewed_cloud_excerpt"); expect(again.next).toBe("edited next");
+  expect(draftSummary(JSON.stringify(again)).method).toBe("cloud_generative");
+  for (const change of [{reviewed:false}, {privacy:"reviewed_local_excerpt"}, {method:"local_extractive_user_reviewed"}, {next:[]}])
+    expect(()=>draftSummary(JSON.stringify({...saved,...change}))).toThrow("invalid_summary");
+  const brief = workHandoff(draft, values);
+  expect(brief).toContain("클라우드 AI 요약 파일"); expect(brief).toContain("실제 파일·테스트");
+  expect(brief).not.toContain("SECRET_");
 });
 test("known secrets cover quoted JSON assignments and entire private-key blocks", () => {
   expect(safeExcerpt('"api_key": "SECRET_QUOTED"')).toBe("");

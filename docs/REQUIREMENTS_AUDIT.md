@@ -1017,3 +1017,13 @@ AI 요약 승인 세션에 필수 예산 원장을 연결했다. provider 호출
 예산 및 세션 합성 테스트 8 pass/37 assertions는 같은 저장소를 사용하는 객체 간 한도 유지, 날짜 rollover/rollback, 손상/잠금 보존, private mode/symlink 차단, 원장 미설정/소진 시 provider 호출 0회를 검증했다. 실제 서버 재시작/다중 프로세스 실운영 증거와 구분한다. P2 전체 요약 흐름과 P3 스토어 출시 완료를 뜻하지 않는다.
 
 엄격 release-verify exit 0: Bun 121 tests/1336 assertions, 두 browser suite·bundle·문법·격리 알림·설치 plugin/helper 일치. 플랫폼 가드 후 변경된 예산/세션 테스트도 다시 8 pass/37 assertions를 확인했다. Windows에서 예산 저장 모듈은 명시적으로 지원 거부하며 POSIX 저장 테스트를 건너뛴다. Windows 실제 실행/스토어 제출이나 AI 요약 UI 배포 증거로 승격하지 않는다.
+
+### 9.34 검토된 AI 요약 파일과 작업 인계 화면 연결
+
+Pocket은 backend reviewedAiSummary 출력 파일을 다시 열고 클라우드 출처 표기와 로컬 추출을 구분한다. 출처는 파일의 표기이지 제공자 진위 검증이 아니며 reviewed=true를 현재 사용자 검토로 신뢰하지 않는다. 네 항목을 편집·재검토해야 복사/재저장할 수 있고 편집은 승인을 다시 해제한다. 재저장은 클라우드 형식/privacy를 보존하며 unknown/raw/evidence/key는 제외한다. 복사에는 네 항목과 실제 파일/테스트 대조 안내만 넣고 자동 실행하지 않는다. 클립보드 거절 시 파일 저장/직접 복사를 안내한다.
+
+frontend-design의 기존 운영 계기판 스타일과 ui-ux-pro-max의 출처 설명·명확한 확인·키보드/터치 원칙을 적용했다. backend 출력→Pocket parser→편집 재저장 단위 테스트와 합성 브라우저 테스트로 재검토·편집·복사/거절·손상 파일 기존값 보존·unknown 제외·375px/landscape/desktop·44px 버튼·reduced motion·키보드 확인 해제·Local Storage 미보관·외부 upload 없음이 통과했다. 모바일 합성 화면을 직접 확인했다.
+
+첫 전체 검증은 브라우저 테스트의 clipboard 거절 mock 설정 단계에서 실패했다. 함수 대입 표현식의 반환값이 Playwright에 의해 실행된 것이 원인이며, 설정을 블록 함수로 감싼 후 실제 복사 버튼의 거절 안내 테스트가 통과했다. 실제 사용자 파일/클립보드/API는 사용하지 않았다. 클라우드 생성 UI·인증/CSRF·품질 평가·변경 파일 연결·실제 작업 재개·스토어 출시는 여전히 미완료다. worker v16은 이번 후보이며 공개 상태는 배포 확인 후 별도로 기록한다.
+
+수정 후 엄격 release-verify exit 0: 122 tests/1351 assertions, 두 브라우저 suite·번들·문법·격리 알림·설치본 일치. 이전 실패를 통과로 기록하지 않았다.

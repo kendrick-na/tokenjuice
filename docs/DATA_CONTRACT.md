@@ -324,7 +324,8 @@ snapshot 계약은 그대로 유지하며 별도의 `work-summary.js` 흐름으�
 - 사전 토큰 수는 제공자의 추정값이다. 입력 10%+256 tokens 여유분과 출력 최대 256~2048 tokens의 가격을 계산해 예산 초과/잘못된 count는 생성 전에 거부한다. 결과에는 예약 추정액·사용량 기준 계산액·예산을 포함하되 invoice=false로 표시한다. 이는 절대 청구액 상한이 아니다. 실제 요금 검증·동시 요청/일별 예산 원장·제공자 결제 상한이 검증되기 전 유료 자동 실행을 켜지 않는다. [공식 토큰 계산 설명](https://platform.claude.com/docs/en/build-with-claude/token-counting).
 - 목표/완료 주장/막힘/다음 행동을 각 text/evidenceIds로 받는다. 존재하지 않는 근거 번호·빈 항목·근거 없는 임의 주장·max_tokens 종료·tool_use를 거부한다. 참조 번호 존재만 검증하므로 사실성·완료 주장·누락의 사람 검토는 필수다. 결과는 `tokenjuice-ai-work-draft-v1`, `cloud_generative`, reviewed=false로 반환하며 자동 실행/저장/복원은 없다.
 - 함수는 원문과 키를 인자로 받아 메모리에서 처리하며 파일·로그 저장을 하지 않는다. 제공자의 보존/처리는 별도 약관과 설정을 따른다. 자체 무저장 구현을 제공자 zero retention으로 홍보하지 않는다.
-- 별도 reviewedAiSummary는 명시적인 검토 확인과 네 편집 항목을 받아 `tokenjuice-ai-work-summary-v1`, cloud_generative_user_reviewed, reviewed_cloud_excerpt로 반환한다. 원문·근거·키·provider ID는 제외하고 로컬 추출 결과로 오표기하지 않는다. 기존 Pocket v1 다시 열기와의 연결은 아직 남았다.
+- 별도 reviewedAiSummary는 명시적인 검토 확인과 네 편집 항목을 받아 `tokenjuice-ai-work-summary-v1`, cloud_generative_user_reviewed, reviewed_cloud_excerpt로 반환한다. 원문·근거·키·provider ID는 제외하고 로컬 추출 결과로 오표기하지 않는다. Pocket은 이 검토된 파일의 method/privacy/reviewed/필드 타입을 검사해 다시 열 수 있다. 가져온 reviewed=true는 현재 사용자의 확인으로 간주하지 않고 편집·재검토해야 복사/재저장한다. 출처 표기는 파일 메타데이터이지 제공자 진위·사실성 검증이 아니다.
+- Pocket 재저장은 원래의 클라우드 형식과 privacy를 유지하고 네 편집 항목만 내보낸다. 로컬 추출과 AI 요약을 서로 바꾸지 않는다. 인계 복사는 네 항목과 실제 파일/테스트 대조 주의사항만 포함하며 사용자 클릭으로만 클립보드에 쓴다. 거절 시 JSON 저장/직접 복사를 안내한다. 가져오기·복사·재저장에는 클라우드 호출/자동 실행/브라우저 영구 저장이 없다. 실제 생성 UI와 서버 연결은 별도 미완료다.
 
 요청 형식 근거: [Anthropic Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages). 모델은 호출자가 명시하며 이번 후보에서 기본 모델이나 가격을 확정하지 않는다.
 
