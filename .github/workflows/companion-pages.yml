@@ -40,6 +40,7 @@ jobs:
           trap 'kill $SERVER_PID' EXIT
           python tests/companion.test.py
           python tests/import-readiness.test.py
+          python tests/history.test.py
           bun test tests/work-summary.test.js
           python tests/work-summary.test.py
       - name: Upload static PWA

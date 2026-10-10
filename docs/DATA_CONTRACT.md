@@ -265,6 +265,14 @@ Pocket quota 카드의 잔여량·progressbar·forecast는 `fresh` 또는 명시
 `auth_expired`, `rate_limited`, `unavailable`에서는 숫자를 숨기고 상태·복구 안내와
 마지막 성공 정보를 유지한다.
 
+## Pocket 로컬 7일 관측 화면
+
+`history.js`는 `--forecast-history`의 tokenjuice-forecast-history-v1 또는 `--codex-forecast-history`의 tokenjuice-codex-forecast-history-v1 JSON을 읽는다. 자동 수집·설정 변경·외부 전송은 없으며 선택한 파일은 화면 메모리 전용이다. 새로고침하면 사라지고 화면 지우기는 엔진 기록/원본 파일을 삭제하지 않는다.
+
+파일은 1 MiB, 관측 320개, 구간 128개 이하를 허용한다. 현재 시각 기준 7일 이전은 제외하고 숫자/시각/키/사용률 범위와 동일 시각의 충돌을 검사한 뒤 화면을 교체한다. 미래 시각·손상·충돌은 거부하며 기존 표시를 유지한다. 동일 값 중복은 제거하고 unknown 필드·원문·비밀값·opaque key를 표시/보관하지 않는다. Claude는 알려진 창 이름과 로컬 슬롯 번호만 표시한다. 슬롯은 인증 계정 ID가 아니다. Codex는 익명 관측 구간으로만 표시하며 창/계정/기간 이름을 추정하지 않는다.
+
+그래프의 y축은 당시 사용률 %, x축은 가져온 최근 7일 안의 실제 첫/마지막 관측 시각이다. 한 점만 있으면 중앙의 한 점으로 표시한다. 1시간 초과 공백이나 값 하락은 연결하지 않고, 정확한 시각/값의 표를 함께 제공한다. 미관측 구간을 0으로 채우거나 하락을 절감 성과로 표현하지 않는다. reset/계정 동일성/전체 7일 coverage를 이 파일로 증명하지 않는다. 현재 quota·토큰량·비용·생산성·자동 동기화/Coach는 별도 요구사항이다.
+
 ## Pocket metadata-only checkpoint / 재개 안내
 
 기존 context CTA가 내보내는 `tokenjuice-checkpoint-v1` 파일을 Pocket의 독립적인

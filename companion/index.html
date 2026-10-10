@@ -56,6 +56,24 @@
           <span>자격증명 없음</span><span>자동 업로드 없음</span><span>마지막 성공 시각 표시</span>
         </section>
       </section>
+      <details id="history-panel" class="resume-panel">
+        <summary>지난 7일 관측 보기 <span>HISTORY · 현재 잔여량 아님</span></summary>
+        <div class="resume-body">
+          <p class="resume-limit">로컬 history JSON을 열어 사용률 관측을 비교합니다. 토큰량·비용·생산성 지표가 아니며 현재 quota는 별도로 확인하세요. 자동 수집을 켜거나 원문을 읽지 않습니다.</p>
+          <label for="history-file">Claude/Codex history JSON · 1 MiB 이하</label>
+          <input id="history-file" type="file" accept="application/json,.json" disabled>
+          <details><summary>기록을 내보내려면</summary><p class="resume-limit">기존 엔진의 <code>--forecast-history</code> 또는 <code>--codex-forecast-history</code> 출력을 JSON 파일로 저장하세요. 각 provider의 기록 설정은 별도 opt-in입니다. 이 화면에서 설정을 변경하지 않습니다.</p></details>
+          <p id="history-feedback" class="resume-feedback" role="status" aria-live="polite"></p>
+          <section id="history-content" hidden aria-label="과거 사용률 관측">
+            <label for="history-series">관측 구간</label><select id="history-series"></select>
+            <p class="resume-warning">과거 사용률 · 계정 동일성이나 정확한 reset 원인을 증명하지 않습니다</p>
+            <p id="history-summary" class="resume-limit"></p><div id="history-chart" class="history-chart"></div>
+            <p class="resume-limit">축은 실제 관측의 시작·끝입니다. 최근 7일 전체를 관측했다는 뜻은 아닙니다. 점은 관측, 선은 1시간 이내 연속 관측입니다. 긴 공백과 값 하락은 연결하지 않습니다. 값 하락을 절약 성과로 해석하지 마세요. Claude 슬롯은 계정 ID가 아니며 Codex 구간은 창 이름을 식별하지 않습니다.</p>
+            <details><summary>정확한 관측 표 보기</summary><table class="history-table"><caption>관측 시각과 당시 사용률</caption><thead><tr><th scope="col">관측 시각</th><th scope="col">사용률</th></tr></thead><tbody id="history-rows"></tbody></table></details>
+          </section>
+          <div class="resume-actions"><button id="history-clear" type="button" disabled>화면 기록 지우기</button></div>
+        </div>
+      </details>
       <details id="resume-panel" class="resume-panel">
         <summary>저장한 작업 이어가기 <span>CHECKPOINT → RESUME</span></summary>
         <div class="resume-body">

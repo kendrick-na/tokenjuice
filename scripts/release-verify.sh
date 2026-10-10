@@ -46,6 +46,7 @@ if python3 -c 'import playwright' >/dev/null 2>&1; then
   done
   python3 tests/companion.test.py
   python3 tests/import-readiness.test.py
+  python3 tests/history.test.py
   python3 tests/work-summary.test.py
   kill "$COMPANION_PID" 2>/dev/null || true
   wait "$COMPANION_PID" 2>/dev/null || true

@@ -67,6 +67,7 @@ jobs:
           trap 'kill $SERVER_PID' EXIT
           python tests/companion.test.py
           python tests/import-readiness.test.py
+          python tests/history.test.py
           python tests/work-summary.test.py
       - name: 로컬 AI 요약 승인 및 검토 화면 검증
         run: |

@@ -1069,3 +1069,15 @@ POSIX 로컬 launcher에 기존 인증 adapter·승인 세션·일일 예산을 
 Pocket worker v17은 이번 코드 후보다. 기존 공개 v16/로컬 설치본과 구분하며 새 Pages 결과/공개 파일 확인 전에는 배포 성공으로 기록하지 않는다. 기존 탭을 자동 재로드하지 않아 미저장 작업을 보호한다. 사용자 원문·키·유료 API는 사용하지 않았다.
 
 VibeUsage 공식 홈페이지/README 후속 조사로 로컬 분석과 quota 네트워크 경계, CLI 이름 불일치를 보존한 프로필에 추가했다. 실행 정확성/디자인 우열/유료 수요는 확인하지 않았다. Coach의 호출 비율과 토큰 절감률을 구분하는 기준을 개발기획서에 반영했다. 전체 경쟁사 조사·UX·스토어 완료로 승격하지 않는다.
+
+후속 공개 확인: `640463a`의 Engine 38074650886, Windows 38074650906, Pocket 38074650888 모두 success. 공개 index.html/app.js/app.css/sw.js를 해당 커밋 파일과 byte 비교해 일치를 확인했다. 공개 worker v17이다. 브라우저 CI 실패는 이번 후보에서 해소됐으며 모듈 지연 회귀도 포함한다. 실제 신규 사용자/실기기/스토어 완료를 뜻하지 않는다.
+
+### 9.39 로컬 7일 관측 그래프 후보
+
+기존 엔진의 Claude/Codex history 내보내기에 Pocket 화면을 연결했다. 구간 선택→관측 점/연속 선→정확한 표를 제공한다. 7일 이전 제외, 320개/128구간/1 MiB 제한, future/숫자 범위/동일 시각 충돌 거부, 정렬/동일 값 중복 제거, 손상 파일 기존 화면 유지, unknown/key 비표시를 적용했다. Claude 슬롯을 실제 계정으로, Codex 익명 구간을 특정 창으로 식별하지 않는다. 오래된 관측을 현재 잔여량으로 표기하지 않는다.
+
+frontend-design의 기존 운영 계기판 스타일과 ui-ux-pro-max의 axis/legend/표 대안/모바일 글자/터치 원칙을 적용했다. chart는 실제 관측 시작/끝을 보여주고 긴 공백·값 하락을 연결하지 않는다. 모바일 합성 화면을 직접 확인해 축 글자와 시각 표현을 조정했다. 로컬 메모리 전용이며 수집 opt-in/설치본/API/사용자 기록은 변경하지 않는다.
+
+history 단위 5 tests/26 assertions는 parser와 실제 엔진 내보내기의 합성 격리 HOME/USERPROFILE 연결을 검증했다. 초기 연결 테스트는 URL-encoded 한글 경로를 실행 파일 경로로 사용해 module not found가 발생했으며 fileURLToPath로 수정 후 통과했다. 브라우저는 import/공백·하락/표/손상 보존/Codex 선택/375px·landscape·desktop·큰 글꼴/지우기/외부 요청·영구 저장 없음을 검증했다. UI 연결을 의미 요약·Coach·전체 trend·실사용 성과로 승격하지 않는다.
+
+worker v18은 로컬 후보이며 공개 v17과 구분한다. 최신 strict release-verify exit 0: **140 tests / 1527 assertions**, 다섯 브라우저 suite·번들·문법·격리 알림·설치 plugin/helper 일치. 원격 배포 확인은 후속 기록한다. 실제 사용자 데이터/유료 호출은 사용하지 않았다.
