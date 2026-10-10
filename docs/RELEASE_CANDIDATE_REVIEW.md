@@ -4,8 +4,10 @@
 
 2026-10-11 현재 공개 Pocket은 `22a67c7` / worker v19다. 아래 `4423ab1`과
 `74157c2` 패키지는 고정된 과거 검토물이며 요약·선택 파일 인계와 7일 그래프가 없다.
-`22a67c7` Engine/Pages는 성공했지만 Windows CI는 경로 검사 실패로 새 exe를 만들지
-못했다. 수정·재검증은 [audit §9.43](REQUIREMENTS_AUDIT.md#943-공개-인계-화면과-windows-짧은-경로-문제)을 따른다.
+`22a67c7` Engine/Pages는 성공했지만 당시 Windows CI는 경로 검사 실패로 새 exe를 만들지
+못했다. 수정한 `0cbe94b`은 Engine/Windows CI 및 exe 생성·실행·artifact 업로드까지 성공했다.
+아래 고정 패키지를 교체하거나 새 공개 릴리스를 발행한 것은 아니다.
+수정·재검증은 [audit §9.43](REQUIREMENTS_AUDIT.md#943-공개-인계-화면과-windows-짧은-경로-문제)을 따른다.
 desktop 공개 릴리스는 v1.2.2이며 전체 투두·실기기·스토어 게이트는 미완료다.
 
 ## 1. 고정 후보와 패키지

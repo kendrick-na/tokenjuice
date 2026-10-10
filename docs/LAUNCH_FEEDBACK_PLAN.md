@@ -5,7 +5,9 @@
 
 ## 현재 출시 순서와 복구 상태 — 2026-10-11
 
-Claude 실제 API 수집과 메뉴바 숫자는 복구됐고 사용자가 확인했다(audit §9.27). 신규 설치·절전 복귀·공식 계정/주간 reset 대조는 아직 남았다. 현재 공개 Pocket은 `fb4c44d`/offline cache v18이며 로컬 7일 관측 그래프·표를 제공한다. Engine·Windows·Pages CI success와 공개 index/app/style/history/worker의 커밋 일치를 확인했다. 자동 sync나 스토어 출시를 뜻하지 않는다. 데스크톱 공개 릴리스는 v1.2.2다.
+Claude 실제 API 수집과 메뉴바 숫자는 복구됐고 사용자가 확인했다(audit §9.27). 신규 설치·절전 복귀·공식 계정/주간 reset 대조는 아직 남았다. 현재 공개 Pocket은 `22a67c7`/offline cache v19이며 로컬 7일 관측 그래프·표와 검토한 요약·선택 변경 파일의 인계 저장/복사/재열기를 제공한다. Engine·Pages CI success와 주요 공개 파일 8개의 SHA-256 일치를 확인했다. 같은 커밋의 Windows CI는 실패했으며 수정 검증은 audit §9.43을 따른다. 자동 sync·실제 작업 복원이나 스토어 출시를 뜻하지 않는다. 데스크톱 공개 릴리스는 v1.2.2다.
+
+Windows 후속 수정 `0cbe94b`은 Engine/Windows CI success이며 짧은 경로/긴 경로 동일성 회귀·exe 생성/실행·artifact 업로드가 통과했다. 실제 Windows 사용자 화면과 신규 설치 검증은 남았다.
 
 선택한 대화의 생성형 요약은 별도 POSIX 로컬 서비스·전송 미리보기·동의·예산 예약·검토 화면까지 구현돼 있다. 실제 제공자 호출과 의미 품질 검증은 미완료이며 외부 전송은 기본 실행하지 않는다. 아래 체크포인트는 이전 버전의 기록이다.
 
