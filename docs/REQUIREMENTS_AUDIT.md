@@ -975,3 +975,9 @@ repo와 설치본에서 **헤더만 기존 이미지 방식으로 복원**했다
 - 인증 실패 시 자동 갱신 선택을 사용자에게 요청했다. 응답 전 설정을 바꾸지 않는다. 공개 배포·스토어 제출·전체 TODO 완료는 미완료다.
 
 후속 화면 검증: 최신 NOW/NEXT 수정본으로 브라우저 테스트를 다시 실행해 exit 0을 확인했다. `/tmp/tokenjuice-ui-current.o7yiDV/`의 desktop/mobile 캡처를 직접 관찰했다. 이 캡처는 예시 데이터이며 사용자 실제 quota 증거가 아니다. LAUNCH_FEEDBACK_PLAN과 UI_UX_RELEASE_PLAN의 순서를 사용자가 요청한 공개 베타 후 피드백/인터뷰 흐름으로 맞췄다. 핵심 작동·안전·실기기 조건 및 5명/10명/14일 검증 목표는 유지한다.
+
+### 9.28 디자인 후보 공개 베타 반영 (2026-10-11)
+
+clean main에서 origin/main fetch 및 ahead 3/behind 0 확인 후 `6d9b3a1`을 push했다. 직전 엄격 release-verify는 101 tests/1222 assertions와 두 브라우저·설치 일치까지 exit 0이다. Engine [38070692259](https://github.com/kendrick-na/tokenjuice/actions/runs/38070692259), Windows [38070692262](https://github.com/kendrick-na/tokenjuice/actions/runs/38070692262), Pocket [38070692236](https://github.com/kendrick-na/tokenjuice/actions/runs/38070692236)는 모두 success다. 공개 app.css/app.js/sw.js 전체를 로컬과 cmp해 일치를 확인했다. 공개 offline cache는 이제 v15다.
+
+이는 Pocket 디자인·오류 안내의 공개 베타 반영이다. desktop tag/release·실제 Windows tray·신규 설치/절전·사용자 인터뷰·스토어 제출은 완료하지 않았다. 자동 갱신은 권장 정책을 설명했지만 사용자가 활성화를 승인하지 않아 기존 false를 유지한다.
