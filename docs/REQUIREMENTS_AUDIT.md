@@ -1027,3 +1027,5 @@ frontend-design의 기존 운영 계기판 스타일과 ui-ux-pro-max의 출처 
 첫 전체 검증은 브라우저 테스트의 clipboard 거절 mock 설정 단계에서 실패했다. 함수 대입 표현식의 반환값이 Playwright에 의해 실행된 것이 원인이며, 설정을 블록 함수로 감싼 후 실제 복사 버튼의 거절 안내 테스트가 통과했다. 실제 사용자 파일/클립보드/API는 사용하지 않았다. 클라우드 생성 UI·인증/CSRF·품질 평가·변경 파일 연결·실제 작업 재개·스토어 출시는 여전히 미완료다. worker v16은 이번 후보이며 공개 상태는 배포 확인 후 별도로 기록한다.
 
 수정 후 엄격 release-verify exit 0: 122 tests/1351 assertions, 두 브라우저 suite·번들·문법·격리 알림·설치본 일치. 이전 실패를 통과로 기록하지 않았다.
+
+후속 공개 확인: clean main에서 origin fetch·ahead 5/behind 0을 확인하고 `970a8d3`을 push했다. [Pocket 38072675159](https://github.com/kendrick-na/tokenjuice/actions/runs/38072675159), [Engine 38072675170](https://github.com/kendrick-na/tokenjuice/actions/runs/38072675170), [Windows 38072675296](https://github.com/kendrick-na/tokenjuice/actions/runs/38072675296)는 모두 success다. 공개 index.html/privacy.html/work-summary.js/sw.js를 해당 로컬 파일과 byte 비교해 일치를 확인했다. 공개 Pocket worker는 v16이다. 미저장 초안이 있는 기존 탭은 자동 새로고침하지 않으며, 사용자가 저장/지운 뒤 직접 다시 열어 업데이트한다. desktop 새 release/tag·실제 요약 API·스토어 제출은 하지 않았다.
