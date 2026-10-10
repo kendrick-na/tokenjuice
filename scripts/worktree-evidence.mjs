@@ -14,10 +14,10 @@ export function sameRepositoryDirectory(left,right,platform=process.platform,sta
     && a.dev===b.dev && a.ino===b.ino;
 }
 
-const safePath = path => typeof path === "string" && path.length > 0 && path.length <= 1024
+export const safePath = path => typeof path === "string" && path.length > 0 && path.length <= 1024
   && !/[\u0000-\u001f\u007f\\]/.test(path) && !path.startsWith("/")
   && !/^[A-Za-z]:/.test(path) && !path.split("/").some(part => ["", ".", ".."].includes(part));
-const sensitive = path => /(?:^|\/)(?:\.env(?:\.[^/]*)?|\.git|\.ssh|\.aws|\.claude|\.codex|credentials(?:\.[^/]*)?|secrets?(?:\.[^/]*)?)(?:\/|$)|\.(?:pem|key|p12|pfx|keystore)$/i.test(path);
+export const sensitive = path => /(?:^|\/)(?:\.env(?:\.[^/]*)?|\.git|\.ssh|\.aws|\.claude|\.codex|credentials(?:\.[^/]*)?|secrets?(?:\.[^/]*)?)(?:\/|$)|\.(?:pem|key|p12|pfx|keystore)$/i.test(path);
 export function parseWorktreeStatus(raw) {
   if (typeof raw !== "string" || Buffer.byteLength(raw) > 1024*1024 || (raw && !raw.endsWith("\0")))
     throw Error("invalid_status");
@@ -37,12 +37,16 @@ export function parseWorktreeStatus(raw) {
   return {files,excluded}; // Old rename paths and file contents are intentionally omitted.
 }
 
-export function collectWorktreeEvidence({repo,includePaths=false,now=Date.now()}, run=execFileSync) {
+export function openEvidenceRepository({repo,includePaths=false,now=Date.now()}, run=execFileSync) {
   if (!includePaths || typeof repo !== "string" || !isAbsolute(repo)
     || !Number.isSafeInteger(now) || now<=0) throw Error("explicit_paths_required");
   const root=realpathSync(repo);
   const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.startsWith("GIT_")));
   env.GIT_OPTIONAL_LOCKS="0";
+  env.GIT_NO_LAZY_FETCH="1";
+  env.GIT_ALLOW_PROTOCOL="";
+  env.GIT_NO_REPLACE_OBJECTS="1";
+  env.GIT_TERMINAL_PROMPT="0";
   const git = args => run("git",["-c","core.fsmonitor=false","-c","core.untrackedCache=false","-C",root,...args],
     {encoding:"utf8",env,timeout:15000,maxBuffer:1024*1024,stdio:["ignore","pipe","pipe"]});
   if (!sameRepositoryDirectory(root,realpathSync(git(["rev-parse","--show-toplevel"]).trim()))) throw Error("repository_root_required");
@@ -50,10 +54,15 @@ export function collectWorktreeEvidence({repo,includePaths=false,now=Date.now()}
   if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(head)) throw Error("invalid_head");
   const ref=git(["rev-parse","--abbrev-ref","HEAD"]).trim();
   if (ref.length>256 || /[\u0000-\u001f\u007f]/.test(ref)) throw Error("invalid_branch");
+  return {git,head,branch:ref==="HEAD"?null:ref};
+}
+
+export function collectWorktreeEvidence({repo,includePaths=false,now=Date.now()}, run=execFileSync) {
+  const {git,head,branch}=openEvidenceRepository({repo,includePaths,now},run);
   const status=parseWorktreeStatus(git(["status","--porcelain=v1","-z","--untracked-files=all","--ignore-submodules=all"]));
   if (git(["rev-parse","--verify","HEAD"]).trim() !== head) throw Error("head_changed");
   return {format:"tokenjuice-worktree-evidence-v1",privacy:"explicit_relative_paths",reviewed:false,
-    createdAt:now,head,branch:ref==="HEAD"?null:ref,...status,
+    createdAt:now,head,branch,...status,
     limits:["Local Git observation, not proof of implementation, tests or completion.",
       "Only currently pending changes; not committed history or the full set of recent work.",
       "Not an atomic filesystem snapshot; recheck before resuming.",

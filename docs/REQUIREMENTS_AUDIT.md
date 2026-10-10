@@ -1127,3 +1127,15 @@ worker v19는 로컬 후보이며 공개 v18과 구분한다. 전체 work contin
 수정 후 strict release-verify exit 0: 157 tests/1650 assertions, 여섯 browser suite·번들·문법·격리 알림·설치 plugin/helper 일치. POSIX 원장 등 기존 Windows 미지원 13개 검사는 별도 한계이며 이 결과가 Windows 지원을 확대하지 않는다. 실제 Windows 수정 결과는 원격 CI로 확인한다.
 
 후속 `0cbe94b`의 [Engine 38077200753](https://github.com/kendrick-na/tokenjuice/actions/runs/38077200753)과 [Windows 38077200963](https://github.com/kendrick-na/tokenjuice/actions/runs/38077200963) 모두 success다. Windows에서 동일한 `RUNNER~1`/`runneradmin` 차이가 남아 있는 실제 격리 저장소가 정상 통과했다. Windows 회귀 144 pass/13 skip/0 fail/1303 assertions, tray selftest/engine --once 및 15.8 MB exe 생성·실행(exit 0)·artifact 업로드를 확인했다. tag가 없어 release job은 skipped다. 이는 실제 Windows 사용자 화면·신규 설치·전체 AI 요약 서비스·스토어 출시 완료를 증명하지 않는다.
+
+### 9.44 최근 커밋의 변경 파일 수집 후보
+
+`scripts/commit-evidence.mjs`는 지정한 로컬 root의 first-parent 최대 5개 커밋을 별도 schema로 출력한다. 미커밋 관측의 root/HEAD/동의 검사를 재사용하고, hash와 A/D/M/T 상대 파일명·제외 건수만 내보낸다. commit 메시지·작성자·날짜·본문/diff·원격 주소는 요청하지 않는다. rename 탐지를 끄고 merge는 첫 부모 대비로 제한한다. 개별 출력 1 MiB/15초·전체 500개 한도와 민감 경로 필터를 적용한다. lazy fetch/replacement refs/터미널 인증을 막는 Git 환경도 공유했다.
+
+합성 실제 Git root·첫 커밋·rename의 삭제/추가·5개 제한·pending 제외·merge first-parent·민감 이름·미공유 필드·index/status 보존을 검증했다. fake runner는 동의 전 무실행·HEAD race·잘못된/중복 hash·개별/전체 파일 한도·외부 diff/textconv 차단을 검사한다. 초기 인덱스 불일치는 fixture에서 ordinary status 이전에 기준 index를 읽은 순서 오류였다. 상태 조회 후 기준 bytes를 읽도록 바로잡고 읽기 전용 수집 전후 비교는 유지해 통과했다. 수집 경로 회귀 합계 11 tests/218 assertions다.
+
+앞선 문서 checkpoint `5a3e88e`의 Engine 38077342748·Windows 38077342765 모두 success를 확인했다. 이번 최근 커밋 JSON은 현재 공개 Pocket v19의 worktree 입력과 다르며 아직 브라우저 선택/검토/저장에 연결하지 않았다. 새 public/tag/release·설치본/설정 변경·사용자 저장소 수집·유료 API·스토어 제출은 없다. 전체 작업 재개·실기기·사용자 gate는 미완료다.
+
+후속 transport whitelist도 비워 원격 전송을 허용하지 않도록 하고 runner에서 인증 prompt 억제와 함께 검사했다. 최신 커밋 수집 회귀는 4 tests/201 assertions이며 전체 최신 검증은 후속 결과를 따른다.
+
+최신 strict release-verify exit 0: 161 tests/1851 assertions, 여섯 browser suite·번들·문법·격리 알림·설치 plugin/helper 일치. 원격 CI와 실제 사용자 재개 효과는 별도 검증이다.
