@@ -1,5 +1,5 @@
 """Synthetic-only selected file/summary handoff acceptance."""
-import json,time
+import json,time,os,subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from playwright.sync_api import sync_playwright,expect
@@ -112,6 +112,66 @@ with TemporaryDirectory() as directory,sync_playwright() as p:
     page.locator("#work-files-remove").click()
     assert page.locator("#work-files-content").is_hidden()
     page.locator("#work-review").check();expect(page.locator("#work-copy")).to_be_enabled()
+    # Exercise the actual CLI -> JSON -> UI -> download -> reopen boundary.
+    # Only this disposable repository is observed, never the user's checkout.
+    repo=(Path(directory)/"isolated-repository").resolve();repo.mkdir()
+    hooks=Path(directory)/"empty-hooks";hooks.mkdir()
+    env={key:value for key,value in os.environ.items() if not key.startswith("GIT_")}
+    env.update(GIT_CONFIG_NOSYSTEM="1",GIT_CONFIG_GLOBAL=os.devnull,GIT_OPTIONAL_LOCKS="0")
+    def run(args):
+        return subprocess.run(args,env=env,check=True,capture_output=True,text=True,timeout=20).stdout
+    def git(*args):
+        return run(["git","-C",str(repo),"-c",f"core.hooksPath={hooks}","-c","commit.gpgsign=false",*args])
+    git("init","-b","main");git("config","user.name","PRIVATE_AUTHOR")
+    git("config","user.email","private@example.invalid")
+    (repo/"한글 파일.txt").write_text("PRIVATE_BODY\n",encoding="utf-8")
+    (repo/".env").write_text("PRIVATE_ENV\n",encoding="utf-8")
+    git("add",".");git("commit","-m","PRIVATE_MESSAGE")
+    (repo/"한글 파일.txt").write_text("COMMITTED_BODY\n",encoding="utf-8")
+    git("add",".");git("commit","-m","PRIVATE_SECOND_MESSAGE")
+    head=git("rev-parse","HEAD").strip()
+    (repo/"pending-only.txt").write_text("PENDING_BODY\n",encoding="utf-8")
+    status=git("status","--porcelain=v1","-z")
+    index=(repo/".git/index").read_bytes()
+    root=Path(__file__).resolve().parents[1]
+    pending_raw=run(["bun",str(root/"scripts/worktree-evidence.mjs"),"--repo",str(repo),"--include-paths"])
+    commits_raw=run(["bun",str(root/"scripts/commit-evidence.mjs"),"--repo",str(repo),"--include-paths"])
+    pending_data=json.loads(pending_raw);commit_data=json.loads(commits_raw)
+    assert pending_data["head"]==head==commit_data["head"]
+    assert pending_data["files"]==[{"path":"pending-only.txt","indexStatus":"?","worktreeStatus":"?"}]
+    assert commit_data["commits"][0]["files"]==[{"path":"한글 파일.txt","status":"M"}]
+    assert sum(item["excluded"] for item in commit_data["commits"])==1
+    assert (repo/".git/index").read_bytes()==index
+    assert git("status","--porcelain=v1","-z")==status
+    forbidden=["PRIVATE_AUTHOR","private@example.invalid","PRIVATE_BODY","PRIVATE_ENV",
+        "PRIVATE_MESSAGE","PRIVATE_SECOND_MESSAGE","COMMITTED_BODY","PENDING_BODY",str(repo)]
+    assert all(secret not in pending_raw+commits_raw for secret in forbidden)
+    summary.write_text(json.dumps(basic),encoding="utf-8")
+    page.locator("#work-file").set_input_files(str(summary))
+    for raw in [pending_raw,commits_raw]:
+        source.write_text(raw,encoding="utf-8")
+        page.locator("#work-files-input").set_input_files(str(source))
+        expect(page.locator("#work-files-feedback")).to_contain_text("파일 목록을 열었습니다")
+    expect(page.locator("#work-files-list input")).to_have_count(3)
+    page.locator(".work-file-row").filter(has_text="pending-only.txt").locator("input").check()
+    page.locator(".work-file-row").filter(has_text=head[:12]).locator("input").check()
+    page.locator("#work-files-review").check();page.locator("#work-review").check()
+    with page.expect_download() as result:page.locator("#work-package").click()
+    roundtrip=Path(result.value.path()).read_text(encoding="utf-8")
+    exported=json.loads(roundtrip)
+    assert exported["format"]=="tokenjuice-work-handoff-v2"
+    assert exported["worktree"]["files"]==pending_data["files"]
+    assert len(exported["commits"]["commits"])==1
+    assert exported["commits"]["commits"][0]==commit_data["commits"][0]
+    assert all(secret not in roundtrip for secret in forbidden)
+    summary.write_text(roundtrip,encoding="utf-8")
+    page.locator("#work-file").set_input_files(str(summary))
+    expect(page.locator("#work-files-list input")).to_have_count(2)
+    assert page.locator("#work-files-list input:checked").count()==0
+    assert not page.locator("#work-files-review").is_checked() and not page.locator("#work-review").is_checked()
+    assert page.locator("#work-package").is_disabled()
+    assert (repo/".git/index").read_bytes()==index
+    assert git("status","--porcelain=v1","-z")==status
     # Clearing while an asynchronous file read is pending must not resurrect data.
     source.write_text(json.dumps(evidence),encoding="utf-8")
     page.evaluate("""() => {const original=File.prototype.text;File.prototype.text=async function(){await new Promise(resolve=>window.releaseFile=resolve);return original.call(this);};} """)
@@ -125,4 +185,4 @@ with TemporaryDirectory() as directory,sync_playwright() as p:
     assert all(url.startswith("http://127.0.0.1:4173") for url in requests)
     assert not errors,errors
     browser.close()
-print("PASS: pending/committed/combined selected handoffs, review reset, sensitive-path exclusion, malformed preservation, reopen, keyboard, mobile, clear and no upload")
+print("PASS: real isolated Git CLI-to-UI roundtrip, pending/committed selected handoffs, review reset, sensitive-path exclusion, malformed preservation, keyboard, mobile, clear and no upload")

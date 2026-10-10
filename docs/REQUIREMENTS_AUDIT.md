@@ -1151,3 +1151,11 @@ worker v20은 로컬 후보이며 현재 공개 v19와 구분한다. 실제 사�
 최종 로컬 strict release-verify exit 0: 163 tests/1884 assertions, 여섯 browser suite·번들·문법·격리 알림·설치 plugin/helper 일치. 모바일 캡처에서 접힌 사용법의 native 펼치기 표시를 확인했다. 원격 CI·공개 v20 반영·실제 사용자 작업 재개 효과는 이 결과로 완료 처리하지 않는다.
 
 공개 후속 확인: `7a4031e`의 [Engine 38078400778](https://github.com/kendrick-na/tokenjuice/actions/runs/38078400778)·[Pages 38078400767](https://github.com/kendrick-na/tokenjuice/actions/runs/38078400767)·[Windows 38078400760](https://github.com/kendrick-na/tokenjuice/actions/runs/38078400760) 모두 success다. Windows tray selftest/engine --once·15.8 MB exe 생성/실행(exit 0)·artifact 업로드를 확인했으며 tag가 없어 release job은 skipped다. 배포 전 첫 공개 대조는 변경 파일 불일치였고, Pages 성공 후 재조회에서 index.html/app.css/app.js/resume.js/work-summary.js/work-files.js/history.js/sw.js 8개 모두 `7a4031e`와 SHA-256 일치했다. 현재 공개는 worker v20이며 설치본·desktop v1.2.2·스토어 상태는 변경하지 않았다. 실제 사용자 재개 효과·실기기·스토어 게이트는 계속 미완료다.
+
+### 9.46 Git 수집 CLI와 Pocket 인계의 통합 검증
+
+기존 work-files browser suite에 격리된 실제 Git 저장소의 CLI 출력 검증을 추가했다. 한글 파일의 두 커밋과 민감 파일·미추적 변경을 만들고, 두 수집 CLI를 실행한 실제 JSON을 화면에 가져온다. 선택한 최신 커밋 파일과 미커밋 파일만 v2로 저장되고 재열기에서 선택·요약/파일 확인이 모두 해제되는지 검사한다. 코드 본문·커밋 메시지·작성자·이메일·절대 root가 출력/저장에 없으며, 수집과 화면 처리 전후 Git status·index bytes가 같음을 확인했다.
+
+임시 저장소만 사용하며 사용자 저장소·대화·자격증명·유료 호출·설치 설정은 사용/변경하지 않는다. 단독 browser suite exit 0이며 기존 Engine/Pages workflow와 strict verifier가 같은 suite를 실행한다. 전체 최신 검증은 후속 결과를 따른다. 이는 CLI와 화면 사이의 호환성 증거이며 실제 사용자 작업 복원·재개 시간 단축·스토어 완료 증거가 아니다. 공개 Pocket v20의 앱 코드는 변경하지 않았다.
+
+후속 로컬 strict release-verify exit 0: 163 tests/1884 assertions와 확장된 Git→Pocket suite를 포함한 여섯 browser suite, 번들·문법·격리 알림·설치 plugin/helper 일치 확인. 원격 CI와 사용자/실기기 게이트는 별도다.
