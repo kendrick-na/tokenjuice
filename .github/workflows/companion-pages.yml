@@ -42,7 +42,7 @@ jobs:
           bun test tests/work-summary.test.js
           python tests/work-summary.test.py
       - name: Upload static PWA
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: companion
 
