@@ -1115,3 +1115,13 @@ Windows root 비교는 strict string equality 대신 플랫폼의 path.relative�
 worker v19는 로컬 후보이며 공개 v18과 구분한다. 전체 work continuity 효과·스토어/실기기 gate는 유지한다. 계약은 DATA_CONTRACT의 요약과 선택 파일의 검토된 인계에 반영했다.
 
 전체 검사 첫 실행은 로컬 AI 요약 브라우저에서 file 입력이 disabled로 남아 exit 1이었다. 서비스 dependency HTTP 회귀를 추가해 /work-files.js 404를 재현했고 명시 static allowlist에 모듈을 추가했다. 재검증 strict exit 0: 156 tests/1633 assertions, 여섯 browser suite·번들·문법·격리 알림·설치본 일치. 새 파일 브라우저 검사는 읽기 중 초안 지우기 이후 자료가 되살아나지 않는 경계도 포함한다. 사용자 원문·유료 API·설치 설정은 사용/변경하지 않았다. 공개/Windows 후속 확인은 별도로 기록한다.
+
+### 9.43 공개 인계 화면과 Windows 짧은 경로 문제
+
+`22a67c7`의 [Engine 38076746348](https://github.com/kendrick-na/tokenjuice/actions/runs/38076746348)과 [Pocket 38076746338](https://github.com/kendrick-na/tokenjuice/actions/runs/38076746338)은 success다. 공개 index.html/app.css/app.js/resume.js/work-summary.js/work-files.js/history.js/sw.js의 SHA-256이 로컬 소스와 각각 일치하며 공개 worker는 v19다. 미저장 초안을 강제로 재로드하지 않는다.
+
+[Windows 38076746341](https://github.com/kendrick-na/tokenjuice/actions/runs/38076746341)은 두 경로 테스트에서 실패했다. 합성 임시 저장소 경로만 진단하는 `b696f66`의 [Windows 38076997732](https://github.com/kendrick-na/tokenjuice/actions/runs/38076997732)에서도 재현됐다. realpathSync의 로컬 root에는 `RUNNER~1`, Git root에는 `runneradmin`이 남아 path.relative는 다른 경로로 판정했다. 기존 separator/case 수정만으로 해소되지 않았다. POSIX 분기도 플랫폼 기본 relative를 호출해 Windows에서 case-sensitive 비교가 잘못되는 별도 오류가 확인됐다.
+
+수정 후보는 POSIX 분기를 명시 posix.relative로 바꾸고 Windows의 문자열 불일치에만 디렉터리 stat의 bigint dev/ino 동일성 검사를 적용한다. 두 경로가 실제 디렉터리이고 동일 장치·0이 아닌 동일 inode를 가질 때만 허용한다. 서로 다른 장치/inode·0 inode·일반 파일·조회 실패를 허용하지 않으며 이름의 접두어나 짧은 이름을 추측해 루트 검사를 생략하지 않는다. [Node Stats](https://nodejs.org/api/fs.html#class-fsstats)와 [플랫폼별 path](https://nodejs.org/api/path.html#windows-vs-posix)를 따른다. 로컬 경로 회귀 7 tests/67 assertions는 통과했고 실제 Windows 수정 검증은 후속 결과를 따른다. 실제 사용자 저장소/원문·자격증명·유료 호출·스토어 제출은 사용하지 않았다.
+
+수정 후 strict release-verify exit 0: 157 tests/1650 assertions, 여섯 browser suite·번들·문법·격리 알림·설치 plugin/helper 일치. POSIX 원장 등 기존 Windows 미지원 13개 검사는 별도 한계이며 이 결과가 Windows 지원을 확대하지 않는다. 실제 Windows 수정 결과는 원격 CI로 확인한다.

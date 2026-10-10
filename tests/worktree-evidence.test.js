@@ -3,12 +3,25 @@ import {mkdtempSync,writeFileSync,rmSync,mkdirSync,readFileSync,realpathSync} fr
 import {tmpdir} from "node:os";
 import {join,win32,posix} from "node:path";
 import {execFileSync} from "node:child_process";
-import {parseWorktreeStatus,collectWorktreeEvidence,sameRepositoryRoot} from "../scripts/worktree-evidence.mjs";
+import {parseWorktreeStatus,collectWorktreeEvidence,sameRepositoryRoot,sameRepositoryDirectory} from "../scripts/worktree-evidence.mjs";
 test("repository root comparison follows Windows separators/case without accepting a child or sibling",()=>{
   expect(sameRepositoryRoot("C:\\Temp\\Repo","c:/temp/repo","win32")).toBe(true);
   expect(sameRepositoryRoot("C:\\Temp\\Repo","C:\\Temp\\Repo\\child","win32")).toBe(false);
   expect(sameRepositoryRoot("C:\\Temp\\Repo","C:\\Temp\\Repo-other","win32")).toBe(false);
   expect(sameRepositoryRoot("/tmp/Repo","/tmp/repo","darwin")).toBe(false);
+});
+test("Windows short aliases require matching nonzero directory identities, not similar names",()=>{
+  const short="C:\\Users\\RUNNER~1\\repo", long="C:\\Users\\runneradmin\\repo";
+  const identity=(dev=1n,ino=42n,directory=true)=>({dev,ino,isDirectory:()=>directory});
+  const check=(a,b,platform="win32")=>sameRepositoryDirectory(short,long,platform,
+    (path,options)=>{expect(options).toEqual({bigint:true});return path===short?a:b;});
+  expect(check(identity(),identity())).toBe(true);
+  expect(check(identity(),identity(1n,43n))).toBe(false);
+  expect(check(identity(),identity(2n))).toBe(false);
+  expect(check(identity(1n,0n),identity(1n,0n))).toBe(false);
+  expect(check(identity(),identity(1n,42n,false))).toBe(false);
+  expect(check(identity(),identity(),"darwin")).toBe(false);
+  expect(()=>sameRepositoryDirectory(short,long,"win32",()=>{throw Error("unreadable");})).toThrow();
 });
 test("NUL status preserves spaces and Unicode, consumes renames and excludes sensitive paths",()=>{
   const result=parseWorktreeStatus(" M 한글 파일.js\0R  new name.js\0old name.js\0?? .env.local\0?? private.key\0?? README.md\0");

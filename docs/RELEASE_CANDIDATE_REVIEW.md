@@ -2,6 +2,12 @@
 
 확인일: 2026-10-10. 로컬 준비 결과이며 tag/release·스토어 제출·사용자 초대를 하지 않았다.
 
+2026-10-11 현재 공개 Pocket은 `22a67c7` / worker v19다. 아래 `4423ab1`과
+`74157c2` 패키지는 고정된 과거 검토물이며 요약·선택 파일 인계와 7일 그래프가 없다.
+`22a67c7` Engine/Pages는 성공했지만 Windows CI는 경로 검사 실패로 새 exe를 만들지
+못했다. 수정·재검증은 [audit §9.43](REQUIREMENTS_AUDIT.md#943-공개-인계-화면과-windows-짧은-경로-문제)을 따른다.
+desktop 공개 릴리스는 v1.2.2이며 전체 투두·실기기·스토어 게이트는 미완료다.
+
 ## 1. 고정 후보와 패키지
 
 2026-10-11 후속 개발: 선택한 대화의 로컬 추출 초안·편집/검토·저장/재열기 기능은
@@ -79,7 +85,8 @@ Windows artifact는 GUI-subsystem x86-64 PE이며 다른 아키텍처용 빌드�
 
 전체 목표는 미완료다. 이 패키지는 GitHub 로컬 검토용이지 스토어 제출-ready 산출물이 아니다.
 다음 신규 태그는 실제 Mac/Windows acceptance·신규 설치/제거/재시작 결과와 승인 후에만
-검토한다. public PWA `4d326d3`/sw v11 및 immutable desktop `v1.2.2`는 그대로다.
+검토한다. 위 패키지 준비 당시 public PWA는 `4d326d3`/sw v11이었다. 현재 공개 PWA는
+상단의 후속 상태를 따른다. immutable desktop `v1.2.2`는 그대로다.
 
 ## 3. 실행 자료
 

@@ -1,8 +1,18 @@
 import {execFileSync} from "node:child_process";
-import {realpathSync} from "node:fs";
-import {isAbsolute,relative,win32} from "node:path";
+import {realpathSync,statSync} from "node:fs";
+import {isAbsolute,posix,win32} from "node:path";
 export const sameRepositoryRoot=(left,right,platform=process.platform)=>
-  (platform==="win32"?win32.relative(left,right):relative(left,right))==="";
+  (platform==="win32"?win32.relative(left,right):posix.relative(left,right))==="";
+export function sameRepositoryDirectory(left,right,platform=process.platform,stat=statSync) {
+  if(sameRepositoryRoot(left,right,platform)) return true;
+  if(platform!=="win32") return false;
+  // realpath may preserve an 8.3 alias while Git returns its long name. Do not
+  // guess aliases or accept a shared prefix: verify the physical directory.
+  const a=stat(left,{bigint:true}), b=stat(right,{bigint:true});
+  return a.isDirectory() && b.isDirectory() && typeof a.dev==="bigint"
+    && a.dev>=0n && typeof a.ino==="bigint" && a.ino>0n
+    && a.dev===b.dev && a.ino===b.ino;
+}
 
 const safePath = path => typeof path === "string" && path.length > 0 && path.length <= 1024
   && !/[\u0000-\u001f\u007f\\]/.test(path) && !path.startsWith("/")
@@ -35,7 +45,7 @@ export function collectWorktreeEvidence({repo,includePaths=false,now=Date.now()}
   env.GIT_OPTIONAL_LOCKS="0";
   const git = args => run("git",["-c","core.fsmonitor=false","-c","core.untrackedCache=false","-C",root,...args],
     {encoding:"utf8",env,timeout:15000,maxBuffer:1024*1024,stdio:["ignore","pipe","pipe"]});
-  if (!sameRepositoryRoot(root,realpathSync(git(["rev-parse","--show-toplevel"]).trim()))) throw Error("repository_root_required");
+  if (!sameRepositoryDirectory(root,realpathSync(git(["rev-parse","--show-toplevel"]).trim()))) throw Error("repository_root_required");
   const head=git(["rev-parse","--verify","HEAD"]).trim();
   if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(head)) throw Error("invalid_head");
   const ref=git(["rev-parse","--abbrev-ref","HEAD"]).trim();
