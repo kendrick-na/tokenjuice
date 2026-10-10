@@ -359,6 +359,14 @@ preview/generate/review/discard는 POST와 JSON만 허용하고 정확한 URL or
 
 이 토큰은 로컬 단일 사용자 접근 자격이며 클라우드 로그인/멀티계정 인증/악성 로컬 프로세스 방어가 아니다. 실제 루프백 listener 테스트는 합성 API 키와 가짜 제공자 응답만 사용했다. 포트는 테스트 종료 시 닫았다. 공개 Pocket에는 import하지 않으며 현재 정적 PWA의 무전송 정책은 유지한다. 실제 사용자 동의 화면·가격/모델 검증·윈도우 private 저장·실제 요약 품질·클라우드 배포는 남았다.
 
+### 로컬 AI 요약 실행 및 생성 화면 후보
+
+`ai-summary-service.mjs`는 위 adapter에 승인 세션·POSIX 일일 원장을 연결하고 127.0.0.1에만 listener를 연다. 무작위 접근 토큰은 exact same-origin POST bootstrap으로 전달하며 provider API 키는 서버 환경에만 둔다. 정적 허용 경로와 엄격 CSP를 적용한다. 실제 실행 설정과 비용 경계는 [로컬 실행 안내](LOCAL_AI_SUMMARY.md)를 따른다. 앞 절의 launcher/UI 미구현 상태는 adapter 작성 당시 상태이며 이 후보에서 연결했다.
+
+`local-summary/`는 공개 Pocket과 분리한 생성 화면이다. 한 대화 파일→발언/가격/JSON 미리보기→이번 전송 동의→1회 생성→편집/재검토→로컬 whitelist 저장을 연결한다. 편집값은 서버 review 경로에 재전송하지 않으며 생성 후 서버 세션이 만료돼도 로컬 저장이 가능하다. 다운로드에는 검토한 네 항목과 cloud 출처 메타데이터만 넣고 원문·근거·키는 제외한다. 화면은 영구 저장하지 않는다. 서버 삭제 실패 시 화면 삭제와 서버 삭제 미확인을 구분한다.
+
+현재 실제 모델 품질·운영 가격 확인·실제 외부 전송·Windows private 원장·실사용 작업 재개는 미완료다. 합성 브라우저 검증과 UI 연결을 실제 생성 서비스 출시 완료로 승격하지 않는다. 공개 Pocket v16 및 사용자 메뉴바 설치본은 변경하지 않는다.
+
 ## 암호화 기기 간 전달 번들 v1
 
 `TOKENJUICE_SYNC_PASSPHRASE`를 현재 실행 환경에만 제공한 뒤

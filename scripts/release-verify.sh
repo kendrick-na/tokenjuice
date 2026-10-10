@@ -50,6 +50,18 @@ if python3 -c 'import playwright' >/dev/null 2>&1; then
   wait "$COMPANION_PID" 2>/dev/null || true
   trap - EXIT
   pass "Companion 브라우저 동작"
+  bun tests/serve-summary-fixture.mjs >/tmp/tokenjuice-summary-fixture.log 2>&1 &
+  SUMMARY_PID=$!
+  trap 'kill "$SUMMARY_PID" 2>/dev/null || true' EXIT
+  for _ in $(seq 1 30); do
+    curl -fsS http://127.0.0.1:4181/ >/dev/null 2>&1 && break
+    sleep 0.1
+  done
+  python3 tests/ai-summary.test.py
+  kill "$SUMMARY_PID" 2>/dev/null || true
+  wait "$SUMMARY_PID" 2>/dev/null || true
+  trap - EXIT
+  pass "로컬 AI 요약 화면·가짜 제공자 승인 흐름"
 else
   if [[ "$REQUIRE_BROWSER" == 1 ]]; then
     fail "Playwright가 없어 브라우저 검증을 실행하지 못했습니다. 출시 후보 검증은 통과하지 않습니다."

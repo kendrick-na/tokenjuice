@@ -1039,3 +1039,15 @@ API 테스트 7 pass/69 assertions: 인증/타 origin/Fetch Metadata/Host/conten
 전체 strict 검증은 동시 요청 제한 추가 이전에 128 tests/1417 assertions와 두 browser suite·설치 일치까지 exit 0이었다. 이후 API 7 tests를 따로 재검증했고 최신 전체 검증 결과는 후속 기록한다. 공개 Pocket v16은 그대로이며 실제 생성 UI·운영 가격/모델·키 입력·Windows 예산 저장·품질/실제 재개·스토어 출시는 계속 미완료다.
 
 후속 최신 strict 검증 exit 0: 129 tests/1420 assertions, 두 browser suite·번들·문법·격리 알림·설치 plugin/helper 일치. 현재 API adapter와 문서는 로컬 checkpoint이며 공개 실행 서버/API나 새 desktop release는 배포하지 않았다.
+
+### 9.36 로컬 AI 요약 실행 서비스와 생성 화면
+
+POSIX 로컬 launcher에 기존 인증 adapter·승인 세션·일일 예산을 연결했다. 서버는 127.0.0.1에만 bind하고 실행 환경의 별도 API 키를 사용한다. allowlist 정적 파일, same-origin POST bootstrap, 실행별 무작위 접근 토큰, CSP·no-store를 적용한다. 키는 화면/응답에 포함하지 않으며 실제 계정 자격증명은 읽지 않는다.
+
+생성 화면은 한 대화 선택→발언·가격·JSON 미리보기→명시적인 이번 전송 동의→1회 생성→편집/재검토→로컬 저장을 연결한다. human-readable 발언을 먼저 보여주고 기술 JSON은 접는다. 요청별 일일 예약액과 토큰 계산 비용을 별도로 표시하며 청구서가 아님을 설명한다. 편집값은 서버에 재전송하지 않는다. 서버 만료 뒤에도 화면 초안을 저장할 수 있고, 새 파일 실패는 기존 초안을 보존한다. 서버 삭제 실패 시 화면은 비우되 서버 삭제 미확인을 안내한다. 다운로드 파일·비용 원장은 삭제하지 않는다.
+
+합성 실제 loopback 서버 테스트와 가짜 provider 브라우저 검증을 수행했다. 승인 전 provider 요청 없음, 생성 1회, 재검토 해제/저장, whitelist export, 삭제 실패 안내, 브라우저 영구 저장 없음, 외부 브라우저 요청 없음, 375px/landscape/desktop 및 큰 글꼴 가로 넘침 없음이 통과했다. desktop/mobile 합성 화면도 직접 확인했다. 초기 CSP 테스트 실패는 문자열 평가를 locator 조건으로 바꾸고 보안 정책은 유지했다. 후속 접힌 JSON 확인 실패는 기술 정보를 실제로 펼쳐 읽도록 수정했으며 최종 검증을 다시 수행했다.
+
+최신 strict release-verify exit 0: **132 tests / 1439 assertions**, 기존 두 Pocket 브라우저 suite와 새 로컬 생성 브라우저 suite, 번들·문법·격리 알림·설치 plugin/helper 일치. CI에도 생성 화면 검증을 추가했지만 원격 CI 결과는 아직 확인 전이다. 테스트 서버는 종료했다. 실제 사용자 파일·API 키·유료 요청은 사용하지 않았다.
+
+현재 로컬 개발 후보이며 공개 Pocket v16, 사용자 메뉴바 설치본, desktop release/tag, 스토어 제출은 변경하지 않는다. 실제 모델 의미 요약/환각 평가·운영 가격/키 설정·실제 작업 재개·Windows ACL 예산·프로세스 경합/전원 손실·신규 사용자 검증은 남았다. P2/P3 전체 완료로 처리하지 않는다. 실행 계약은 LOCAL_AI_SUMMARY.md와 DATA_CONTRACT.md를 따른다.

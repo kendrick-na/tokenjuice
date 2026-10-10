@@ -9,6 +9,7 @@ on:
       - 'scripts/**'
       - 'docs/DATA_CONTRACT.md'
       - 'companion/**'
+      - 'local-summary/**'
       - '.github/workflows/engine-verify.yml'
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - 'scripts/**'
       - 'docs/DATA_CONTRACT.md'
       - 'companion/**'
+      - 'local-summary/**'
       - '.github/workflows/engine-verify.yml'
   workflow_dispatch:
 
@@ -65,3 +67,13 @@ jobs:
           trap 'kill $SERVER_PID' EXIT
           python tests/companion.test.py
           python tests/work-summary.test.py
+      - name: 로컬 AI 요약 승인 및 검토 화면 검증
+        run: |
+          bun tests/serve-summary-fixture.mjs >/tmp/tokenjuice-summary-fixture.log 2>&1 &
+          SUMMARY_PID=$!
+          trap 'kill $SUMMARY_PID' EXIT
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:4181/ >/dev/null 2>&1 && break
+            sleep 0.1
+          done
+          python tests/ai-summary.test.py
