@@ -110,8 +110,11 @@
             <label for="work-next">다음 할 일</label><textarea id="work-next" rows="3" maxlength="4000"></textarea>
             <details><summary>초안의 근거 문장 확인</summary><div id="work-evidence" class="resume-limit"></div></details>
             <details class="work-files-panel"><summary>변경 파일 연결 <span>선택 사항 · 읽기 전용</span></summary>
-              <p class="resume-limit">같은 프로젝트의 worktree-evidence JSON을 열고 공유할 파일명만 선택하세요. 파일 본문·Git 접근·자동 전송은 없습니다. 이름에도 비밀이 있을 수 있습니다. 목록은 완료·테스트 성공 증거가 아닙니다.</p>
-              <p class="resume-limit">CLI에서 <code>bun scripts/worktree-evidence.mjs --repo /절대경로/저장소 --include-paths</code> 출력을 JSON 파일로 저장하세요. 경로 포함 동의가 필요합니다.</p>
+              <p class="resume-limit">같은 프로젝트의 미커밋·커밋 관측을 따로 열고, 공유할 파일명을 합계 50개까지 선택하세요. 같은 종류를 다시 열면 그 목록을 교체합니다. 이름에도 비밀이 있을 수 있습니다. 본문·Git 접근·자동 전송은 없으며 완료·테스트 증거가 아닙니다.</p>
+              <details class="work-files-help"><summary>관측 JSON 만드는 방법</summary>
+                <p class="resume-limit">CLI에서 <code>bun scripts/worktree-evidence.mjs --repo /절대경로/저장소 --include-paths</code> 출력을 JSON 파일로 저장하세요. 경로 포함 동의가 필요합니다.</p>
+                <p class="resume-limit">커밋한 변경은 <code>bun scripts/commit-evidence.mjs --repo /절대경로/저장소 --include-paths</code>로 따로 저장하세요. HEAD부터 첫 부모를 따라 최대 5개이며 현재 파일 상태가 아닙니다. merge는 첫 부모 대비, rename은 삭제/추가로 표시합니다. 커밋 메시지·작성자·코드 본문은 포함하지 않습니다.</p>
+              </details>
               <button id="work-files-open" class="secondary-action" type="button">변경 파일 JSON 열기</button>
               <input id="work-files-input" type="file" accept=".json,application/json" aria-label="변경 파일 관측 JSON" hidden>
               <p id="work-files-feedback" class="resume-feedback" role="status" aria-live="polite"></p>

@@ -1139,3 +1139,13 @@ worker v19는 로컬 후보이며 공개 v18과 구분한다. 전체 work contin
 후속 transport whitelist도 비워 원격 전송을 허용하지 않도록 하고 runner에서 인증 prompt 억제와 함께 검사했다. 최신 커밋 수집 회귀는 4 tests/201 assertions이며 전체 최신 검증은 후속 결과를 따른다.
 
 최신 strict release-verify exit 0: 161 tests/1851 assertions, 여섯 browser suite·번들·문법·격리 알림·설치 plugin/helper 일치. 원격 CI와 실제 사용자 재개 효과는 별도 검증이다.
+
+### 9.45 커밋과 미커밋 파일의 검토된 인계 화면
+
+수집 후보 `0cc72b6`의 Engine 38077709703·Windows 38077709664 success를 확인했다. Pocket 화면에는 커밋 관측의 별도 검증·종류별 병행 import·선택·검토·복사·v2 저장/재열기를 추가했다. 각 소스 최대 500개/커밋 5개·공유 합계 50개, HEAD/scope/hash/시각/status/경로·민감 이름 제외·unknown 비표시를 적용한다. 재열기/편집/가져오기는 선택과 확인을 해제하며 커밋만 인계도 지원한다. 미커밋-only v1과 요약-only 저장·로컬/클라우드 provenance는 보존한다.
+
+frontend-design/ui-ux-pro-max의 기존 ink/teal 스타일·터치/키보드·점진적 공개 원칙을 적용했다. 모바일 합성 화면을 확인해 긴 CLI 설명을 접고 출처 제목/관측 metadata 위계를 분리했다. 새 browser 검증은 두 종류 동시 import·기존 목록 보존·선택된 commit/path만 저장·v1/v2 재열기·커밋-only 저장·복사 경고·손상 보존·모바일/landscape/큰 글꼴·clear race·외부 요청/영구 저장 없음을 확인한다. 기존 단일 파일의 bounding_box 검사는 두 행을 동시에 조회해 strict locator 실패가 났으며 각 행을 독립 검사하도록 수정해 통과했다. 검사 기준을 낮추지 않았다.
+
+worker v20은 로컬 후보이며 현재 공개 v19와 구분한다. 실제 사용자 대화/프로젝트·유료 호출·설치 설정·스토어 제출은 사용/변경하지 않았다. 전체 의미 요약 품질·파일 복원·실제 재개 시간/실기기·사용자 gate는 미완료다. 최신 전체 검증과 공개/Windows 확인은 후속 기록한다.
+
+최종 로컬 strict release-verify exit 0: 163 tests/1884 assertions, 여섯 browser suite·번들·문법·격리 알림·설치 plugin/helper 일치. 모바일 캡처에서 접힌 사용법의 native 펼치기 표시를 확인했다. 원격 CI·공개 v20 반영·실제 사용자 작업 재개 효과는 이 결과로 완료 처리하지 않는다.

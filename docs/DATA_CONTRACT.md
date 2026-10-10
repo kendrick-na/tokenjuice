@@ -303,7 +303,7 @@ Phase B의 의미 있는 resume brief 전체 및 실제 재개 시간 단축은 
 
 ## 요약과 선택 파일의 검토된 인계
 
-최근 커밋 수집 JSON은 아래 별도 계약이며 현재 worktree 가져오기에서 지원하지 않는다.
+최근 커밋 수집 JSON은 아래 별도 계약이며 같은 파일 연결 화면에서 종류를 구분해 지원한다.
 미커밋 파일을 이미 커밋한 변경으로 해석하거나 커밋 파일을 현재 pending으로 합치지 않는다.
 
 Pocket 요약 편집기에서 worktree-evidence JSON(1 MiB 이하)을 선택적으로 연결한다. 시각/head/branch/타입/경로/status/최대 500개 및 excluded 합계·중복을 검증하고 알려진 민감 경로를 제외한다. unknown/raw/이전 경로는 보관·표시하지 않는다. 파일명은 textContent로만 표시하며 실행하거나 URL로 해석하지 않는다. 1시간 지난 관측은 오래된 기록이라고 표시하고 모든 기록에 현재 실제 Git 상태 대조를 요구한다. 출처·같은 프로젝트·완료/테스트 성공을 자동 증명하지 않는다.
@@ -312,7 +312,26 @@ Pocket 요약 편집기에서 worktree-evidence JSON(1 MiB 이하)을 선택적�
 
 합친 파일은 tokenjuice-work-handoff-v1, privacy:reviewed_summary_and_relative_paths, reviewed=true, createdAt, summary, worktree만 포함한다. summary는 기존 로컬/클라우드 요약의 provenance와 네 편집 항목을 유지하며 worktree는 선택 파일명·상태와 관측 metadata만 담는다. 원문/근거 목록/diff/절대 루트/remote는 포함되지 않는다. 다시 열 때 이전 reviewed를 현재 확인으로 인정하지 않고 요약과 파일을 모두 재검토한다. 요약만 저장하는 기존 schema는 변경하지 않는다. 클립보드에는 사용자가 누를 때만 요약과 선택 파일의 데이터/실제 상태 대조 안내를 쓴다.
 
-브라우저 메모리 전용이며 외부 전송·영구 저장·Git 접근·자동 세션 실행은 없다. 지우기/새로고침은 화면 데이터만 제거하고 원본·다운로드·클립보드는 삭제하지 않는다. 파일명도 민감할 수 있고 사용자 확인은 진위나 안전의 보장이 아니다. 실제 코드 복원·최근 커밋 연결·AI 의미 요약 품질·사용자 재개 시간 단축은 별도 검증이다.
+브라우저 메모리 전용이며 외부 전송·영구 저장·Git 접근·자동 세션 실행은 없다. 지우기/새로고침은 화면 데이터만 제거하고 원본·다운로드·클립보드는 삭제하지 않는다. 파일명도 민감할 수 있고 사용자 확인은 진위나 안전의 보장이 아니다. 실제 코드 복원·실제 프로젝트에서의 커밋 연결 검증·AI 의미 요약 품질·사용자 재개 시간 단축은 별도 검증이다.
+
+커밋 관측 JSON은 최대 5개/hash·HEAD·scope·시각·branch·status·각 소스 합계 500개 및
+제외 건수를 검사한다. 같은 종류를 다시 가져오면 그 목록만 교체하고 다른 종류는 보존한다.
+미커밋·커밋 목록은 출처별로 나눠 관측 시각/head/branch와 상태를 표시한다. 이전 선택은
+모두 해제하며 민감 이름과 unknown/author/raw를 제외한다. 다른 저장소나 다른 시점인지
+자동 판별하지 않는다. 두 종류를 합쳐 1~50개 파일 관측을 선택하고 사람 검토를 거쳐야
+복사/합친 저장이 가능하다. 같은 파일이 여러 커밋에 있으면 각각 다른 관측으로 취급한다.
+
+커밋을 포함하면 `tokenjuice-work-handoff-v2`를 사용한다. v1의 summary/privacy/reviewed/
+createdAt를 유지하며 worktree는 선택한 미커밋 관측 또는 null, commits는 선택한 커밋
+관측만 포함한다. commits.scope는 selected_from_latest_five_first_parent_commits이며
+선택된 파일이 없는 커밋은 내보내지 않는다. 원본 HEAD는 유지하되 첫 커밋을 선택하지 않은
+경우에도 특정 커밋과 현재 HEAD의 관계를 완료/진위 증거로 취급하지 않는다. 미커밋만
+저장하는 v1과 요약만 저장하는 기존 형식은 그대로다. v2 재열기는 합계 50개·선택 scope를
+검사하고 이전 review와 선택을 초기화한다. 로컬/클라우드 요약 출처도 보존한다.
+
+클립보드는 “커밋된 변경은 현재 미커밋 상태가 아니다”와 first-parent/rename 제한을
+명시한다. 파일명·커밋값은 데이터로만 표시하며 실행하지 않는다. 실패한 가져오기는
+두 목록을 보존하고 지우기는 두 목록과 화면 메모리만 비운다. 실제 재개 효과는 남았다.
 
 ## 최근 커밋의 변경 파일 관측
 
@@ -333,8 +352,8 @@ hash/files/excluded만 포함하고 file은 상대 path와 A/D/M/T status만 포
 external diff/textconv, replacement refs와 lazy fetch를 끄고 터미널 인증을 요청하지 않는다.
 필요한 로컬 object가 없으면 실패하며 원격에서 채우지 않는다. 원자적 저장소 snapshot이나
 현재 파일 존재·구현/테스트 완료·요약과 같은 프로젝트의 증거는 아니다. 출력은 stdout이며
-자동 파일 저장·브라우저 import·클립보드·외부 전송은 없다. 사용자 선택/검토와 Pocket 인계
-연결은 후속 구현이며 기존 worktree/요약 schema를 바꾸지 않는다. [Git diff-tree](https://git-scm.com/docs/git-diff-tree)와 [Git 환경 변수](https://git-scm.com/docs/git)를 따른다.
+자동 파일 저장·클립보드·외부 전송은 없다. 브라우저 선택/검토와 Pocket 인계는 위 별도
+사용자 동작으로 연결하며 기존 worktree/요약 schema를 바꾸지 않는다. [Git diff-tree](https://git-scm.com/docs/git-diff-tree)와 [Git 환경 변수](https://git-scm.com/docs/git)를 따른다.
 
 ## 선택한 대화의 로컬 자동 추출 초안 (2026-10-11)
 

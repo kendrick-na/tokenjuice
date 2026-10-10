@@ -171,3 +171,7 @@ footer a, footer button { padding:.4rem .45rem; }
  .work-file-row span {min-width:0;overflow-wrap:anywhere}
  .work-file-row strong {display:block;font-size:1rem;font-weight:500}
  .work-file-row small {display:block;color:var(--muted);line-height:1.6;font-size:.875rem}
+ .work-file-group {margin:24px 0 8px;padding:12px 0;border-top:2px solid var(--line);font-size:1rem;font-weight:600;line-height:1.6;overflow-wrap:anywhere}
+ .work-file-group strong,.work-file-group small {display:block}
+ .work-file-group small {font-size:.875rem;color:var(--muted);font-weight:400;margin-top:8px}
+ .work-files-help > summary {min-height:48px;display:list-item;padding:12px 0;cursor:pointer;font-size:1rem}

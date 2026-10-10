@@ -24,7 +24,7 @@ with TemporaryDirectory() as directory,sync_playwright() as p:
     page.locator("#work-files-input").set_input_files(str(source))
     expect(page.locator("#work-files-content")).to_be_visible()
     assert page.locator("#work-files-list input").count()==2
-    assert "1시간 이상" in page.locator("#work-files-meta").inner_text()
+    assert "1시간 이상" in page.locator("#work-files-list").inner_text()
     assert "SECRET" not in page.locator("#work-panel").inner_text()
     assert not page.locator("#work-files-review").is_checked()
     assert page.locator("#work-package").is_disabled()
@@ -57,6 +57,38 @@ with TemporaryDirectory() as directory,sync_playwright() as p:
     assert not page.locator("#work-files-review").is_checked() and not page.locator("#work-review").is_checked()
     page.locator("#work-files-list input").focus();page.keyboard.press("Space")
     assert page.locator("#work-files-list input").is_checked()
+    committed={"format":"tokenjuice-commit-evidence-v1","privacy":"explicit_relative_paths","reviewed":False,
+        "createdAt":int(time.time()*1000)-1000,"head":"a"*40,"branch":"feature/hand-off",
+        "scope":"latest_five_first_parent_commits","commits":[{"hash":"a"*40,"excluded":0,
+            "files":[{"path":"committed.js","status":"M","raw":"SECRET"},{"path":".env","status":"A"}]},
+            {"hash":"b"*40,"excluded":0,"files":[{"path":"skip-commit.js","status":"D"}]}],"author":"SECRET"}
+    source.write_text(json.dumps(committed),encoding="utf-8")
+    page.locator("#work-files-input").set_input_files(str(source))
+    expect(page.locator("#work-files-list input")).to_have_count(3)
+    assert "현재 미커밋 변경" in page.locator("#work-files-list").inner_text()
+    assert "커밋된 변경" in page.locator("#work-files-list").inner_text()
+    assert "SECRET" not in page.locator("#work-panel").inner_text()
+    assert page.locator("#work-files-list input:checked").count()==0
+    page.locator("#work-files-list input").nth(0).check();page.locator("#work-files-list input").nth(1).check()
+    page.locator("#work-files-review").check();page.locator("#work-review").check()
+    with page.expect_download() as result:page.locator("#work-package").click()
+    combined=json.loads(Path(result.value.path()).read_text(encoding="utf-8"))
+    assert combined["format"]=="tokenjuice-work-handoff-v2"
+    assert len(combined["worktree"]["files"])==1 and len(combined["commits"]["commits"])==1
+    assert "skip-commit.js" not in json.dumps(combined) and "SECRET" not in json.dumps(combined)
+    page.locator("#work-copy").click()
+    expect(page.locator("#work-feedback")).to_contain_text("복사")
+    assert "committed.js" in page.evaluate("window.copied") and "현재 미커밋 상태/완료/테스트 증거 아님" in page.evaluate("window.copied")
+    summary.write_text(json.dumps(combined),encoding="utf-8")
+    page.locator("#work-file").set_input_files(str(summary))
+    expect(page.locator("#work-files-list input")).to_have_count(2)
+    assert page.locator("#work-files-list input:checked").count()==0
+    assert not page.locator("#work-files-review").is_checked() and not page.locator("#work-review").is_checked()
+    malformed={**committed,"head":"invalid"}
+    source.write_text(json.dumps(malformed),encoding="utf-8")
+    page.locator("#work-files-input").set_input_files(str(source))
+    expect(page.locator("#work-files-feedback")).to_contain_text("기존 목록은 유지")
+    assert page.locator("#work-files-list input").count()==2
     for width,height in [(375,812),(812,375),(1280,900)]:
         page.set_viewport_size({"width":width,"height":height})
         assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
@@ -64,8 +96,19 @@ with TemporaryDirectory() as directory,sync_playwright() as p:
     page.locator(".work-files-panel").screenshot(path="/tmp/tokenjuice-work-files-mobile.png")
     page.emulate_media(reduced_motion="reduce");page.evaluate("document.documentElement.style.fontSize='32px'")
     assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
-    assert page.locator(".work-file-row").bounding_box()["height"]>=44
+    assert all(row.bounding_box()["height"]>=44 for row in page.locator(".work-file-row").all())
     assert page.locator("#work-files-remove").bounding_box()["height"]>=44
+    # Commit-only handoffs remain usable, without inventing pending files.
+    summary.write_text(json.dumps(basic),encoding="utf-8")
+    page.locator("#work-file").set_input_files(str(summary))
+    expect(page.locator("#work-files-content")).to_be_hidden()
+    source.write_text(json.dumps(committed),encoding="utf-8")
+    page.locator("#work-files-input").set_input_files(str(source))
+    page.locator("#work-files-list input").first.check()
+    page.locator("#work-files-review").check();page.locator("#work-review").check()
+    with page.expect_download() as result:page.locator("#work-package").click()
+    commit_only=json.loads(Path(result.value.path()).read_text(encoding="utf-8"))
+    assert commit_only["worktree"] is None and len(commit_only["commits"]["commits"])==1
     page.locator("#work-files-remove").click()
     assert page.locator("#work-files-content").is_hidden()
     page.locator("#work-review").check();expect(page.locator("#work-copy")).to_be_enabled()
@@ -82,4 +125,4 @@ with TemporaryDirectory() as directory,sync_playwright() as p:
     assert all(url.startswith("http://127.0.0.1:4173") for url in requests)
     assert not errors,errors
     browser.close()
-print("PASS: selected file/summary package, review reset, sensitive-path exclusion, malformed preservation, reopen, keyboard, mobile, clear and no upload")
+print("PASS: pending/committed/combined selected handoffs, review reset, sensitive-path exclusion, malformed preservation, reopen, keyboard, mobile, clear and no upload")
