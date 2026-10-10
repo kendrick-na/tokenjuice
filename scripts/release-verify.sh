@@ -13,6 +13,7 @@ command -v bun >/dev/null || fail "bun이 필요합니다."
 command -v python3 >/dev/null || fail "python3가 필요합니다."
 
 bun test tests/engine.test.js
+bun test tests/work-summary.test.js
 pass "엔진 회귀 테스트"
 
 bun build claude-codex-battery.5s.js --target bun --outfile /tmp/tokenjuice-engine-release-check.js >/dev/null
@@ -39,6 +40,7 @@ if python3 -c 'import playwright' >/dev/null 2>&1; then
     sleep 0.1
   done
   python3 tests/companion.test.py
+  python3 tests/work-summary.test.py
   kill "$COMPANION_PID" 2>/dev/null || true
   wait "$COMPANION_PID" 2>/dev/null || true
   trap - EXIT

@@ -285,6 +285,35 @@ Date로 해석 가능한 `createdAt`, context의 유한한 비음수 `used`/`pct
 자동 sync는 없다. 화면에서 지우기는 메모리만 지우고 스냅샷/원본 파일/클립보드는 보존한다.
 Phase B의 의미 있는 resume brief 전체 및 실제 재개 시간 단축은 여전히 별도 백로그/검증이다.
 
+## 선택한 대화의 로컬 자동 추출 초안 (2026-10-11)
+
+사용자가 자동 초안+검토 방향의 개발을 요청했다. metadata-only checkpoint v1 및 quota
+snapshot 계약은 그대로 유지하며 별도의 `work-summary.js` 흐름으로 선택한 한 파일만
+처리한다. 실제 계정 로그를 이번 개발/테스트에서 읽지 않았다. 파일 선택 전 UI에서 원문
+읽기·메모리 처리·비밀값 검사 한계를 설명한다. 자동 폴더 탐색·네트워크 전송·LLM API는 없다.
+
+- 최대 8 MiB/10,000 records, Claude message(role/user·assistant, text content) 및
+  Codex response_item/event_msg의 텍스트, JSON messages 배열 또는 일반 텍스트를 지원한다.
+  여러 sessionId/session_meta ID가 있으면 거부한다. system/tool/도구 실행 결과는 제외한다.
+- 최근 200개 유일 메시지, 각각 최대 700자만 사용한다. 제한을 화면에서 설명하고 추출
+  근거 번호·발언자를 함께 보여준다. 완료한 일은 AI의 완료 주장이지 실제 검증 사실이 아니다.
+  목표/완료/막힘/다음 행동은 로컬 키워드 기반 근거 추출이며 생성형·의미 추론 요약이 아니다.
+- fenced code, 알려진 key/token/password 패턴의 행은 제외하고 이메일/URL/대표 절대 경로는
+  대체한다. 완전한 비식별화·비밀값 탐지 보장은 없다. 가져온 텍스트는 textContent/value로만
+  표시하며 명령·HTML·파일 nextAction을 실행하지 않는다.
+- 네 항목은 각각 1~4,000자 편집을 허용한다. 확인 체크 후에만 다운로드를 활성화하고
+  편집하면 다시 확인해야 한다. export는 `tokenjuice-work-summary-v1`,
+  `method:local_extractive_user_reviewed`, `privacy:reviewed_local_excerpt`, reviewed=true,
+  createdAt 및 goal/completed/blocked/next만 포함한다. 원문/evidence/파일명/세션 ID는 없다.
+- 원문·근거·초안은 메모리 전용, 오류는 이전 초안을 보존, 지우기/새로고침은 화면 상태를
+  제거한다. 다운로드 파일은 사용자가 관리한다. 메모리 처리만으로 기기 자체의 보안이나
+  공유 파일의 안전을 보증하지 않는다. snapshot Local Storage와 분리한다.
+- 저장한 work-summary v1 JSON도 같은 파일 선택으로 다시 열 수 있다. 필드 길이/타입/
+  privacy/reviewed를 검사해 네 항목만 복사하며 이전 검토를 현재 확인으로 취급하지 않는다.
+  근거 원문은 복원되지 않고 다시 검토해야 저장할 수 있다.
+
+생성형 요약·실제 변경 파일 연결·세션 자동 실행/전환·작업 재개 시간 단축은 아직 완료가 아니다.
+
 ## 암호화 기기 간 전달 번들 v1
 
 `TOKENJUICE_SYNC_PASSPHRASE`를 현재 실행 환경에만 제공한 뒤

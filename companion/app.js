@@ -1,4 +1,6 @@
 import { initResume, normalizeCheckpoint } from "./resume.js";
+import { initWorkSummary } from "./work-summary.js";
+initWorkSummary();
 const showResume = initResume();
 const KEY = "tokenjuice.widget-snapshot.v1";
 const SYNC_FORMAT = "tokenjuice-sync-v1";

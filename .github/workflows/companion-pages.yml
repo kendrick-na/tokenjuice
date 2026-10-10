@@ -39,6 +39,8 @@ jobs:
           SERVER_PID=$!
           trap 'kill $SERVER_PID' EXIT
           python tests/companion.test.py
+          bun test tests/work-summary.test.js
+          python tests/work-summary.test.py
       - name: Upload static PWA
         uses: actions/upload-pages-artifact@v3
         with:

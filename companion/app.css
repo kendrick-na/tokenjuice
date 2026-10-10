@@ -110,4 +110,8 @@ footer a, footer button { padding:.4rem .45rem; }
 .resume-panel button:hover { border-color:var(--teal); }
 .resume-panel button:active { background:var(--canvas); }
 .resume-panel button:disabled { cursor:wait; opacity:.65; }
+.work-review-label { display:flex !important; align-items:flex-start; gap:.75rem; padding:1rem 0; }
+.work-review-label input { flex:none; width:24px; height:24px; accent-color:var(--teal); }
+#work-editor>details>summary { min-height:48px; padding:1rem 0; cursor:pointer; }
+#work-evidence { max-height:24rem; overflow:auto; border-left:2px solid var(--line); padding-left:.75rem; }
 @media (min-width:40rem) { .resume-metadata { grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:.75rem 1rem; }.resume-metadata dt { margin:0; } }
