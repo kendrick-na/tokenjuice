@@ -21,7 +21,7 @@
 Codex pace 구현의 증거는 아래 §9.5, 후속 수동 프로필의 증거는 §9.6이다. `70abf9e`는
 Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 실제 설치 성공으로 대체하지 않는다.
 
-현재 공개 Pocket은 §9.9의 `4d326d3`/sw v11, desktop 자산은 immutable `v1.2.2`다.
+현재 공개 Pocket은 §9.23의 `0fff215`/sw v13, desktop 자산은 immutable `v1.2.2`다.
 최신 로컬 후보에는 §9.10~§9.20의 관측 검사·실패 renderer 일치·Windows 수동 안내,
 승인된 plugin 반영과 helper 상태 손상/독립 설치 검사를 추가했다. 아래 과거 커밋/테스트
 수치는 각 단계의 기록이며 현재 설치본·PWA 소스와 같은 것으로 해석하지 않는다.
@@ -29,7 +29,9 @@ Windows 경로만 변경해 Engine/Pages 재실행 대상이 아니다. CI를 �
 §9.18 이전 엔진 후보는 승인된 플러그인 한 파일 반영 뒤 release-verify exit 0이었다.
 §9.20의 설치 helper 불일치는 §9.21의 한 파일 백업·갱신으로 해소했다.
 현재 plugin/helper 모두 소스와 일치하며 전체 release-verify는 exit 0이다.
-실제 메뉴바/실기기·사용자·스토어 gate는 계속 pending이다.
+Mac 아이콘/클릭 패널 존재는 사용자 보고로 확인했다. 실제 수치·절전/재부팅·나머지
+실기기·신규 사용자·스토어 gate는 계속 pending이다. 현행 엔진은 86 pass/1152 assertions,
+별도 work-summary는 7 pass/31 assertions다. 아래 단계별 표의 과거 83개 수치는 §9.21 기준이다.
 
 ## 1. 단계별 완료 기준 감사
 
@@ -902,3 +904,13 @@ v13로 바꿨고 lifecycle fixture에서 cache 준비 전 0회/완료 후 1회�
 자동 page reload/스냅샷 삭제는 추가하지 않는다. 관련 API 근거:
 [MDN skipWaiting](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting).
 v13 후속 CI·실제 브라우저 화면 확인은 성공 확인 이후 기록한다.
+
+0fff215의 Engine [38063414849](https://github.com/kendrick-na/tokenjuice/actions/runs/38063414849),
+Windows [38063414834](https://github.com/kendrick-na/tokenjuice/actions/runs/38063414834),
+Pocket [38063414862](https://github.com/kendrick-na/tokenjuice/actions/runs/38063414862)는 모두 success다.
+Mac/Linux·Pocket 브라우저·Windows exe build/run/artifact 통과, Windows release는 skipped다.
+공개 work-summary.js 및 sw.js 전체가 로컬 소스와 cmp 일치했고 cache v13을 확인했다.
+기존 IAB를 새로고침해 새 ‘대화에서 재개 초안 만들기’ 진입점의 실제 AX 표시를 확인했다.
+작성 중 초안이 없는 agent-created 탭에서만 새로고침했으며 사용자 기존 스냅샷을 삭제하지 않았다.
+전체 로컬 release-verify도 engine 86/1152 + summary 7/31, 양쪽 browser·설치 일치로 exit 0이다.
+이번 공개 배포는 로컬 추출 초안 기능이며 생성형 AI 요약·자동 파일 복원·전체 목표 완료가 아니다.

@@ -1305,6 +1305,12 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 ## 17. 2026-10-09 구현 백로그 inventory와 게이트
 
+현행 검증(2026-10-11): engine 86 pass/1152 assertions, work-summary 7 pass/31 assertions,
+전체 release-verify exit 0. 공개 Pocket `0fff215`/sw v13 및 Engine 38063414849·Windows
+38063414834·Pages 38063414862 success. 아래 표의 83/1146은 이전 설치 검증 단계 수치다.
+새 로컬 추출 초안은 메타데이터 checkpoint와 별도 기능이며 생성형 AI 요약/변경 파일 연결/
+재개 효과 검증은 남는다. 자세한 현재 증거는 audit §9.23 참조.
+
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
 | v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `83 pass`·`1146 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization·Desktop 표본/cache 관측 검사 및 malformed 응답 backoff 추가. 최신 CI success·plugin/helper 일치로 release-verify exit 0(§9.21)·실제 UI pending. 실계정·OS notification presentation은 pending |
@@ -1608,6 +1614,13 @@ Windows JS(CRLF→LF만 정규화)/고정 소스 일치 및 8파일 SHA256SUMS�
 근거를 추출하고, 편집·검토 후에만 요약을 다운로드한다. 서버 전송·원문 영구 저장은 없다.
 이는 생성형 AI 의미 요약/변경 파일 복원까지 완료한 것이 아닌 로컬 추출 첫 구현이다.
 privacy와 별도 파일 계약·자동 검증 범위를 함께 갱신하며 audit §9.23에 증거를 기록한다.
+
+§17.2 이어서(2026-10-11 공개 검증): `0fff215`의 Engine/Windows/Pages 세 workflow가
+success이며 공개 module/sw 소스 전체 일치와 실제 IAB의 새 초안 진입점을 확인했다.
+오프라인 cache는 v13이다. Mac CI의 기존 묶음 테스트 시간 초과는 검증값을 줄이지 않고
+필드별로 나눠 해결했다. 전체 로컬 검증 93 tests/1183 assertions·양쪽 브라우저·설치본
+일치를 통과했다. 새 기능의 생성형/의미 요약·실제 변경 파일 연결 및 사용자 재개 시간
+검증은 여전히 다음 개발/검증 대상이며, 전체 투두 완료나 스토어 출시로 판정하지 않는다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
