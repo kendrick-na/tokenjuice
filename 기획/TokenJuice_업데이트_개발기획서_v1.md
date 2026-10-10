@@ -1594,6 +1594,13 @@ gate는 유지하며 이전 로컬 검토 패키지 74157c2는 이번 helper 코
 full installer·앱 restart/refresh·설정·권한·LaunchAgent·credential은 변경하지 않았다.
 이 결과는 실제 UI/절전·신규 사용자·스토어 완료를 뜻하지 않는다. audit §9.21 참조.
 
+§17.2 이어서(2026-10-10 후보 배포물 정합성): 현행 `4423ab1` source archive와 동일
+커밋 Windows CI artifact로 새 로컬 검토 패키지를 만들었다. archive helper/설치 파일,
+Windows JS(CRLF→LF만 정규화)/고정 소스 일치 및 8파일 SHA256SUMS를 확인했다.
+이전 `74157c2` 패키지는 보존했다. 설치 doctor exit 0·PluginDirectory 일치·visibility
+작업 마지막 exit 0도 읽기 전용으로 확인했다. 실제 화면·절전·새 설치·사용자 gate는
+완료하지 않았다. 출시는 하지 않았으며 상세는 audit §9.22 및 후보 원장 §1 참조.
+
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 
 스토어 심사 완료를 기다리지 않고 실제 피드백을 받기 위해 출시 채널을 분리한다. 현재 실행 계획과 체크리스트는 [`docs/LAUNCH_FEEDBACK_PLAN.md`](../docs/LAUNCH_FEEDBACK_PLAN.md)에 기록한다.

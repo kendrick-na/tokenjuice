@@ -4,6 +4,33 @@
 
 ## 1. 고정 후보와 패키지
 
+### 현행 로컬 후보 4423ab1
+
+`scratchpad/release-candidate-4423ab1/`에 새 검토 패키지를 준비했다. Git ignored이며
+외부 업로드·실행·설치·tag/release는 하지 않았다. 이전 74157c2 폴더를 덮어쓰지 않았다.
+
+- 고정 코드 `4423ab145184a55fa721672707f2fd08e1274e19`의 source tar.gz에는
+  새 helper/독립 설치 검사가 포함된다. archive helper와 현재 설치 helper 전체 cmp 일치.
+- 같은 head SHA의 Windows CI `38052165597` success와 artifact ID `11669941223`,
+  expired=false를 다시 조회한 뒤 원본 exe/engine을 다운로드했다.
+  API zip digest는 `sha256:9492f530c0c1815bc795d47aeb0d7e6c8e05f80dbf0527d95a92fd2cce0c2212`이며
+  추출 파일만 로컬 검증했으므로 zip 해시 대조로 해석하지 않는다.
+- Windows engine은 CRLF→LF만 정규화한 전체 소스 일치. exe는 GUI x86-64 PE,
+  Mac에서 실행하지 않았다. protocols는 설치 결과 반영 후 문서 커밋 `5740317`의 복사본이다.
+- source/exe/engine·프로토콜 4개·README 총 8파일의 SHA256SUMS 확인은 모두 OK다.
+
+| 현행 파일 | 원본 바이트 SHA-256 |
+|---|---|
+| source tar.gz | `7a21037a6f03825ea047d91ef0e3a48b961b561fbdee23294acf21279955714b` |
+| Windows tokenjuice.exe | `e1b7b0058bc97c5367ba72e159133dca6106c3fe825e4a5b773eae6572f95fe6` |
+| Windows engine JS | `975eba92a42196b4502fe3d37fb182f71d42c78a7fa86175964dff3fb0c146a2` |
+
+설치 doctor도 exit 0이며 SwiftBar의 실제 PluginDirectory는 설치 경로와 일치한다.
+visibility LaunchAgent read-only 조회의 마지막 exit code는 0이다. 이는 실제 UI/sleep
+성공 증거가 아니며 아래 완료 판정의 실기기·사용자·제품/스토어 gate는 그대로다.
+
+### 과거 고정 후보 74157c2
+
 **후속 개발 후보와 분리:** 최신 4423ab1에는 R5 상태 손상 복구와 설치 helper 독립 비교가
 추가됐다. Engine 38052165596·Windows 38052165597 success, 로컬 83 tests/1146 assertions다.
 helper 한 파일을 백업·갱신해 plugin/helper 모두 일치하며 전체 release-verify는 exit 0이다.

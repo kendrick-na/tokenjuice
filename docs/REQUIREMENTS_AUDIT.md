@@ -841,3 +841,23 @@ LaunchAgent·실제 상태 파일·credential은 이번 작업에서 수정하�
 기존 source 4423ab1의 CI 증거는 §9.20과 같다. 이번 문서 반영은 새 PWA/desktop
 배포나 스토어 제출이 아니다. 실제 메뉴바/클릭 패널·정상 절전 후 복귀, Windows 실제
 tray·신규 설치/사용성과 데이터 계약 미정인 확장 기능은 여전히 미완료다.
+
+### 9.22 현행 검토 패키지와 읽기 전용 설치 확인 (2026-10-10)
+
+기존 74157c2 패키지에는 R5 수정이 없으므로 현행 4423ab1의 source archive와 동일
+head SHA Windows CI artifact로 `scratchpad/release-candidate-4423ab1/`를 별도 준비했다.
+CI 38052165597 success·artifact ID 11669941223·expired=false를 API로 재확인했다.
+archive helper는 설치 파일과 전체 cmp 일치, Windows engine은 원본 바이트를 보존하고
+CRLF→LF만 정규화한 고정 소스 일치다. exe는 GUI x86-64 PE, Mac에서 실행하지 않았다.
+8개 파일의 SHA256SUMS 모두 OK, 원본 해시/후보 경계는 RELEASE_CANDIDATE_REVIEW §1 참조.
+
+`bash install.sh --doctor` exit 0: Bun 1.3.14·SwiftBar 설치/실행·plugin 소스 일치·
+API를 비활성화한 엔진 실행 가능을 확인했다. defaults read로 PluginDirectory가 실제
+설치 폴더와 같은지 비교했다. launchctl print의 visibility 작업 마지막 exit code는 0,
+조회 순간 state=not running은 주기적 짧은 작업의 상태이지 앱 표시 실패 증거가 아니다.
+앱 PID·설정·작업 종료 코드만으로 실제 메뉴바/클릭 패널·절전 복귀 성공을 주장하지 않는다.
+
+이번 작업은 로컬 패키지 준비와 읽기 전용 진단이다. 설정/권한/LaunchAgent 변경·
+앱 restart/refresh·실제 계정 수치 수집·외부 업로드·스토어 제출은 하지 않았다.
+전체 목표는 미완료이며 실제 관찰/참여자, 작업 내용 및 시계열/Coach의 제품·데이터
+계약과 스토어 플랫폼/계정 선택 없이 해당 gate를 통과 처리하지 않는다.

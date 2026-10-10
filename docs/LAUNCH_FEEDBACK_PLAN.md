@@ -48,6 +48,7 @@ TokenJuice는 현재 모든 플랫폼에 같은 형태로 출시할 수 없다. 
 - [x] 승인된 기존 플러그인 한 파일 갱신·백업·소스 일치·격리 실행 검증 (일반 installer와 앱 restart/refresh는 하지 않음)
 - [x] 절전 복구 helper 한 파일 백업·갱신·소스 일치·손상 상태 dry-run·전체 release-verify exit 0 (설정/권한/LaunchAgent 변경 없음)
 - [x] `./install.sh --doctor` 읽기 전용 진단 경로
+- [x] 현재 Mac의 doctor exit 0·SwiftBar 실행·PluginDirectory 일치·visibility 작업 마지막 exit 0 확인 (화면 표시/새 설치 성공과 구분)
 - [ ] Homebrew, Bun, SwiftBar, 플러그인 복사, SwiftBar 실행을 단계별로 판정
 - [ ] `bun claude-codex-battery.5s.js --text` 출력 확보
 - [ ] 메뉴바 아이콘 표시와 클릭 패널을 실기기에서 확인
@@ -57,6 +58,10 @@ TokenJuice는 현재 모든 플랫폼에 같은 형태로 출시할 수 없다. 
 - [ ] 설치 성공 기준을 통과하기 전에는 “Mac 출시 완료”로 표시하지 않음
 
 ### P0-B. 공개 베타 표면
+
+현행 검토 패키지는 `scratchpad/release-candidate-4423ab1/`에 준비했고 소스/Windows CI
+커밋 일치·8파일 SHA256SUMS를 검증했다. 공개 업로드나 새 출시를 의미하지 않는다.
+패키지 원장: `docs/RELEASE_CANDIDATE_REVIEW.md` §1.
 
 - [x] GitHub Pages Pocket 공개
 - [x] 예시 화면·빈 상태·가져오기·오프라인 흐름
