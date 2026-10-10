@@ -981,3 +981,11 @@ repo와 설치본에서 **헤더만 기존 이미지 방식으로 복원**했다
 clean main에서 origin/main fetch 및 ahead 3/behind 0 확인 후 `6d9b3a1`을 push했다. 직전 엄격 release-verify는 101 tests/1222 assertions와 두 브라우저·설치 일치까지 exit 0이다. Engine [38070692259](https://github.com/kendrick-na/tokenjuice/actions/runs/38070692259), Windows [38070692262](https://github.com/kendrick-na/tokenjuice/actions/runs/38070692262), Pocket [38070692236](https://github.com/kendrick-na/tokenjuice/actions/runs/38070692236)는 모두 success다. 공개 app.css/app.js/sw.js 전체를 로컬과 cmp해 일치를 확인했다. 공개 offline cache는 이제 v15다.
 
 이는 Pocket 디자인·오류 안내의 공개 베타 반영이다. desktop tag/release·실제 Windows tray·신규 설치/절전·사용자 인터뷰·스토어 제출은 완료하지 않았다. 자동 갱신은 권장 정책을 설명했지만 사용자가 활성화를 승인하지 않아 기존 false를 유지한다.
+
+### 9.29 자동 갱신 선택 메뉴 배포와 설치 검증 (2026-10-11)
+
+`ae0378e`는 설명을 읽고 직접 켜기/끄기를 선택하는 메뉴와 `--auto-renew-on/off` 명령을 추가한다. 설정 변경 자체는 로그인·API·쿠키 접근을 실행하지 않고 API opt-in도 켜지 않는다. 사용자 설정은 보존하며 잘못된 JSON/비객체 설정은 원본을 유지하고 실패한다. 0600 임시 파일과 rename으로 저장하며 오류 상태에서도 끄기가 가능하다. ui-ux-pro-max의 설명·상태·되돌릴 수 있는 선택 원칙을 적용했다.
+
+Engine [38071027466](https://github.com/kendrick-na/tokenjuice/actions/runs/38071027466) 및 Windows [38071027388](https://github.com/kendrick-na/tokenjuice/actions/runs/38071027388)는 success다. 기존 설치본이 직전 소스와 일치함을 확인하고 `backups/tokenjuice-battery.before-renew-controls-ae0378e.js`로 백업 후 검토된 변경만 apply_patch로 반영했다. 절대 Bun shebang·사용자 설정·고정폭 아이콘을 유지했다. 실제 설치본 JSON은 fresh, 세션 41% 사용·주간 19% 사용, autoRenew=false였다. 설치본 메뉴 출력의 동의 문구·켜기 명령 경로도 확인했다.
+
+엄격 release-verify 최종 exit 0: 105 tests/1250 assertions, 두 browser suite·bundle·스크립트 문법·격리 알림·plugin/helper 일치. 실제 메뉴 클릭·다음 인증 만료에서 자동 복구·장기 실행·새 설치·절전/재부팅은 여전히 미완료다. 자동 갱신 활성화를 승인받은 것으로 처리하지 않았으며 desktop 새 tag/release나 스토어 제출도 하지 않았다.
