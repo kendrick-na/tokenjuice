@@ -1029,3 +1029,13 @@ frontend-design의 기존 운영 계기판 스타일과 ui-ux-pro-max의 출처 
 수정 후 엄격 release-verify exit 0: 122 tests/1351 assertions, 두 브라우저 suite·번들·문법·격리 알림·설치본 일치. 이전 실패를 통과로 기록하지 않았다.
 
 후속 공개 확인: clean main에서 origin fetch·ahead 5/behind 0을 확인하고 `970a8d3`을 push했다. [Pocket 38072675159](https://github.com/kendrick-na/tokenjuice/actions/runs/38072675159), [Engine 38072675170](https://github.com/kendrick-na/tokenjuice/actions/runs/38072675170), [Windows 38072675296](https://github.com/kendrick-na/tokenjuice/actions/runs/38072675296)는 모두 success다. 공개 index.html/privacy.html/work-summary.js/sw.js를 해당 로컬 파일과 byte 비교해 일치를 확인했다. 공개 Pocket worker는 v16이다. 미저장 초안이 있는 기존 탭은 자동 새로고침하지 않으며, 사용자가 저장/지운 뒤 직접 다시 열어 업데이트한다. desktop 새 release/tag·실제 요약 API·스토어 제출은 하지 않았다.
+
+### 9.35 로컬 AI 요약 승인 HTTP 경로 후보
+
+인증·CSRF 검사와 schema를 기존 승인 세션에 연결하는 ai-summary-api.mjs를 추가했다. 정확한 loopback origin/Host·Origin·Bearer 토큰·JSON POST를 요구하고 client owner/model/key override를 거부한다. 동시 요청 3개·읽기 5초·stream body 크기 제한, no-store·CORS 미허용·비공개 오류 응답 제외를 적용한다. listener/사용자 화면/토큰 전달 launcher는 아직 구현하지 않았고 factory가 bind 자체를 대신하지 않는다.
+
+API 테스트 7 pass/69 assertions: 인증/타 origin/Fetch Metadata/Host/content type 차단, 승인 없는 생성 provider 0회, preview→승인→생성→검토→discard, 승인 재사용 거부, unknown 필드/본문 초과/손상 거부, 비공개 예외 비반사, 동시 3개 초과 차단/slot 반환을 확인했다. 실제 Bun loopback 포트를 열어 합성 HTTP 요청도 수행했고 가짜 provider는 count 1회+생성 1회만 실행했다. 테스트 listener는 종료했으며 실제 사용자 대화/키/유료 호출은 없다.
+
+전체 strict 검증은 동시 요청 제한 추가 이전에 128 tests/1417 assertions와 두 browser suite·설치 일치까지 exit 0이었다. 이후 API 7 tests를 따로 재검증했고 최신 전체 검증 결과는 후속 기록한다. 공개 Pocket v16은 그대로이며 실제 생성 UI·운영 가격/모델·키 입력·Windows 예산 저장·품질/실제 재개·스토어 출시는 계속 미완료다.
+
+후속 최신 strict 검증 exit 0: 129 tests/1420 assertions, 두 browser suite·번들·문법·격리 알림·설치 plugin/helper 일치. 현재 API adapter와 문서는 로컬 checkpoint이며 공개 실행 서버/API나 새 desktop release는 배포하지 않았다.

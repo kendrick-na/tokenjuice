@@ -339,6 +339,8 @@ snapshot 계약은 그대로 유지하며 별도의 `work-summary.js` 흐름으�
 
 ### AI 요약 일일 예산 저장 후보
 
+로컬 요청 경로 후보는 아래의 원장을 승인 세션에 주입해야 한다. 운영 서버/UI 연결 없이 원장과 HTTP adapter만으로 유료 실행을 활성화하지 않는다.
+
 `ai-summary-budget.mjs`는 같은 POSIX 저장 디렉터리를 공유하는 로컬 서비스 인스턴스의 일일 예약액을 유지한다. 승인 세션은 count_tokens 이전에 해당 요청의 승인된 최대 USD 전액을 예약한다. 실패·응답 불명·세션 삭제에도 환불하지 않으므로 실제 사용액보다 빨리 한도에 도달할 수 있다. 사용자는 새 미리보기 없이 자동 재시도를 받지 않는다.
 
 USD를 정수 micro-dollar로 변환하고 UTC 날짜별 일일 한도를 검사한다. 파일에는 version/day/reservedMicros만 저장한다. 전송 원문·키·사용자 식별자는 저장하지 않는다. 0700 디렉터리·0600 파일, 배타적인 lock 생성, fsync와 atomic rename을 사용한다. 다른 인스턴스가 lock을 보유하면 기다리거나 우회하지 않고 실패한다. 재시작 후 남은 crash lock이나 손상 파일도 안전 실패하며 운영자가 실행 중인 프로세스가 없는지 확인하고 복구해야 한다. 자동 삭제나 예산 초기화 기능은 제공하지 않는다.
@@ -346,6 +348,16 @@ USD를 정수 micro-dollar로 변환하고 UTC 날짜별 일일 한도를 검사
 같은 저장소의 예약액은 새 인스턴스에도 유지하고 UTC 날짜가 전진할 때만 새 일일 예산을 연다. 날짜 역행은 거부한다. 디스크/lock 오류는 비용 발생 전 차단하거나 이미 기록된 예약액을 보수적으로 유지한다. Windows ACL 검증은 구현되지 않아 Windows에서 이 저장 모듈의 생성을 거부한다. 플랫폼 지원·실제 다중 프로세스 경합·전원 손실 복구·운영자 설정 변경·분산 호스트 공통 예산 검증은 남았다.
 
 예약액은 제공자 청구 상한이 아니다. count 추정치와 운영자가 확인한 가격이 실제 청구와 다를 수 있어 제공자 계정 결제 제한도 필요하다. 코어 generateAiSummary를 직접 호출하는 경우 이 원장은 자동 적용되지 않는다. 공개 HTTP 경로는 승인 세션과 원장을 반드시 함께 사용해야 하며 직접 코어 실행 경로를 노출하지 않는다. 현재 실제 사용자 데이터 전송·유료 실행·운영 배포는 없다.
+
+### 로컬 AI 요약 HTTP 경로 후보
+
+`ai-summary-api.mjs`의 createLocalSummaryApi는 listener를 열지 않는 요청 adapter다. 호스트 프로그램은 127.0.0.1에만 bind하고, 정확한 origin/port와 실행 때 만든 32-byte 무작위 accessToken을 제공해야 한다. factory는 origin을 http://127.0.0.1의 유효 port로 한정하고 Bearer 토큰을 상수 시간 비교한다. 토큰 길이/형식 검사는 무작위성 증명이 아니므로 호스트가 암호학적 난수로 생성해야 한다. 현재 launcher·안전한 토큰 전달 UI·운영자 설정/키 입력 연결은 미완료다.
+
+preview/generate/review/discard는 POST와 JSON만 허용하고 정확한 URL origin·Host·Origin 및 Fetch Metadata를 검사한다. CORS 허용 헤더나 query token은 제공하지 않으며 공개 origin/타 사이트 요청을 거부한다. owner는 서버 accessToken에서 도출하며 클라이언트 owner/model/API key/budget override는 schema에서 거부한다. 생성은 기존 세션의 digest/명시적 승인·일일 원장·1회 소비를 그대로 따른다. preview만으로는 제공자에게 전송하지 않는다.
+
+인증 후에도 전체 동시 요청은 3개, 본문 읽기는 5초로 제한한다. preview HTTP JSON은 9 MiB, 나머지는 20,000 bytes 이하이며 Content-Length 없이 들어오는 stream도 검사한다. 대화 자체의 기존 8 MiB 한도와 별개라 JSON escaping이 큰 파일은 더 일찍 거부될 수 있다. 결과는 no-store/nosniff/frame-ancestors none으로 반환하고 알려진 오류 코드만 공개한다. 원문/키/비공개 예외를 응답에 넣거나 로그에 기록하지 않는다.
+
+이 토큰은 로컬 단일 사용자 접근 자격이며 클라우드 로그인/멀티계정 인증/악성 로컬 프로세스 방어가 아니다. 실제 루프백 listener 테스트는 합성 API 키와 가짜 제공자 응답만 사용했다. 포트는 테스트 종료 시 닫았다. 공개 Pocket에는 import하지 않으며 현재 정적 PWA의 무전송 정책은 유지한다. 실제 사용자 동의 화면·가격/모델 검증·윈도우 private 저장·실제 요약 품질·클라우드 배포는 남았다.
 
 ## 암호화 기기 간 전달 번들 v1
 
