@@ -1081,3 +1081,13 @@ frontend-design의 기존 운영 계기판 스타일과 ui-ux-pro-max의 axis/le
 history 단위 5 tests/26 assertions는 parser와 실제 엔진 내보내기의 합성 격리 HOME/USERPROFILE 연결을 검증했다. 초기 연결 테스트는 URL-encoded 한글 경로를 실행 파일 경로로 사용해 module not found가 발생했으며 fileURLToPath로 수정 후 통과했다. 브라우저는 import/공백·하락/표/손상 보존/Codex 선택/375px·landscape·desktop·큰 글꼴/지우기/외부 요청·영구 저장 없음을 검증했다. UI 연결을 의미 요약·Coach·전체 trend·실사용 성과로 승격하지 않는다.
 
 worker v18은 로컬 후보이며 공개 v17과 구분한다. 최신 strict release-verify exit 0: **140 tests / 1527 assertions**, 다섯 브라우저 suite·번들·문법·격리 알림·설치 plugin/helper 일치. 원격 배포 확인은 후속 기록한다. 실제 사용자 데이터/유료 호출은 사용하지 않았다.
+
+후속 배포 확인: `fb4c44d`의 Engine 38075358019·Windows 38075358014·Pages 38075358033 모두 success. 공개 index.html/app.js/app.css/history.js/sw.js가 해당 커밋과 byte 일치하며 worker v18이다. 재실행 strict verifier는 140 tests/1531 assertions와 다섯 browser suite exit 0이었다. assertion 수는 프로세스 경합 테스트의 실행 경로에 따라 달라질 수 있어 고정된 제품 지표로 해석하지 않는다.
+
+### 9.40 읽기 전용 피드백 분류
+
+`scripts/feedback-triage.mjs --live`는 GitHub CLI에서 고정 저장소의 열린 이슈 메타데이터만 조회한다. 제목·본문·작성자·댓글을 요청하지 않으며 알려진 라벨만 영역/우선순위/진행 상태로 투영한다. 상충·미지정은 review, 7일 미갱신은 재검토 대상으로 남긴다. 201개 조회 시 200개 출력 및 범위 제한을 명시한다. 잘못된 메타데이터·중복 번호·다른 저장소 URL·미래 갱신·조회 오류는 fail closed다. 이슈·라벨·댓글·스케줄·릴리스는 변경하지 않는다.
+
+6 tests/30 assertions로 안전한 투영·상충·범위 제한·조회 인자·CLI 실패를 검증했다. 실제 GitHub 메타데이터 조회 결과 열린 이슈 0건. 공개 저장소의 Issues 활성 및 feedback.yml 존재도 확인했고 미로그인 제보 진입점은 GitHub 로그인으로 이동했다. 이 결과는 사용자 제보 접수·개인정보 없는 실제 로그·주간 반복 운영·독립 두 사용자 재현을 증명하지 않는다. 운영 절차는 LAUNCH_FEEDBACK_PLAN의 운영자 이슈 검토에 반영했다.
+
+로컬 strict release-verify exit 0: 146 tests/1557 assertions, 다섯 browser suite·번들·문법·격리 알림·설치본 일치. 이번 변경은 운영 도구/문서이며 Pocket 파일·엔진·사용자 설정·스토어 제출은 변경하지 않았다. 원격 CI는 push 이후 별도로 확인한다.
