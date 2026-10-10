@@ -2,13 +2,17 @@
 
 확인일: 2026-10-10. 로컬 준비 결과이며 tag/release·스토어 제출·사용자 초대를 하지 않았다.
 
-2026-10-11 현재 공개 Pocket은 `22a67c7` / worker v19다. 아래 `4423ab1`과
+2026-10-11 현재 공개 Pocket은 `7a4031e` / worker v20다. 아래 `4423ab1`과
 `74157c2` 패키지는 고정된 과거 검토물이며 요약·선택 파일 인계와 7일 그래프가 없다.
 `22a67c7` Engine/Pages는 성공했지만 당시 Windows CI는 경로 검사 실패로 새 exe를 만들지
 못했다. 수정한 `0cbe94b`은 Engine/Windows CI 및 exe 생성·실행·artifact 업로드까지 성공했다.
 아래 고정 패키지를 교체하거나 새 공개 릴리스를 발행한 것은 아니다.
 수정·재검증은 [audit §9.43](REQUIREMENTS_AUDIT.md#943-공개-인계-화면과-windows-짧은-경로-문제)을 따른다.
 desktop 공개 릴리스는 v1.2.2이며 전체 투두·실기기·스토어 게이트는 미완료다.
+
+현재 코드 `7a4031e`의 Engine 38078400778·Pages 38078400767·Windows 38078400760은 success다.
+주요 공개 파일 8개가 해당 커밋과 바이트 단위로 일치한다. 커밋/미커밋 관측의 선택·검토·v2 인계는 공개됐지만,
+아래 고정 패키지에는 포함되지 않는다. 실제 재개 효과·실기기·스토어 검증은 별도로 남는다.
 
 ## 1. 고정 후보와 패키지
 
@@ -79,7 +83,7 @@ Windows artifact는 GUI-subsystem x86-64 PE이며 다른 아키텍처용 빌드�
 |---|---|---|
 | 실제 Mac 메뉴바/절전 | 설치 엔진 본문 일치·격리 실행·release-verify exit 0, installed wake helper hash 일치 | CUA read-only inventory에 SwiftBar 없음. 실제 아이콘/패널·quota/trust·notch·sleep/wake 관찰 필요. process/file match는 UI pass가 아님 |
 | 전체 작업 재개 | metadata-only checkpoint 생성/재열기·복사/텍스트 저장·삭제·오류 보존 자동 회귀 | 기존 contract가 의도/최근 파일/코드 제외. 수집 원천, 허용 필드/길이/schema, 경로/전송·동의·보존/삭제/Pocket 경계와 실제 재개 효과 필요 |
-| 추세 | 별도 opt-in Claude/Codex local history 7일 export·pace forecast | Pocket 시계열 import/계정-reset 연결/검증·보존/삭제 계약과 행동 근거 필요. 최소 출시에는 로컬 export만 지원하며 시각 trend를 완료 처리하지 않음 |
+| 추세 | 별도 opt-in Claude/Codex local history 7일 export·pace forecast, 공개 Pocket의 수동 import·그래프·정확한 표·화면 지우기 | 실제 계정/reset 대조와 사용자 행동 근거·자동 sync는 미완료. 수동 관측 그래프를 전체 trend/Coach 완료로 처리하지 않음 |
 | Coach | 기본 상태/다음 행동과 context checkpoint 규칙 | tool-call/file-read 수집·개인화 insight 미구현. master §16.4/16.6의 10명 interview·14일 diary·행동률/오탐과 동의 입력·설명 가능한 규칙/분모가 선행. 초기 무료 베타에 Coach를 약속하지 않음 |
 | 신규 사용자 | synthetic 시나리오·동의/철회 초안·빈 기록표·자동 a11y 검사 | 신규 5명 설치/사용성과 screen reader/실기기 관찰 필요. 참가자를 대신하거나 결과를 합성하지 않음 |
 | Windows | CI exe·tray selftest·공통 engine | 실제 tray/icon·tooltip·menu 관찰 필요. toast는 identity/shortcut 또는 WinRT 의존성·event contract 결정 후 구현 |

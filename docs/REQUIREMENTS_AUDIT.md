@@ -1149,3 +1149,5 @@ frontend-design/ui-ux-pro-max의 기존 ink/teal 스타일·터치/키보드·�
 worker v20은 로컬 후보이며 현재 공개 v19와 구분한다. 실제 사용자 대화/프로젝트·유료 호출·설치 설정·스토어 제출은 사용/변경하지 않았다. 전체 의미 요약 품질·파일 복원·실제 재개 시간/실기기·사용자 gate는 미완료다. 최신 전체 검증과 공개/Windows 확인은 후속 기록한다.
 
 최종 로컬 strict release-verify exit 0: 163 tests/1884 assertions, 여섯 browser suite·번들·문법·격리 알림·설치 plugin/helper 일치. 모바일 캡처에서 접힌 사용법의 native 펼치기 표시를 확인했다. 원격 CI·공개 v20 반영·실제 사용자 작업 재개 효과는 이 결과로 완료 처리하지 않는다.
+
+공개 후속 확인: `7a4031e`의 [Engine 38078400778](https://github.com/kendrick-na/tokenjuice/actions/runs/38078400778)·[Pages 38078400767](https://github.com/kendrick-na/tokenjuice/actions/runs/38078400767)·[Windows 38078400760](https://github.com/kendrick-na/tokenjuice/actions/runs/38078400760) 모두 success다. Windows tray selftest/engine --once·15.8 MB exe 생성/실행(exit 0)·artifact 업로드를 확인했으며 tag가 없어 release job은 skipped다. 배포 전 첫 공개 대조는 변경 파일 불일치였고, Pages 성공 후 재조회에서 index.html/app.css/app.js/resume.js/work-summary.js/work-files.js/history.js/sw.js 8개 모두 `7a4031e`와 SHA-256 일치했다. 현재 공개는 worker v20이며 설치본·desktop v1.2.2·스토어 상태는 변경하지 않았다. 실제 사용자 재개 효과·실기기·스토어 게이트는 계속 미완료다.

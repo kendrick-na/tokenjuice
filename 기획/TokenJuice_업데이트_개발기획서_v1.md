@@ -1695,6 +1695,7 @@ success이며 공개 module/sw 소스 전체 일치와 실제 IAB의 새 초안 
   - 공개 Pocket v19 인계 화면: `22a67c7`의 Engine/Pages success 및 주요 공개 파일 8개 SHA-256 일치 확인. 당시 Windows 빌드는 실패했다. 임시 root의 8.3 짧은 이름/긴 이름 차이와 POSIX 비교 분기 오류를 수정한 `0cbe94b`은 Engine/Windows CI success, exe 생성·실행·artifact 업로드까지 통과했다. 실제 Windows 화면·실제 재개 효과는 미완료다. audit §9.43 참조.
   - 최근 커밋 수집 후보: 선택한 저장소 HEAD의 first-parent 최대 5개 커밋과 상대 변경 파일·상태만 읽는다. commit 메시지/작성자/날짜/본문은 수집하지 않는다. pending과 분리하며 merge는 첫 부모 대비, rename은 삭제/추가로 표시한다. 원격 fetch·외부 diff 실행을 막고 루트/HEAD·합계 500개 제한을 검사한다. Pocket의 선택·검토·저장 연결과 실제 재개 효과는 남았다. DATA_CONTRACT 및 audit §9.44 참조.
   - 커밋 인계 화면 후속 후보: 미커밋/커밋 두 종류를 함께 가져와 출처별로 선택·검토·복사·v2 저장/재열기에 연결했다. 커밋만 저장도 가능하며 기존 v1/요약만 저장을 유지한다. 선택 변경·재열기는 재검토하고 미선택 파일·커밋/raw는 제외한다. 합성 모바일/브라우저 검증 통과, 실제 재개 효과·공개 배포 확인은 별도이며 audit §9.45 참조.
+  - 현재 공개 Pocket v20: `7a4031e`의 Engine/Pages/Windows CI success 및 공개 파일 8개 SHA-256 일치를 확인했다. 위 커밋 인계 화면이 공개됐으며 Windows exe 생성·실행·artifact 업로드도 통과했다. 실제 프로젝트 정확성·재개 시간·Windows 사용자 화면·스토어 출시를 완료 처리하지 않는다(audit §9.45).
 - [ ] P2-06 기존 미완료 전체 resume/history/trend/Coach/멀티계정/Windows toast/자동 sync/native widget 항목 구현 및 요구사항별 증거 확보. 제품·권한·플랫폼 결정 필요 항목은 별도로 요청.
   - 로컬 7일 history 화면 후보: 기존 Claude/Codex history JSON을 가져와 구간별 관측 그래프와 정확한 표를 제공한다. 공백/하락을 연결하지 않고 현재 quota·토큰 절감·생산성으로 해석하지 않는다. 화면 메모리 전용이며 자동 수집 opt-in이나 sync는 변경하지 않는다. 합성 엔진 내보내기 연결/브라우저 검증 통과. 전체 trend·Coach/실사용 효과 완료는 아니며 상세는 DATA_CONTRACT의 Pocket 로컬 7일 관측 화면과 audit 후속 절을 따른다.
   - Coach 표시 기준: 도구 호출 비율은 토큰 절감률이 아니다. 관측 기간·표본·분모·누락을 표시하고 구체적인 권장 행동을 제안하되 실제 절감 효과는 별도 작업 비교로 검증한다. 경쟁사의 안내 예시를 실제 사용자 성과로 인용하지 않는다.
