@@ -1091,3 +1091,13 @@ worker v18은 로컬 후보이며 공개 v17과 구분한다. 최신 strict rele
 6 tests/30 assertions로 안전한 투영·상충·범위 제한·조회 인자·CLI 실패를 검증했다. 실제 GitHub 메타데이터 조회 결과 열린 이슈 0건. 공개 저장소의 Issues 활성 및 feedback.yml 존재도 확인했고 미로그인 제보 진입점은 GitHub 로그인으로 이동했다. 이 결과는 사용자 제보 접수·개인정보 없는 실제 로그·주간 반복 운영·독립 두 사용자 재현을 증명하지 않는다. 운영 절차는 LAUNCH_FEEDBACK_PLAN의 운영자 이슈 검토에 반영했다.
 
 로컬 strict release-verify exit 0: 146 tests/1557 assertions, 다섯 browser suite·번들·문법·격리 알림·설치본 일치. 이번 변경은 운영 도구/문서이며 Pocket 파일·엔진·사용자 설정·스토어 제출은 변경하지 않았다. 원격 CI는 push 이후 별도로 확인한다.
+
+후속 `88fb7b2` Engine 38075708361 및 Windows 38075708411 모두 success. Windows는 exe 생성·실행·artifact 업로드까지 통과했으며 tag가 없어 release job은 skipped다. 실제 Windows 화면이나 스토어 출시를 뜻하지 않는다.
+
+### 9.41 명시적 Git 변경 파일 관측 후보
+
+`scripts/worktree-evidence.mjs`는 지정한 Git 루트와 --include-paths로 현재 미커밋 변경 파일의 상대 이름·상태·head·branch를 내보낸다. 원문/diff·remote·절대 루트·이전 rename 경로를 출력하지 않고 알려진 민감 경로를 제외한다. 최대 500개/1 MiB/명령 15초 제한, 잘못된 status·루트·동의 없음·HEAD 변경 거부를 적용했다. 자동 전송/설정/세션 실행은 없으며 사용자의 실제 프로젝트 파일을 개발 테스트에 입력하지 않았다.
+
+5 tests/46 assertions로 NUL·공백·한글·rename·민감 이전 경로·잘못된/과다/중복 경로·동의 전 무실행·격리 실제 Git·인덱스/상태 보존·HEAD 변경을 검증했다. 초기 경합 테스트 fixture는 macOS /var의 realpath 정규화 차이로 실패했고 canonical fixture root로 맞춰 통과했다. pending 파일 관측은 최근 커밋·내용 복원·구현/테스트 완료의 증거가 아니다. Pocket 연결·검토된 인계 파일·실제 재개 효과는 남았다. 계약은 DATA_CONTRACT의 별도 Git 변경 파일 관측을 따른다.
+
+로컬 strict release-verify exit 0: 151 tests/1603 assertions·다섯 browser suite·번들·문법·격리 알림·설치본 일치. 엔진/설치본/Pocket 파일/사용자 설정은 변경하지 않았다. 원격 검증은 push 이후 확인한다.

@@ -293,6 +293,14 @@ Date로 해석 가능한 `createdAt`, context의 유한한 비음수 `used`/`pct
 자동 sync는 없다. 화면에서 지우기는 메모리만 지우고 스냅샷/원본 파일/클립보드는 보존한다.
 Phase B의 의미 있는 resume brief 전체 및 실제 재개 시간 단축은 여전히 별도 백로그/검증이다.
 
+## 별도 Git 변경 파일 관측
+
+`bun scripts/worktree-evidence.mjs --repo /절대경로/저장소 --include-paths`는 사용자가 지정한 실제 Git 루트에서 현재 미커밋 변경 파일을 관측한다. 경로 포함 옵션 없이는 Git 조회를 시작하지 않는다. 자동 저장소 탐색·원문/diff 요청·원격 연결·외부 전송·세션 실행·설정 변경은 없다. 출력은 stdout의 `tokenjuice-worktree-evidence-v1`, `privacy:explicit_relative_paths`, reviewed=false이며 createdAt/head/branch/상대 파일명과 index/worktree 상태·제외 건수·제한만 포함한다. 절대 루트·remote URL·이름 변경 이전 경로는 내보내지 않는다.
+
+최대 500개 변경·1 MiB status 출력·15초 명령 제한을 적용한다. NUL 구분 status를 처리하므로 공백·한글 경로를 보존하고 이름 변경의 이전 경로 필드를 소비하되 표시하지 않는다. 제어 문자/절대 경로/상위 이동/중복/손상은 거부한다. 알려진 .env·credentials·secret·키 경로 또는 해당 경로에서의 이름 변경은 제외한다. 모든 비밀 파일명을 탐지하는 보장은 없으며 나머지 이름도 공유 전에 직접 검토해야 한다. gitignore 파일과 하위 submodule 작업은 포함되지 않는다. Git 자체가 변경 판정 중 파일을 읽을 수 있지만 이 도구는 본문·diff를 요청하거나 반환하지 않는다.
+
+명령은 fsmonitor와 optional index writes를 끄고 inherited GIT_* 환경 덮어쓰기를 제거한다. 조회 전후 HEAD가 달라지면 거부한다. 전체 파일시스템의 원자적 snapshot은 아니므로 재개 직전 다시 확인해야 한다. 첫 커밋 없는 저장소나 저장소 내부 하위 폴더는 거부한다. pending 변경 목록은 최근 커밋 목록·작업 완료·테스트 성공·요약과의 같은 프로젝트 관계를 증명하지 않는다. 기존 metadata-only checkpoint/네 항목 요약 schema는 변경하지 않으며 Pocket 연결·사용자 선택/재검토·실제 재개 효과 검증은 별도 작업이다. 형식 근거: [Git status porcelain v1](https://git-scm.com/docs/git-status#_porcelain_format_version_1).
+
 ## 선택한 대화의 로컬 자동 추출 초안 (2026-10-11)
 
 사용자가 자동 초안+검토 방향의 개발을 요청했다. metadata-only checkpoint v1 및 quota
