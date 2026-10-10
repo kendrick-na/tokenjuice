@@ -606,6 +606,58 @@ test("starter config is opt-out by default and never overwrites existing setting
   expect(JSON.parse(readFileSync(path.join(home, ".config/claude-codex-battery/config.json"), "utf8"))).toEqual({ api: true });
 });
 
+test("renewal policy changes only by explicit command without running login or API", () => {
+  const original = { api: true, autoRenew: false, topics: false, notify: { enabled: false }, custom: { keep: 42 } };
+  config(original);
+  expect(run("--auto-renew-on")).toContain("autoRenew=true");
+  const file = path.join(home, ".config/claude-codex-battery/config.json");
+  expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ ...original, autoRenew: true });
+  expect(run("--auto-renew-off")).toContain("autoRenew=false");
+  expect(JSON.parse(readFileSync(file, "utf8"))).toEqual(original);
+  expect(calls()).toBe(0);
+  expect(renewCalls()).toHaveLength(0);
+});
+
+test("renewal policy refuses malformed config rather than discarding user settings", () => {
+  const file = write(".config/claude-codex-battery/config.json", "{broken");
+  const result = spawnSync(process.execPath, [ENGINE, "--auto-renew-on"], { encoding: "utf8", env: engineEnv() });
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("settings unchanged");
+  expect(readFileSync(file, "utf8")).toBe("{broken");
+  expect(calls()).toBe(0);
+  expect(renewCalls()).toHaveLength(0);
+});
+
+test("renewal policy menu is reversible during auth failure without duplicate recovery", () => {
+  if (process.platform !== "darwin") return;
+  config({ api: true, autoRenew: false });
+  usage(401);
+  const manual = run();
+  expect(manual).toContain("위 실행 범위에 동의하고 자동 갱신 켜기");
+  expect(manual).toContain("param1=--auto-renew-on");
+  expect(manual).not.toContain("Renew Claude login now");
+  expect(manual).toContain("웹 쿠키 접근 없음");
+  config({ api: true, autoRenew: true });
+  const automatic = run();
+  expect(automatic).toContain("자동 갱신 끄기");
+  expect(automatic).toContain("param1=--auto-renew-off");
+});
+
+test("renewal opt-in never implicitly enables API access or replaces non-object config", () => {
+  const file = path.join(home, ".config/claude-codex-battery/config.json");
+  config({ api: false, topics: false });
+  run("--auto-renew-on");
+  expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ api: false, topics: false, autoRenew: true });
+  for (const content of ["null", "[]", "true", '"settings"']) {
+    writeFileSync(file, content);
+    const result = spawnSync(process.execPath, [ENGINE, "--auto-renew-on"], { encoding: "utf8", env: engineEnv() });
+    expect(result.status).toBe(1);
+    expect(readFileSync(file, "utf8")).toBe(content);
+  }
+  expect(calls()).toBe(0);
+  expect(renewCalls()).toHaveLength(0);
+});
+
 test("macOS keychain lookup uses an argument vector, never a shell-built config value", () => {
   const source = readFileSync(ENGINE, "utf8");
   expect(source).toContain('execFileSync("/usr/bin/security", args');

@@ -9,7 +9,7 @@
 // 배터리 숫자 = 남은 %. 초록 ≥50, 노랑 ≥20, 빨강 <20.
 
 import { execFileSync, execSync, spawn } from "node:child_process";
-import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, existsSync, appendFileSync, realpathSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, existsSync, appendFileSync, realpathSync, renameSync, unlinkSync } from "node:fs";
 import zlib from "node:zlib";
 import { createCipheriv, pbkdf2Sync, randomBytes, createHash } from "node:crypto";
 import os from "node:os";
@@ -1755,6 +1755,25 @@ if (argv[0] === "--init-config") {
     process.exit(1);
   }
 }
+// Explicit consent only. Changing policy does not enable API mode, fetch usage,
+// renew a login, or silently repair/discard malformed existing settings.
+if (["--auto-renew-on", "--auto-renew-off"].includes(argv[0])) {
+  const enabled = argv[0] === "--auto-renew-on";
+  const temporary = `${CONFIG_FILE}.${process.pid}.${randomBytes(6).toString("hex")}.tmp`;
+  try {
+    const current = existsSync(CONFIG_FILE) ? JSON.parse(readFileSync(CONFIG_FILE, "utf8")) : {};
+    if (!current || typeof current !== "object" || Array.isArray(current)) throw new Error("config must be an object");
+    mkdirSync(CONFIG_DIR, { recursive: true });
+    writeFileSync(temporary, `${JSON.stringify({ ...current, autoRenew: enabled }, null, 2)}\n`, { flag: "wx", mode: 0o600 });
+    renameSync(temporary, CONFIG_FILE);
+    console.log(`autoRenew=${enabled} · policy saved; no login or API request started`);
+    process.exit(0);
+  } catch {
+    try { unlinkSync(temporary); } catch {}
+    console.error("Could not change renewal policy; settings unchanged. Check config.json before retrying.");
+    process.exit(1);
+  }
+}
 if (argv[0]?.startsWith("--select-codex-account=")) {
   const id = argv[0].slice("--select-codex-account=".length);
   const profile = loadCodexProfiles().find((entry) => entry.id === id && entry.configDir);
@@ -2507,17 +2526,18 @@ for (let ai = 0; ai < accounts.length; ai++) {
   }
   if (recoveryAction) out.push(`--NEXT · ${recoveryAction} | size=11 color=#ffcc00`);
   // R3: the login-renewal policy is always visible while API mode is on.
-  // Error panels keep a single recovery action above; the policy controls
-  // remain available for healthy readings without competing with that action.
-  if (ai === 0 && IS_MAC && apiModeEnabled() && !recoveryAction) {
+  // Policy remains reversible even during errors. Keep the one-shot recovery
+  // only in healthy panels; an error already has a single NEXT action above.
+  if (ai === 0 && IS_MAC && apiModeEnabled()) {
     const auto = autoRenewEnabled();
     const bin = findClaudeBin();
     out.push(`Login renewal: ${auto ? "auto" : "manual"} · ${renewStatusLine()} | size=11 color=#8b949e`);
     out.push(`--What runs: claude -p /usage (reads usage only, no model call, no transcript) | size=11 color=#8b949e`);
     out.push(`--${auto ? "Auto: on login expiry (401), at most once per 10 min" : "Auto is off by default — renew from here when the login expires"} | size=11 color=#8b949e`);
-    out.push(`--${auto ? 'Disable: config.json {"autoRenew": false}' : 'Optional opt-in: config.json {"autoRenew": true}'} · ~/.config/claude-codex-battery/ | size=11 color=#6b7280`);
-    if (bin) out.push(`--Renew Claude login now | bash='${SELF}' param1=--renew-login terminal=false refresh=true`);
-    else out.push("--Claude CLI not found — run  claude  in a terminal to renew | size=11 color=#ffcc00");
+    out.push("--웹 쿠키 접근 없음 · 429 대기 중 실행 안 함 · CLI 버전 변경 시 재검증 필요 | size=11 color=#8b949e");
+    if (auto || bin) out.push(`--${auto ? "자동 갱신 끄기" : "위 실행 범위에 동의하고 자동 갱신 켜기"} | bash='${SELF}' param1=--auto-renew-${auto ? "off" : "on"} terminal=false refresh=true`);
+    if (bin && !recoveryAction) out.push(`--Renew Claude login now | bash='${SELF}' param1=--renew-login terminal=false refresh=true`);
+    else if (!bin) out.push("--Claude CLI not found — run  claude  in a terminal to renew | size=11 color=#ffcc00");
   }
 }
 
