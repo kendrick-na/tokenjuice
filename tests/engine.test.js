@@ -176,6 +176,35 @@ test("read-only API guard overrides persisted API configuration", () => {
   expect(calls()).toBe(0);
 });
 
+test("statusline provider quota works during OAuth backoff without API requests", () => {
+  const at = Date.now();
+  write(".claude/tokenjuice-statusline-quota.json", { ...okUsage(28, 17), collector: "claude-code-statusline-v1", observedAt: at });
+  cache("claude-0.fail.json", { at, until: at + 3600000, status: 429 });
+  const result = json();
+  expect(JSON.stringify(result)).toContain('"used":28');
+  expect(JSON.stringify(result)).toContain('"used":17');
+  expect(calls()).toBe(0);
+});
+
+test("manual login renewal cannot erase an active provider 429 backoff", () => {
+  const failure = {status: 429, at: Date.now(), until: Date.now() + 3600000};
+  const file = cache("claude-0.fail.json", failure);
+  expect(run("--renew-login")).toContain("provider retry");
+  expect(JSON.parse(readFileSync(file, "utf8"))).toEqual(failure);
+  expect(renewCalls()).toHaveLength(0);
+  expect(calls()).toBe(0);
+});
+
+test("rewriting statusline file does not freshen an old observation or hide a fresh other cache", () => {
+  config({api: false});
+  const old = Date.now() - 31 * 60000;
+  write(".claude/tokenjuice-statusline-quota.json", { ...okUsage(28, 17), collector: "claude-code-statusline-v1", observedAt: old });
+  expect(run().split("\n").find(line => line.startsWith("NOW ·"))).toContain("업데이트 필요");
+  write(".claude/usage-cache.json", okUsage(20, 40));
+  expect(JSON.stringify(json())).toContain('"used":20');
+  expect(calls()).toBe(0);
+});
+
 test("macOS doctor stays read-only and labels an update as a deliberate change", () => {
   const installer = readFileSync(path.join(ROOT, "install.sh"), "utf8");
   expect(installer).toContain('CCB_DISABLE_API=1 bun "$SELF_DIR/$SOURCE_PLUGIN" --text');
@@ -409,6 +438,21 @@ test("value older than 2h is not shown at all", () => {
   cache("claude-0.json", { ok: true, source: "api", at: Date.now() - 3 * 3600e3, items: [{ name: "5-hour", used: 10 }] });
   usage(500);
   expect(json().claude[0].items).toEqual([]);
+});
+
+test("Claude authentication failure preserves the fixed-width icon and visible recovery evidence", () => {
+  config({ api: true, autoRenew: false });
+  usage(401);
+  const menu = run();
+  expect(menu.split("\n")[0]).toStartWith("| image=");
+  const headerPng = Buffer.from(menu.split("\n")[0].split("image=")[1], "base64");
+  expect(headerPng.subarray(1, 4).toString()).toBe("PNG");
+  expect(headerPng.readUInt32BE(16)).toBeLessThanOrEqual(58);
+  expect(menu).toContain("원인 · 인증 실패");
+  expect(menu).toContain("마지막 성공 · 확인된 성공 시각 없음");
+  expect(menu).toContain("다음 확인 ·");
+  expect(menu).toContain("NEXT · Claude Code에서 다시 로그인");
+  expect(menu).not.toContain("로그인 만료 (실시간 숫자 없음)");
 });
 
 test("each actionable Claude error presents one honest NEXT recovery", () => {

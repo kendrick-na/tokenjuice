@@ -8,12 +8,17 @@ cd "$ROOT"
 
 fail() { printf '✗ %s\n' "$*" >&2; exit 1; }
 pass() { printf '✓ %s\n' "$*"; }
+REQUIRE_BROWSER=0
+case "${1:-}" in
+  "") ;;
+  --require-browser) REQUIRE_BROWSER=1 ;;
+  *) fail "지원하지 않는 옵션: ${1}. 공개 후보 검증은 --require-browser를 사용하세요." ;;
+esac
 
 command -v bun >/dev/null || fail "bun이 필요합니다."
 command -v python3 >/dev/null || fail "python3가 필요합니다."
 
-bun test tests/engine.test.js
-bun test tests/work-summary.test.js
+bun test tests/
 pass "엔진 회귀 테스트"
 
 bun build claude-codex-battery.5s.js --target bun --outfile /tmp/tokenjuice-engine-release-check.js >/dev/null
@@ -46,6 +51,9 @@ if python3 -c 'import playwright' >/dev/null 2>&1; then
   trap - EXIT
   pass "Companion 브라우저 동작"
 else
+  if [[ "$REQUIRE_BROWSER" == 1 ]]; then
+    fail "Playwright가 없어 브라우저 검증을 실행하지 못했습니다. 출시 후보 검증은 통과하지 않습니다."
+  fi
   printf '! Playwright가 없어 Companion 브라우저 동작 검증은 건너뜁니다. CI에서 반드시 실행됩니다.\n'
 fi
 
@@ -56,4 +64,4 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   bash scripts/check-installed-sources.sh
 fi
 
-printf '\n릴리스 후보 기본 검증을 통과했습니다. Windows 실제 트레이 테스트와 새 설치 검증은 CI/테스트 장비에서 별도로 확인해야 합니다.\n'
+printf '\n자동 검증 범위만 통과했습니다. 실제 Claude/Codex 수집·신규 설치·절전 복귀·Windows 트레이·디자인/사용자 검증·스토어 출시는 별도 게이트이며 이 결과로 완료 처리하지 않습니다.\n'

@@ -411,7 +411,9 @@ function invalidClaudeObservation(source) {
 // → 있으면 네트워크 없이 진짜 실시간. 없으면 null 반환하고 API로 폴백.
 function readLocalUsageCache(acc = {}) {
   const base = expandHomePath(acc.configDir) || claudeHome();
+  let staleStatusline = null;
   const candidates = [
+    path.join(base, "tokenjuice-statusline-quota.json"),
     path.join(base, "MEMORY", "STATE", "usage-cache.json"),
     path.join(base, "usage-cache.json"),
     path.join(base, "cache", "usage-cache.json"),
@@ -425,17 +427,20 @@ function readLocalUsageCache(acc = {}) {
       if (items === null) return invalidClaudeQuota("local", statSync(f).mtimeMs);
       if (items.length) {
         let at;
-        try { at = statSync(f).mtimeMs; } catch { return invalidClaudeObservation("local"); }
+        try { at = d.collector === "claude-code-statusline-v1" ? d.observedAt : statSync(f).mtimeMs; } catch { return invalidClaudeObservation("local"); }
         if (!validObservationTime(at)) return invalidClaudeObservation("local");
-        const stale = Date.now() - at > 30 * 60 * 1000;
-        return {
+        const expired = d.collector === "claude-code-statusline-v1" && items.some((item) => !Number.isFinite(Date.parse(item.resets)) || Date.parse(item.resets) <= Date.now());
+        const stale = expired || Date.now() - at > 30 * 60 * 1000;
+        const observation = {
           ok: true, items, at, observedAt: at, lastSuccessAt: at,
           source: "local", state: stale ? "stale" : "fresh", stale,
         };
+        if (d.collector === "claude-code-statusline-v1" && stale) { staleStatusline = observation; continue; }
+        return observation;
       }
     } catch {}
   }
-  return null;
+  return staleStatusline;
 }
 
 // Claude desktop app records the plan meter separately from Claude Code.
@@ -1824,6 +1829,14 @@ if (argv[0] === "--forecast-history") {
 // --renew-login: the dropdown's "Renew Claude login now" (user-initiated, so it
 // ignores autoRenew:false but still refuses to run twice within a minute).
 if (argv[0] === "--renew-login") {
+  // A manual action is not permission to bypass a provider Retry-After.
+  try {
+    const failure = JSON.parse(readFileSync(path.join(CACHE_DIR, "claude-0.fail.json"), "utf8"));
+    if (failure.status === 429 && Number.isFinite(failure.until) && failure.until > Date.now()) {
+      console.log(`renew skipped (provider retry after ${new Date(failure.until).toISOString()})`);
+      process.exit(0);
+    }
+  } catch {}
   const started = triggerClaudeTokenRefresh({ trigger: "manual", minGapMs: 60 * 1000 });
   // Clear the back-off so the next render retries right after the renew.
   if (started) { try { writeFileSync(path.join(CACHE_DIR, "claude-0.fail.json"), JSON.stringify({ status: 401, at: Date.now(), until: Date.now() + 20 * 1000, refreshing: true })); } catch {} }
@@ -2399,7 +2412,9 @@ for (const session of [...activeClaudeSessions, ...activeCodexSessions]) priorit
 const priority = priorityCandidates.sort((a, b) => b.score - a.score)[0];
 // Pixel-battery header. Sleep/wake staleness is handled outside the plugin:
 // ensure-swiftbar-visible.sh forces swiftbar://refreshallplugins, so the image
-// is re-issued right after wake. A Claude value we can't trust shows as "?".
+// is re-issued right after wake. Keep the established fixed-width icon even
+// on failure: longer text headers can disappear behind the laptop notch.
+// The click panel carries the named cause and recovery evidence.
 out.push(`| image=${renderImage(groups, dark)}`);
 out.push("---");
 if (priority) out.push(`${priority.text} | size=13 color=#ffcc00`);
@@ -2429,6 +2444,17 @@ for (let ai = 0; ai < accounts.length; ai++) {
   out.push(`${title}  ${badge.icon} ${badge.level} | size=13 color=#8b949e`);
   out.push(`--Reconnect alerts: ${reconnectPolicy.reconnect ? "on" : "off"} · only for fresh auth expiry | bash='${SELF}' param1='--notify-account-reconnect=claude:${ai}=${reconnectPolicy.reconnect ? "off" : "on"}' terminal=false refresh=true`);
   out.push(`--${badge.icon} ${badge.text} | size=11 color=#8b949e`);
+  if (state !== "fresh" && state !== "fallback") {
+    const cause = state === "auth_expired" ? "인증 실패 · Claude Code에서 다시 로그인하세요"
+      : state === "rate_limited" ? "제공자 요청 제한 · 다음 확인 시각까지 기다리세요"
+      : cl.reason === "needs-api" ? "연결 안 됨 · 로컬 사용량 없음, API 연결은 선택 사항입니다"
+      : stateRecoveryHint(state) || "최신 사용량을 확인하지 못했습니다";
+    out.push(`원인 · ${cause} | size=12 color=#ffcc00`);
+    const last = cl.lastSuccessAt ?? cl.at;
+    out.push(`마지막 성공 · ${last ? fmtAgo(last) : "확인된 성공 시각 없음"} | size=11 color=#8b949e`);
+    const retry = fmtRetryAt(cl.retryAt);
+    out.push(`다음 확인 · ${retry || "메뉴를 다시 열어 확인 · 제공자 제한이 있으면 대기합니다"} | size=11 color=#8b949e`);
+  }
   if (cl.items.length) {
     for (const i of cl.items) {
       const r = Math.round(100 - i.used);
@@ -2461,7 +2487,7 @@ for (let ai = 0; ai < accounts.length; ai++) {
   } else if (cl.reason === "invalid_timestamp") {
     out.push("⚠️ 확인할 수 없음 · 사용량 기록 시각을 확인할 수 없어 숫자를 표시하지 않습니다 | size=12 color=#ffcc00");
   } else if (cl.reason === "auth" || state === "auth_expired") {
-    out.push("🔐 다시 연결 필요 · Claude 로그인 만료 (실시간 숫자 없음) | size=12 color=#ff453a");
+    out.push("🔐 다시 연결 필요 · Claude 인증 실패 (실시간 숫자 없음) | size=12 color=#ff453a");
     if (cl.appLast) {
       out.push(`--Claude app stopped sampling (last ${fmtAgo(cl.appLast.at)}: 5-hour ${100 - cl.appLast.fh}% · weekly ${100 - cl.appLast.sd}% left) | size=11 color=#8b949e`);
     }

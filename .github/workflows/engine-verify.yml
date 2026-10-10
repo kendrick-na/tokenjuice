@@ -37,7 +37,7 @@ jobs:
         with:
           bun-version: latest
       - name: 엔진 회귀 테스트
-        run: bun test tests/engine.test.js tests/work-summary.test.js
+        run: bun test tests/
       - name: Bun 번들 확인
         run: bun build claude-codex-battery.5s.js --target bun --outfile /tmp/tokenjuice-engine-check.js
       - name: macOS 설치·복구 스크립트 문법

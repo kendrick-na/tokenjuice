@@ -239,9 +239,14 @@ def main() -> None:
             page.set_viewport_size({"width": 1280, "height": 900})
             page.reload(wait_until="networkidle")
             assert_no_horizontal_overflow(page)
+            screenshot_dir = os.environ.get("TOKENJUICE_TEST_SCREENSHOT_DIR")
+            if screenshot_dir:
+                page.screenshot(path=str(Path(screenshot_dir) / "first-run-desktop.png"), full_page=True)
             page.set_viewport_size({"width": 375, "height": 812})
             page.reload(wait_until="networkidle")
             assert_no_horizontal_overflow(page)
+            if screenshot_dir:
+                page.screenshot(path=str(Path(screenshot_dir) / "first-run-mobile.png"), full_page=True)
             targets = visible_target_heights(page)
             assert min(target["height"] for target in targets) >= 44, targets
             # UX6: emulate browser large text without changing the product
@@ -290,6 +295,12 @@ def main() -> None:
             assert page.get_by_text("WHY", exact=True).is_visible()
             assert page.get_by_text("NEXT", exact=True).is_visible()
             assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") is None
+            if screenshot_dir:
+                page.locator(".dashboard").evaluate("el => Promise.all(el.getAnimations().map(animation => animation.finished.catch(() => {})))")
+                page.screenshot(path=str(Path(screenshot_dir) / "demo-mobile.png"), full_page=True)
+                page.set_viewport_size({"width": 1280, "height": 900})
+                page.screenshot(path=str(Path(screenshot_dir) / "demo-desktop.png"), full_page=True)
+                page.set_viewport_size({"width": 375, "height": 812})
             # Reduced motion is a real media preference, not only a CSS text
             # check: all entrance animations must resolve to near-zero.
             page.emulate_media(reduced_motion="reduce")
@@ -420,6 +431,15 @@ def main() -> None:
                     assert "% 남음" not in account.inner_text(), (kind, state)
                     assert account.locator(".forecast").count() == 0, (kind, state)
                     assert account.locator(".recovery").is_visible(), (kind, state)
+                    assert account.locator(".failure-evidence").is_visible(), (kind, state)
+                    assert "원인" in account.locator(".failure-evidence").inner_text(), (kind, state)
+                    assert "마지막 성공" in account.locator(".failure-evidence").inner_text(), (kind, state)
+                    if state == "auth_expired":
+                        assert "이 웹 화면은 재로그인하지 않습니다" in account.inner_text()
+                        assert "인증에 실패" in account.inner_text()
+                        screenshot_dir = os.environ.get("TOKENJUICE_TEST_SCREENSHOT_DIR")
+                        if kind == "claude" and screenshot_dir:
+                            account.screenshot(path=str(Path(screenshot_dir) / "auth-recovery-card.png"))
             # Fresh and explicitly labelled fallback samples remain visible.
             for state in ("fresh", "fallback"):
                 state_snapshot = json.loads(json.dumps(fresh_snapshot))

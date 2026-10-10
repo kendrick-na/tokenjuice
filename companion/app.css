@@ -83,6 +83,9 @@ footer a, footer button { padding:.4rem .45rem; }
 .install-steps li>b { display:grid; place-items:center; width:1.5rem; height:1.5rem; border:1px solid var(--line); border-radius:50%; color:var(--lime); font:800 .62rem var(--mono); }
 .install-steps strong { display:block; color:var(--ink); font-size:.8rem; }
 .install-steps code { display:block; margin-top:.18rem; color:var(--amber); font:600 .7rem/1.45 var(--mono); overflow-wrap:anywhere; }
+.failure-evidence { border-left:2px solid var(--amber); padding-left:.75rem; color:var(--muted); font-size:.82rem; line-height:1.6; overflow-wrap:anywhere; }
+.failure-evidence p { margin:.5rem 0; }
+.failure-evidence b { color:var(--ink); }
 .recovery-link { margin:1rem 0 0; border-top:1px solid #ffffff18; padding-top:.9rem; }
 
 /* Resume stays in DETAIL, below the live decision flow. Imported metadata

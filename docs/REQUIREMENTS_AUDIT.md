@@ -914,3 +914,48 @@ Mac/Linux·Pocket 브라우저·Windows exe build/run/artifact 통과, Windows r
 작성 중 초안이 없는 agent-created 탭에서만 새로고침했으며 사용자 기존 스냅샷을 삭제하지 않았다.
 전체 로컬 release-verify도 engine 86/1152 + summary 7/31, 양쪽 browser·설치 일치로 exit 0이다.
 이번 공개 배포는 로컬 추출 초안 기능이며 생성형 AI 요약·자동 파일 복원·전체 목표 완료가 아니다.
+
+### 9.24 Claude 연결 실패/복구 UX — 2026-10-11 로컬 변경
+
+사용자 컴퓨터에서 api=true, autoRenew=false, 최근 실패 HTTP 401, 최신 표준 local quota cache 없음 확인. 마지막 API 성공은 10월 8일이다. token 본문/Keychain/API 요청 없이 메타데이터만 읽었다. 인증 만료인지 잘못된 계정 자격증명인지는 확정하지 않았다.
+
+오류 시 SwiftBar 이미지 배터리 `?` 대신 짧은 `C 다시 연결 필요` 등의 상태 텍스트로 표시한다. 여러 quota/context는 클릭 메뉴에서 확인한다. 실패 계정에는 원인·마지막 성공·다음 확인·기존 단일 NEXT 동선을 표시한다. 정상 상태는 기존 배터리/숫자 유지. 실제 노치 폭/노트북 표시 검증은 pending이다.
+
+Pocket 실패 카드에 원인·성공 시각·외부(Mac) 재로그인 안내를 노출한다. 실패 observedAt를 성공 시각으로 대신 표시하지 않는다. source는 details, 복구 근거는 기본 화면에 두고 중복 설명을 제거했다. 단순 401을 확정적인 ‘로그인 만료’로 단정하는 문구를 인증 실패로 고쳤다. 사용자 데이터/외부 전송/권한/자동 갱신 변경 없음. 로컬 worker는 v14 후보이며 공개 서비스는 여전히 v13이다.
+
+검증: 새 엔진 회귀는 수정 전 실패→수정 후 통과. engine 87 pass/1159 assertions, summary 7 pass/31 assertions. 브라우저 4개 실패 상태×3 provider 종류에서 원인·성공 시각·복구 정보 노출과 잔여량 숫자 숨김 확인. 중복 문구가 기존 locator 검증을 깨뜨린 문제를 제거하고 재검증했다. release-verify exit 0; Windows 문법, notification dry-run, 두 browser suite, installed source check 포함. 실제 Windows tray/실계정 검증은 포함하지 않는다.
+
+Mac 기존 plugin만 표시 코드 갱신, shebang/설정/권한/LaunchAgent 유지. 백업: `~/Library/Application Support/TokenJuice/backups/tokenjuice-battery.before-auth-ux-20261011.js`. 설치본 본문/절전 helper 소스 일치. SwiftBar 실제 메뉴 표시·Claude 재인증·새 성공값 대조는 아직 pending이다. 이번 변경은 미커밋 로컬 후보이며 push/새 CI/공개 Pages 배포/새 desktop release 없음.
+
+경쟁 비교 근거와 나머지 개선 순서는 [격차 지도](COMPETITOR_GAP_MAP_2026-10-11.md)를 참조한다. ‘출시 완료’ 또는 ‘Claude 복구 완료’로 승격하지 않는다.
+
+#### 같은 날 표시 회귀 신고 — 위 헤더 변경 취소
+
+사용자가 변경 직후 ‘바가 아예 안 보임’을 신고했다. SwiftBar 프로세스 19384 실행, plugin 경로·설치본 일치, visible Item-0=true 확인. 실제 메뉴바 UI 자동 접근은 timeout이라 화면 확인 불가. 최근 변경의 고정폭 이미지→한국어 텍스트 헤더가 노트북 공간 부족을 악화시켰을 가능성을 검증하는 최소 rollback을 시행했다. 노치가 확정 원인이라는 증거는 아직 없다.
+
+repo와 설치본에서 **헤더만 기존 이미지 방식으로 복원**했다. 메뉴의 인증 실패 원인·마지막 성공·retry·재로그인 안내 및 Pocket 카드 개선은 유지한다. 새 회귀 테스트는 PNG 헤더/폭 상한/오류 안내를 검사하고 변경 전 실패, 복원 후 통과(8 assertions)했다. 설치본 본문과 helper 일치 확인. SwiftBar의 refreshallplugins URL을 요청했고 OS 호출 exit 0; 실제 재표시는 사용자 확인 pending이다. 이전 ‘짧은 텍스트면 폭이 안전하다’는 판단을 철회한다. 재인증/실제 사용량 검증 역시 미완료다.
+
+복원 후 전체 release-verify exit 0: engine 87/1160 assertions, summary 7/31, 두 browser suite와 설치본 일치. SwiftBar PID 유지 확인. 자동 검증 성공을 실제 바 재표시 성공으로 대체하지 않는다.
+
+사용자 후속 답변 ‘다시 보임’을 받아 **아이콘 표시 복구만 사용자 확인 완료**로 기록한다. 기존 고정폭 아이콘을 유지하며, 실패 상태의 원인·성공 시각·retry·로그인 안내는 클릭 메뉴와 Pocket 카드에서 제공한다. 아이콘의 unknown 표시를 실제 quota 수치로 대체하지 않는다. 위 검증은 실제 인증 없이 fixture로 실행했다. Claude 최신 quota/reset 대조·절전 복귀·Pocket 공개 배포는 여전히 pending이다.
+
+### 9.25 실제 Claude 수집 장애 조사와 statusLine bridge (2026-10-11)
+
+- 실제 fail cache는 HTTP **429**, 재시도 금지는 KST 01:59:38까지다. 401 또는 만료 인증이라고 단정하지 않는다. backoff 파일 삭제/조기 재요청 없음.
+- 공식 Claude Desktop Code 및 Settings 사용량 화면에서 세션 28% 사용·주간 17% 사용을 확인했다. 기존 `plan-usage-history.json`은 10/6 이후 갱신되지 않아 화면과 불일치한다. 화면을 열거나 사용량 세부 보기를 열어도 파일이 갱신되지 않았다.
+- 공식 문서의 stdin `rate_limits`를 수신하는 `scripts/collect-claude-quota.mjs` 추가. 백업 후 기존 사용자 statusLine 스크립트에 호출만 삽입했고 기존 표시/설정은 유지했다. 프롬프트/컨텍스트/인증정보는 저장하지 않고 quota·reset·관측 시각만 0600 파일에 기록한다. 네트워크/키체인 호출 없음.
+- 동일 payload 재표시로 관측 시각을 연장하지 않으며 expired reset 또는 30분 경과는 stale이다. stale bridge가 다른 fresh local cache를 막지 않는다. 엔진 소스와 설치본 본문 일치, 배터리 아이콘 고정폭 유지.
+- 엔진 및 bridge 테스트 91 pass / 1177 assertions(추가 파일 지속성 테스트 이전). 이 수치는 synthetic fixture 검증이지 실제 복구 증거가 아니다.
+- **실제 bridge 파일 아직 없음. 현재 Team 계정에서의 지원/실행 여부 미검증. `?` 해결 및 출시 승인 아님.** 공식 문서는 subscriber rate_limits를 Pro/Max로 설명하므로 Team에 확장 추정하지 않는다.
+- 다음 단계: 정상 사용 중 실제 callback 유입 확인 또는 사용자의 명시적 승인을 받아 공식 웹 로그인 기반 quota-only 대체 연결을 설계한다. 쿠키/세션 접근을 임의로 추가하지 않는다. 공개 배포/commit/push 없음.
+
+참조: https://code.claude.com/docs/en/statusline
+
+### 9.26 전체 투두 실행 원장·검증 누락·429 수동 갱신 보호 (2026-10-11)
+
+- 개발기획서 §20에 사용자 요청 전체(P0 실제 작동, P1 경쟁/UI, P2 자동 요약/가치, P3 실출시/피드백)와 완료 증거/승인 경계를 기록했다. 기존 전체 resume/trend/Coach/platform 요구사항은 유지한다.
+- release-verify 및 macOS/Linux/Windows CI가 `bun test tests/`로 새 bridge 테스트를 포함한다. `--require-browser`는 브라우저 검증 생략을 실패 처리한다. 성공 메시지에서도 실수집/신규 설치/스토어 완료를 주장하지 않는다.
+- **실제 결함 재현:** `--renew-login`이 활성 429 fail cache를 401/20초로 덮어쓸 수 있었다. 실패 fixture를 먼저 확인한 뒤 429 기간에는 명령을 대기하고 fail cache/CLI/API 호출을 보존하도록 수정했다. 기존 일반 수동 갱신과 중복 방지는 유지한다.
+- 최신 Bun 101 pass / 1222 assertions 및 두 browser suite·bundle·문법·격리 알림이 통과했다. 엄격 release-verify 최종 단계는 새 8줄이 아직 설치되지 않아 source mismatch로 exit 1이었다. 설치본 갱신을 자동 검증 성공으로 숨기지 않는다. 현재 작업은 새 공개 배포가 아닌 로컬 checkpoint 후 기존 설치본 한 파일 수정 대상이다.
+- 모바일/desktop 첫 화면·예시 화면 screenshot 기준선과 애니메이션 종료 대기를 추가, 실제 캡처를 직접 관찰했다. 새 디자인 완료나 실제 quota 복구 증거는 아니다.
+- origin/main fetch 후 HEAD ahead/behind 0/0 확인. 다른 TokenJuice 활성 editor 없음. 변경들은 이 작업의 로컬 후보이며 공개 push/tag/Pages/스토어 제출 없음. 429 제한과 실제 callback·수치 복구는 계속 미완료다.
