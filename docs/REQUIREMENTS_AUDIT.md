@@ -1001,3 +1001,9 @@ backend-only `scripts/ai-work-summary.mjs`와 6개 합성 테스트를 추가했
 동의 범위에 count_tokens endpoint와 가격/예산 정책을 추가했다. 정책이 없거나 모델 불일치·잘못된 가격·24시간 초과 확인 시각이면 실행을 거부한다. 동의 후 토큰 계산 1회, 입력 10%+256 tokens 여유분과 최대 출력 가격의 예산 검사 후 생성 1회만 실행한다. 사전 count는 추정치이므로 결제 절대 상한으로 홍보하지 않는다. 실제 가격 진위 검증과 동시/일별 예산 원장·제공자 결제 제한은 미완료다.
 
 reviewedAiSummary는 직접 확인한 네 항목만 새 AI 요약 형식으로 반환하며 원문·근거·키·provider ID를 제외한다. 기존 로컬 추출로 오표기하지 않는다. 새 후보 8 tests/49 assertions 및 엄격 release-verify 전체 exit 0, 양쪽 browser·설치본 일치 확인. 테스트는 합성 transport만 사용했고 실제 대화·키·API 비용은 사용하지 않았다. 사용자 UI/승인 세션·저장 파일 재열기·실제 요약 평가·P2 전체 완료는 여전히 남았다.
+
+### 9.32 AI 요약 승인 세션과 중복 실행 방지 후보
+
+`scripts/ai-summary-sessions.mjs`는 owner-bound 무작위 ID·5분 만료·최대 3개 메모리 세션과 동기적 1회 승인 소비를 구현했다. 반복 클릭·동시 실행·완료/실패 승인 재사용을 거부하며, 완료 세션에서만 별도 검토 후 export한다. 실행 중 discard는 요청 취소로 가장하지 않고 거부한다. 실제 사용자 인증은 모듈이 수행하지 않으며 인증된 HTTP route에서 owner를 제공해야 한다.
+
+합성 세션 테스트 3 pass/19 assertions: 다른 owner·미확인/변경 digest·만료는 provider 호출 0회, 동시 클릭은 count 1회+생성 1회만 실행, 실패는 1회 뒤 재사용 불가, 용량 제한·검토·private 필드 제외를 확인했다. 엄격 release-verify exit 0: 116 tests/1318 assertions, 두 browser suite·bundle·문법·격리 알림·설치 일치. 원문/키는 실제 사용자 데이터가 아닌 합성 fixture였다. 사용자 인증/CSRF·UI·보존/삭제 실운영·일별/동시 예산 원장·서버 재시작 예산 보존·실제 요약 품질·전체 출시 완료는 남았다.
