@@ -989,3 +989,9 @@ clean main에서 origin/main fetch 및 ahead 3/behind 0 확인 후 `6d9b3a1`을 
 Engine [38071027466](https://github.com/kendrick-na/tokenjuice/actions/runs/38071027466) 및 Windows [38071027388](https://github.com/kendrick-na/tokenjuice/actions/runs/38071027388)는 success다. 기존 설치본이 직전 소스와 일치함을 확인하고 `backups/tokenjuice-battery.before-renew-controls-ae0378e.js`로 백업 후 검토된 변경만 apply_patch로 반영했다. 절대 Bun shebang·사용자 설정·고정폭 아이콘을 유지했다. 실제 설치본 JSON은 fresh, 세션 41% 사용·주간 19% 사용, autoRenew=false였다. 설치본 메뉴 출력의 동의 문구·켜기 명령 경로도 확인했다.
 
 엄격 release-verify 최종 exit 0: 105 tests/1250 assertions, 두 browser suite·bundle·스크립트 문법·격리 알림·plugin/helper 일치. 실제 메뉴 클릭·다음 인증 만료에서 자동 복구·장기 실행·새 설치·절전/재부팅은 여전히 미완료다. 자동 갱신 활성화를 승인받은 것으로 처리하지 않았으며 desktop 새 tag/release나 스토어 제출도 하지 않았다.
+
+### 9.30 생성형 AI 작업 요약 코어 후보
+
+backend-only `scripts/ai-work-summary.mjs`와 6개 합성 테스트를 추가했다. 선택된 한 대화의 전송 미리보기와 endpoint/model/본문/출력 한도 digest를 만들고, 정확한 승인 digest·직접 제공한 키 없이는 요청하지 않는다. 단일 Messages API 요청·redirect 거부·timeout·입출력 bounds·에러 비밀값 비노출·근거 번호 검증과 reviewed=false 반환을 구현했다. 사용자 로그·실제 키·실제 API는 사용하지 않았다.
+
+엄격 release-verify exit 0: 111 tests/1279 assertions, 두 browser suite·bundle·스크립트 문법·격리 알림·설치본 일치. 별도 상세 계약은 DATA_CONTRACT의 클라우드 AI 작업 요약 코어 후보를 따른다. 미리보기/승인 UI와 서버 승인 세션, 모델/가격/금액 한도, 제공자 보존 정책 검수, 실제 의미 요약 품질·작업 재개 효과 및 검토 저장 연결은 남았다. **자동 AI 요약 출시/P2-03~04 완료 아님.** 기존 Pocket 로컬-only 동작과 사용자 설정은 변경하지 않았다.
