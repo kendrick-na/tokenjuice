@@ -1307,7 +1307,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 
 | 항목 | 상태 | 증거 또는 남은 게이트 |
 |---|---|---|
-| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `80 pass`·`1043 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization·Desktop 표본/cache 관측 검사 및 malformed 응답 backoff 추가. 새 후보 CI success·승인된 설치 반영 후 release-verify 전체 exit 0(§9.18)·실제 UI pending. 실계정·OS notification presentation은 pending |
+| v1.1 신뢰성 엔진·알림·진단 | 지원 범위 코드 구현 / 자동 검증·외부 gate 분리 | 현재 로컬 `83 pass`·`1146 expect()` 엔진 회귀; opt-in reset-soon/Claude 및 Codex 프로필별 local forecast와 malformed 사용률 차단 구현. Claude API/local utilization·Desktop 표본/cache 관측 검사 및 malformed 응답 backoff 추가. 최신 CI success·plugin 일치/helper 불일치로 release-verify exit 1(§9.20)·실제 UI pending. 실계정·OS notification presentation은 pending |
 | v1.2 계정 별칭·온보딩·Windows 공통 엔진·pace forecast | Claude 및 수동 Codex 프로필 구현 / 실계정·OS 검증 대기 | Codex explicit root/alias/ID/표시 선택·stable notification/history key 구현. `862d50f` Engine `37950615407`·Windows `37950615519`, Windows 호환 수정 `70abf9e`의 `37950833358`는 success. 실제 Windows/macOS UI와 신규 설치는 validation kit pending. Windows toast 미구현 |
 | P0 UX1~UX5 | 코드·browser 검증 완료 / 사용자 acceptance 대기 | Pocket NOW/WHY/NEXT, trust/freshness, demo/import/offline과 `6cacedb` 상세 disclosure browser test; Pages `37886745971` 성공; 10초/30초 사용자 지표와 실제 phone acceptance는 pending |
 | P0 context checkpoint | metadata-only 생성/재개 상세 코드 구현·browser 검증 / 전체 resume·사용자 검증 대기 | 기존 다운로드에 checkpoint 다시 열기·메타데이터 확인·재개 안내 복사/텍스트 저장·오류 보존·메모리 전용 보관을 추가. 작업 의도/최근 파일 복원이나 실제 resume 행동 전환 완료가 아니며 `docs/VALIDATION_KIT.md` diary gate 유지 |
@@ -1318,7 +1318,7 @@ TokenJuice는 “AI를 쓰는 모든 사람”에게 필요한 제품이 아니�
 | UX10 랜딩/설치 경로 | 코드·배포 완료 / 사용자 검증 대기 | `6cacedb` Pages `37886745971` 성공. `6245fad`에서 README의 두 구버전 inline 이미지를 제거하고 현재 Pocket 링크로 대체; 원본 파일 보존. 현재 Pocket 화면과 immutable v1.2.2 desktop 화면은 별개. 신규 사용자 5명 검증은 pending |
 | P1 7-day history/Usage Coach | local history export 구현 / 제품 우선순위 근거 대기 | opt-in local pace history 7일 JSON export와 explicit `--developer` evidence view 추가; `docs/VALIDATION_KIT.md` §2에 10명 interview·14일 diary 실행 순서, 분모/판정 기준 보완; 시각적 trend·Usage Coach는 행동 전환 데이터와 의사결정 전까지 보류 |
 | P1 작은 화면·checkpoint·설정 | 안전한 로컬 subset 완료 / history·제품·보안 gate 대기 | `679f079` 80%/90% 로컬 checkpoint 내보내기 CTA; `6cacedb` 상태·NEXT를 유지하고 상세만 접는 Pocket disclosure. trend/Usage Coach는 실제 시계열 snapshot 계약·10명 interview·14일 diary 근거 대기; `016a60a` Pocket 설정 경계는 제품·보안 결정 전 gated |
-| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline`과 별도 `--codex-forecast-history`, additive `codexAccounts[]` 추가; prompt-free fixture를 포함한 현재 80개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
+| P2 Developer export/integrations | 로컬 export/statusline 구현 / webhook 정책 게이트 | 기존 `--json`, `--forecast-history`, `--developer`, diagnostics 복사에 `5ee7069`의 opt-in `--statusline`과 별도 `--codex-forecast-history`, additive `codexAccounts[]` 추가; prompt-free fixture를 포함한 현재 83개 엔진 테스트 통과. webhook은 외부 전송·동의·보안 설계 전까지 구현하지 않음 |
 | P2 네이티브 widget/Watch/추가 provider | 대기 | PWA 사용률·대기자 지표와 provider 안전·정책 검증 필요; 의사결정 전 구현 보류 |
 | 자동 CloudKit/팀 기능/유료화 | 보류 | 보안·삭제 정책·서버 수집 여부에 대한 명시적 제품 결정 필요 |
 
@@ -1575,6 +1575,17 @@ Coach의 interview/diary·행동 근거, Windows sender/Pocket 설정·실기기
 해시 검증을 분리했고 공개 release·스토어 제출은 하지 않았다. metadata-only 계약과
 trend/Coach의 입력·행동 근거 gate도 유지한다. 전체 TODO의 독립 완료/차단 원장은
 [`docs/RELEASE_CANDIDATE_REVIEW.md`](../docs/RELEASE_CANDIDATE_REVIEW.md)와 audit §9.19 참조.
+
+§17.2 이어서(2026-10-10): R5 last-tick/last-refresh 손상으로 helper가 셸 산술 오류로
+중단되는 두 fixture를 재현해 내부 epoch-seconds 검사를 추가했다. 기존 first-run/missing
+처리와 정상 debounce는 유지한다. plugin뿐 아니라 helper 설치본도 독립적으로 읽기 전용
+비교하는 gate와 fake executable 미실행 fixture를 추가했다. 현재 83 pass/1146 assertions,
+4423ab1의 Engine 38052165596·Windows 38052165597 success다. 자동 단계/plugin 일치는
+통과했지만 installed helper가 이전 버전이라 release-verify 전체 exit 1이다. helper/
+LaunchAgent·설정은 자동 갱신하지 않았다. Finder AX/blank screenshot 대체 관찰도 실제
+메뉴바를 확인하지 못해 UI·절전 복귀는 사용자 관찰 필요다. 상세와 필요한 승인/행동은
+audit §9.20 및 VALIDATION_KIT의 현행 항목 참조. 전체 resume/trend/Coach·사용자/스토어
+gate는 유지하며 이전 로컬 검토 패키지 74157c2는 이번 helper 코드가 없는 과거 고정 후보다.
 
 ## 18. 2026-10-09 빠른 공개 출시·피드백 루프 전환
 

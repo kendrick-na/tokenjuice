@@ -8,8 +8,8 @@
 - 공개 Pocket은 `4d326d3`/offline cache v11, desktop release는 immutable `v1.2.2`다.
 - 최신 엔진 후보는 Claude/Codex 잘못된 사용률·미래 관측 시각을 차단하고 오류 원인·성공
   시각을 desktop renderer와 일치시킨다. local provider의 실패 읽기도 성공으로 표시하지 않는다.
-  로컬 80개 테스트/1043 assertions 및
-  release-verify는 승인된 플러그인 한 파일 갱신 뒤 설치본 일치까지 exit 0이다. 실제 UI는 pending이다.
+  R5 손상된 복구 상태도 보강했다. 로컬 83개 테스트/1146 assertions와 새 CI는 success이나
+  release-verify는 plugin 일치/helper 불일치로 exit 1이다. 실제 helper는 아직 갱신하지 않았고 UI는 pending이다.
   소스/CI 통과를 노트북 표시 문제의 해결 또는 스토어 출시로 기록하지 않는다.
 - 다음 P0는 UI 접근/사용자 관찰로 노트북의 메뉴바/패널·
   quota/trust·절전 복귀 확인이다. 코드 mismatch만으로 미표시 원인을 확정하지 않는다.

@@ -152,7 +152,21 @@ quota/context/auth 중단이 실제로 반복되는지, alert가 행동으로 �
 
 ## 3. macOS/Windows notification presentation checklist
 
-### 2026-10-10 현행 설치 체크포인트
+### 2026-10-10 현행 행동 필요 항목
+
+최신 source 4423ab1의 helper 손상 상태 복구/독립 설치 비교가 CI success다.
+83 tests/1146 assertions·browser/bundle/격리 알림은 pass, plugin 본문도 일치하지만
+installed wake helper는 이전 버전이다. `bash scripts/check-installed-sources.sh`는
+실행/설정 변경 없이 이를 exit 1로 알린다. helper 한 파일의 백업·좁은 교체 승인 후
+다시 비교해야 하며 full installer/LaunchAgent 변경·앱 restart/refresh는 필요하지 않다.
+
+실제 메뉴바 도구는 SwiftBar를 노출하지 않는다. 실행 중 Finder의 AX에도 status-item이
+없고 screenshot은 빈 흰 화면이라 제품 미표시나 OS 권한 문제로 단정할 수 없다.
+사용자는 현재 Mac에서 ① TokenJuice icon/클릭 패널 유무 ② 평소 절전 후 같은 표시의
+복귀 여부를 pass/fail로 관찰해 제공한다. 테스트를 위해 강제 절전하지 않으며 계정 수치/
+로그/스크린샷은 수집하지 않는다. 이는 코드 테스트와 분리된 사용자 행동 필요 gate다.
+
+### 74157c2 설치 체크포인트 (과거 후보)
 
 최신 엔진 후보 74157c2는 승인된 플러그인 한 파일 반영 뒤 source/install cmp와
 release-verify 전체 exit 0(80 tests/1043 assertions)을 통과했다. 절전 helper도 소스와
