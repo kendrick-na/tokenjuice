@@ -1059,3 +1059,13 @@ POSIX 로컬 launcher에 기존 인증 adapter·승인 세션·일일 예산을 
 실제 lock을 잡은 자식 프로세스를 SIGKILL한 뒤 새 프로세스의 예약이 차단되고 기존 원장·crash lock이 그대로 남는 것도 확인했다. 테스트는 자신이 만든 자식 핸들만 종료하고 자신이 만든 임시 디렉터리만 정리한다. 운영 원장과 사용자 프로세스는 건드리지 않는다. 물리적인 전원 손실·디스크 오류·분산 호스트·Windows ACL 검증으로 승격하지 않는다.
 
 신규 프로세스 테스트 3 pass / 62 assertions. 최신 전체 strict release-verify exit 0: **135 tests / 1501 assertions**, 세 브라우저 suite·번들·스크립트 문법·격리 알림·설치 plugin/helper 일치. API 키·실제 대화·유료 제공자 요청은 사용하지 않았다. 실행 안내와 개발기획서의 예산 검증 상태를 갱신했으며 전체 자동 요약 품질/스토어 출시 완료는 아니다.
+
+### 9.38 원격 브라우저 실패와 가져오기 준비 상태
+
+`5337c8a` push의 [Engine 38074314887](https://github.com/kendrick-na/tokenjuice/actions/runs/38074314887)은 macOS/Linux 엔진 테스트가 통과했지만 Companion 브라우저 테스트가 실패했다. privacy→계기판 링크 직후 파일 선택에서 Personal 표시를 기다리다 timeout이 발생했고 새 생성 UI 단계는 실행되지 않았다. [Windows 38074314884](https://github.com/kendrick-na/tokenjuice/actions/runs/38074314884)는 success다. 이를 전체 CI 통과로 기록하지 않는다.
+
+모듈 로딩을 의도적으로 보류하는 브라우저 회귀에서 가져오기 입력칸이 listener 준비 전에 활성화되는 것을 재현했다. 초기 HTML에서 입력을 비활성화하고 앱 초기화/handler 등록 뒤 활성화하며, 페이지 이동 후 테스트도 해당 준비 상태를 기다린다. 지연 회귀는 변경 전 실패/변경 후 통과했고 strict 검증은 135 tests/1501 assertions와 네 브라우저 suite를 포함해 exit 0이다. 원격 CI 실패의 동일 원인 확정과 해소 여부는 새 CI 결과로 재검증한다. timeout 증가나 테스트 재실행만으로 우회하지 않았다.
+
+Pocket worker v17은 이번 코드 후보다. 기존 공개 v16/로컬 설치본과 구분하며 새 Pages 결과/공개 파일 확인 전에는 배포 성공으로 기록하지 않는다. 기존 탭을 자동 재로드하지 않아 미저장 작업을 보호한다. 사용자 원문·키·유료 API는 사용하지 않았다.
+
+VibeUsage 공식 홈페이지/README 후속 조사로 로컬 분석과 quota 네트워크 경계, CLI 이름 불일치를 보존한 프로필에 추가했다. 실행 정확성/디자인 우열/유료 수요는 확인하지 않았다. Coach의 호출 비율과 토큰 절감률을 구분하는 기준을 개발기획서에 반영했다. 전체 경쟁사 조사·UX·스토어 완료로 승격하지 않는다.

@@ -9,7 +9,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 
 SNAPSHOT = {
@@ -330,6 +330,7 @@ def main() -> None:
             assert page.locator('link[rel="icon"]').get_attribute("href") == "./icons/tokenjuice-192.png"
             assert page.get_by_text("계기판으로").is_visible()
             page.get_by_text("계기판으로").click()
+            expect(page.locator("#snapshot-file")).to_be_enabled()
             page.locator("#snapshot-file").set_input_files(str(snapshot))
             page.get_by_text("Personal").wait_for()
             assert page.locator("#demo-notice").is_hidden()

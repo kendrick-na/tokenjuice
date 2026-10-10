@@ -299,3 +299,6 @@ window.addEventListener("online", () => updateTransport());
 window.addEventListener("offline", () => updateTransport());
 updateTransport();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
+// The document can expose the picker before module imports finish. Only accept
+// a selection after all initialization and change handlers are installed.
+fileInput.disabled = false;
