@@ -995,3 +995,9 @@ Engine [38071027466](https://github.com/kendrick-na/tokenjuice/actions/runs/3807
 backend-only `scripts/ai-work-summary.mjs`와 6개 합성 테스트를 추가했다. 선택된 한 대화의 전송 미리보기와 endpoint/model/본문/출력 한도 digest를 만들고, 정확한 승인 digest·직접 제공한 키 없이는 요청하지 않는다. 단일 Messages API 요청·redirect 거부·timeout·입출력 bounds·에러 비밀값 비노출·근거 번호 검증과 reviewed=false 반환을 구현했다. 사용자 로그·실제 키·실제 API는 사용하지 않았다.
 
 엄격 release-verify exit 0: 111 tests/1279 assertions, 두 browser suite·bundle·스크립트 문법·격리 알림·설치본 일치. 별도 상세 계약은 DATA_CONTRACT의 클라우드 AI 작업 요약 코어 후보를 따른다. 미리보기/승인 UI와 서버 승인 세션, 모델/가격/금액 한도, 제공자 보존 정책 검수, 실제 의미 요약 품질·작업 재개 효과 및 검토 저장 연결은 남았다. **자동 AI 요약 출시/P2-03~04 완료 아님.** 기존 Pocket 로컬-only 동작과 사용자 설정은 변경하지 않았다.
+
+### 9.31 AI 요약 예산 검사와 검토 저장 후보
+
+동의 범위에 count_tokens endpoint와 가격/예산 정책을 추가했다. 정책이 없거나 모델 불일치·잘못된 가격·24시간 초과 확인 시각이면 실행을 거부한다. 동의 후 토큰 계산 1회, 입력 10%+256 tokens 여유분과 최대 출력 가격의 예산 검사 후 생성 1회만 실행한다. 사전 count는 추정치이므로 결제 절대 상한으로 홍보하지 않는다. 실제 가격 진위 검증과 동시/일별 예산 원장·제공자 결제 제한은 미완료다.
+
+reviewedAiSummary는 직접 확인한 네 항목만 새 AI 요약 형식으로 반환하며 원문·근거·키·provider ID를 제외한다. 기존 로컬 추출로 오표기하지 않는다. 새 후보 8 tests/49 assertions 및 엄격 release-verify 전체 exit 0, 양쪽 browser·설치본 일치 확인. 테스트는 합성 transport만 사용했고 실제 대화·키·API 비용은 사용하지 않았다. 사용자 UI/승인 세션·저장 파일 재열기·실제 요약 평가·P2 전체 완료는 여전히 남았다.

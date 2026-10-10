@@ -319,10 +319,12 @@ snapshot 계약은 그대로 유지하며 별도의 `work-summary.js` 흐름으�
 `scripts/ai-work-summary.mjs`는 기존 로컬 추출과 별도인 backend-only 후보이다. 정적 Pocket에서 import하지 않으며 API 키는 브라우저 번들/config/cache에 넣지 않는다. 현재 화면 연결·운영용 모델/가격·금액 한도·보존 정책 검수·실제 API 평가가 남았다. 이 구현은 사용자 대화 전송 동의나 유료 API 실행 승인이 아니다.
 
 - prepare 단계는 선택한 한 대화를 기존 로컬 필터로 처리하고 전송할 발언·역할·근거 번호, 제공자/endpoint/모델/출력 한도와 경고를 반환한다. 8 MiB/200개/메시지별 700자 한계는 기존 처리와 동일하고 최종 근거 JSON은 20,000 UTF-8 bytes 이하이다. 최신 메시지를 우선하며 누락은 truncated로 표시한다. 필터는 완전한 비밀값 제거를 보장하지 않는다.
-- 요청 endpoint·모델·system 지시·전송 excerpt·출력 한도 전체를 SHA256 digest로 묶는다. 해당 미리보기에 대한 명시적 승인 digest와 직접 제공한 API 키가 없거나 내용이 바뀌면 network 호출을 거부한다. digest는 내용 일치 검사이지 사용자 인증/동의 UI 자체가 아니다. 제품 연결 시 실제 사람이 내용을 보고 선택한 승인을 서버 세션에 연결해야 한다.
-- Anthropic Messages 요청은 1회, redirect 거부·45초 timeout·256~2048 출력 토큰 한도이며 tools/retry는 없다. HTTP 실패 본문·transport exception·키를 출력하지 않는다. 응답은 스트림을 읽는 중 128,000 bytes 초과를 거부한다. 토큰 한도는 달러 비용 상한이 아니므로 금액 제한과 사용량/요금 검증을 추가하기 전 유료 자동 실행을 켜지 않는다.
+- 요청/토큰 계산 endpoint·모델·system 지시·전송 excerpt·출력 한도·가격/예산 정책 전체를 SHA256 digest로 묶는다. 해당 미리보기에 대한 명시적 승인 digest와 직접 제공한 API 키가 없거나 내용이 바뀌면 network 호출을 거부한다. digest는 내용 일치 검사이지 사용자 인증/동의 UI 자체가 아니다. 제품 연결 시 실제 사람이 내용을 보고 선택한 승인을 서버 세션에 연결해야 한다.
+- 동의 후 count_tokens 1회와 예산 검사 통과 시 Messages 생성 1회를 호출한다. 두 단계 모두 redirect 거부·45초 timeout·tools/retry 없음·128,000 bytes 응답 제한을 적용한다. HTTP 실패 본문·transport exception·키를 출력하지 않는다. 예산 정책은 명시 모델·양수 가격·24시간 이내 확인 시각·1회 USD 예산(최대 1)을 요구한다. 확인 시각은 서버 운영자가 실제 공식 요금을 검증하고 넣어야 하며 사용자 입력만으로 가격 진위를 보증하지 않는다.
+- 사전 토큰 수는 제공자의 추정값이다. 입력 10%+256 tokens 여유분과 출력 최대 256~2048 tokens의 가격을 계산해 예산 초과/잘못된 count는 생성 전에 거부한다. 결과에는 예약 추정액·사용량 기준 계산액·예산을 포함하되 invoice=false로 표시한다. 이는 절대 청구액 상한이 아니다. 실제 요금 검증·동시 요청/일별 예산 원장·제공자 결제 상한이 검증되기 전 유료 자동 실행을 켜지 않는다. [공식 토큰 계산 설명](https://platform.claude.com/docs/en/build-with-claude/token-counting).
 - 목표/완료 주장/막힘/다음 행동을 각 text/evidenceIds로 받는다. 존재하지 않는 근거 번호·빈 항목·근거 없는 임의 주장·max_tokens 종료·tool_use를 거부한다. 참조 번호 존재만 검증하므로 사실성·완료 주장·누락의 사람 검토는 필수다. 결과는 `tokenjuice-ai-work-draft-v1`, `cloud_generative`, reviewed=false로 반환하며 자동 실행/저장/복원은 없다.
 - 함수는 원문과 키를 인자로 받아 메모리에서 처리하며 파일·로그 저장을 하지 않는다. 제공자의 보존/처리는 별도 약관과 설정을 따른다. 자체 무저장 구현을 제공자 zero retention으로 홍보하지 않는다.
+- 별도 reviewedAiSummary는 명시적인 검토 확인과 네 편집 항목을 받아 `tokenjuice-ai-work-summary-v1`, cloud_generative_user_reviewed, reviewed_cloud_excerpt로 반환한다. 원문·근거·키·provider ID는 제외하고 로컬 추출 결과로 오표기하지 않는다. 기존 Pocket v1 다시 열기와의 연결은 아직 남았다.
 
 요청 형식 근거: [Anthropic Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages). 모델은 호출자가 명시하며 이번 후보에서 기본 모델이나 가격을 확정하지 않는다.
 
