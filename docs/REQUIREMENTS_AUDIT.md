@@ -959,3 +959,7 @@ repo와 설치본에서 **헤더만 기존 이미지 방식으로 복원**했다
 - 최신 Bun 101 pass / 1222 assertions 및 두 browser suite·bundle·문법·격리 알림이 통과했다. 엄격 release-verify 최종 단계는 새 8줄이 아직 설치되지 않아 source mismatch로 exit 1이었다. 설치본 갱신을 자동 검증 성공으로 숨기지 않는다. 현재 작업은 새 공개 배포가 아닌 로컬 checkpoint 후 기존 설치본 한 파일 수정 대상이다.
 - 모바일/desktop 첫 화면·예시 화면 screenshot 기준선과 애니메이션 종료 대기를 추가, 실제 캡처를 직접 관찰했다. 새 디자인 완료나 실제 quota 복구 증거는 아니다.
 - origin/main fetch 후 HEAD ahead/behind 0/0 확인. 다른 TokenJuice 활성 editor 없음. 변경들은 이 작업의 로컬 후보이며 공개 push/tag/Pages/스토어 제출 없음. 429 제한과 실제 callback·수치 복구는 계속 미완료다.
+
+후속 검증(01:56 KST): 로컬 `e86799c` checkpoint 후 clean/ahead 1·behind 0을 확인하고 기존 설치본을 `backups/tokenjuice-battery.before-renew-backoff-e86799c.js`로 보존했다. 설치본에 새 429 보호 8줄만 반영, shebang·권한·고정폭 헤더를 유지했다. 실제 설치본 `--renew-login`은 `renew skipped (provider retry after 2026-10-10T16:59:38.829Z)`로 종료하고 원래 fail cache의 at/until/status를 그대로 보존했다. CLI/API 요청을 새로 강행하지 않았다.
+
+엄격 `bash scripts/release-verify.sh --require-browser` 최종 exit 0: Bun 101 tests/1222 assertions, 두 browser suite, bundle/문법/격리 알림, plugin/helper 소스 일치. 별도 시각 capture 실행도 exit 0이다. 실제 설치본 JSON은 여전히 `state=rate_limited`, `errorCode=429`, `items=[]`; statusLine callback 파일 없음. **실제 Claude 복구·UI 품질 통과·공개 배포·전체 TODO 완료는 아니다.** 다음 안전한 단계는 제한 종료 후 정상 수집 결과 확인과 P1 화면 재설계이며, 웹 세션 접근은 여전히 명시적 승인 대기다.
