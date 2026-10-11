@@ -160,4 +160,6 @@ OS 최소 조건에 불일치가 있다. AI Limits Tracker 홈페이지는 iOS 1
 
 Android 구현 방식은 C06에서 실제 provider 연결 제약과 widget 요구를 확인한 뒤 결정한다. 오프라인 Pocket 포함 앱/TWA/네이티브의 기술 선택은 아직 확정하지 않는다. 기술 선택 질문으로 시장 비교를 대체하지 않는다.
 
+후속 기술 조건: [모바일 연결 출시 조건](MOBILE_CONNECTION_GATE.md)을 C01·C02·C06·C08에 적용한다. 경쟁사 연결 기능의 존재는 우리 인증 방식에 대한 제공자 허용을 뜻하지 않는다. Claude 계정별 지원을 먼저 확인하고 모바일 자동 전달·위젯 목표를 유지한다. 기존 OAuth 수집의 성공 또는 앱 스토어 등록을 정책 통과 근거로 쓰지 않는다.
+
 후속 증거: 제품별 `competitor-profiles/raw/<slug>/2026-10-11-release-recheck/scrapes/distribution.md`. Firecrawl/DataForSEO가 없어 공식 공개 텍스트로 대조했다. 설치 UX·OS별 동작·독립 리뷰 모집단·실제 유료 수요는 여전히 추가 검증 대상이다. SEO 수치는 만들지 않았다.
