@@ -1,6 +1,17 @@
 import {test, expect} from "bun:test";
 import {triageIssues,readFeedback} from "../scripts/feedback-triage.mjs";
+import {readFileSync} from "node:fs";
 const now = Date.UTC(2026,9,11);
+test("public feedback form discloses login and visibility before requiring explicit privacy checks",()=>{
+  const form=readFileSync(new URL("../.github/ISSUE_TEMPLATE/feedback.yml",import.meta.url),"utf8");
+  expect(form).toContain("GitHub 로그인");
+  expect(form).toContain("공개 이슈");
+  expect(form.indexOf("공개 이슈")).toBeLessThan(form.indexOf("id: type"));
+  expect(form).toContain("id: public-report-consent");
+  expect(form).toContain("label: 이 제보가 공개되며 누구나 읽을 수 있음을 확인했습니다.\n          required: true");
+  expect(form).toContain("label: 비밀번호·토큰·이메일·프롬프트·코드·민감한 화면이 없는지 확인했습니다.\n          required: true");
+  expect(form).toContain("18:30 KST");
+});
 const issue = (number, labels=[]) => ({number,url:`https://github.com/kendrick-na/tokenjuice/issues/${number}`,
   state:"OPEN",updatedAt:new Date(now-8*86400000).toISOString(),labels:labels.map(name=>({name}))});
 test("triage projects only known metadata, prioritizes explicit labels and never exposes private fields",()=>{

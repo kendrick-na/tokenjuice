@@ -5,8 +5,21 @@ body:
   - type: markdown
     attributes:
       value: |
+        GitHub 로그인 후 제출하는 공개 이슈입니다. 누구나 본문·첨부 파일을 읽을 수 있습니다.
+        민감한 내용은 이 양식에 넣지 마세요. 자동으로 비밀값을 제거하는 업로드 서비스가 아닙니다.
         비밀번호, API 키, OAuth 토큰, 프롬프트, 코드, 개인 식별 정보는 입력하지 마세요.
-        macOS/Windows 데스크톱 문제라면 `bun claude-codex-battery.5s.js --copy-diagnostics` 결과만 붙여넣어 주세요. 이 명령은 비밀값을 포함하지 않도록 설계됐습니다.
+        macOS/Windows 데스크톱 문제라면 최신 설치본의 `--diagnostics` 결과를 먼저 확인해 주세요.
+        저장소 폴더에서는 `bun claude-codex-battery.5s.js --copy-diagnostics`를 사용할 수 있습니다.
+        최신 진단은 기존 관측만 읽고 API 요청·로그인 갱신을 하지 않습니다. 출력 내용을 검토한 뒤 필요한 부분만 붙여넣으세요.
+  - type: checkboxes
+    id: public-report-consent
+    attributes:
+      label: 공개 범위와 개인정보 확인
+      options:
+        - label: 이 제보가 공개되며 누구나 읽을 수 있음을 확인했습니다.
+          required: true
+        - label: 비밀번호·토큰·이메일·프롬프트·코드·민감한 화면이 없는지 확인했습니다.
+          required: true
   - type: dropdown
     id: type
     attributes:
@@ -34,11 +47,18 @@ body:
       description: 재현 순서와 기대한 결과, 실제 결과를 적어주세요.
     validations:
       required: true
+  - type: input
+    id: observed-at
+    attributes:
+      label: 문제가 발생한 시각
+      description: "예: 2026-10-11 18:30 KST. 마지막 성공·재시도 시각과 구분해 주세요. 정확하지 않으면 대략적인 시각도 괜찮습니다."
+    validations:
+      required: false
   - type: textarea
     id: diagnostics
     attributes:
       label: 비밀값 없는 진단 정보
-      description: 가능하면 `bun claude-codex-battery.5s.js --copy-diagnostics`의 결과를 그대로 붙여넣으세요. 다른 로그는 토큰·프롬프트·코드가 없는지 먼저 확인하세요.
+      description: 최신 `--diagnostics` 또는 `--copy-diagnostics` 출력을 검토한 뒤 필요한 상태·오류·시각만 넣으세요. 일반 로그·대화·설정 파일·전체 스크린샷은 첨부하지 마세요.
     validations:
       required: false
   - type: dropdown
