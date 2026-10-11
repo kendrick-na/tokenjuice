@@ -1,5 +1,7 @@
 # OpenUsage — Quick Profile
 
+후속 출시 재확인: [근거 노트](raw/openusage/2026-10-11-release-recheck/scrapes/distribution.md)와 [통합 비교 §7~§10](../docs/COMPETITOR_GAP_MAP_2026-10-11.md#7-경쟁사-출시-채널과-가격-비교)을 우선 적용한다. 가격/채널/개인정보의 재확인 결과이며 실제 설치 검증은 아니다.
+
 확인일: 2026-10-11 · [공식 출처](https://openusage.sh/)
 
 대상(카피에서 추론): 여러 코딩 도구를 동시에 쓰는 터미널 사용자.

@@ -18,6 +18,11 @@ import path from "node:path";
 const HOME = os.homedir();
 const IS_MAC = process.platform === "darwin";
 const argvHas = (flag) => process.argv.slice(2).includes(flag);
+const READ_ONLY_DIAGNOSTICS = argvHas("--diagnostics") || argvHas("--copy-diagnostics");
+if (READ_ONLY_DIAGNOSTICS && process.argv.slice(2).some((arg) => !["--diagnostics", "--copy-diagnostics"].includes(arg))) {
+  console.error("diagnostics must run separately from other commands");
+  process.exit(1);
+}
 
 // Claude Code's config root. CLAUDE_CONFIG_DIR moves *everything* under it —
 // transcripts included, not just .credentials.json — so honouring it is what
@@ -31,7 +36,7 @@ function claudeHome() {
 const CACHE_DIR = path.join(HOME, ".cache", "claude-codex-battery");
 const CONFIG_DIR = path.join(HOME, ".config", "claude-codex-battery");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
-try { mkdirSync(CACHE_DIR, { recursive: true }); } catch {}
+if (!READ_ONLY_DIAGNOSTICS) { try { mkdirSync(CACHE_DIR, { recursive: true }); } catch {} }
 
 // 컴팩트 모드: 메뉴바가 실제로 뜨는 "주 디스플레이"가 노치 내장 화면이면 폭을 줄인다.
 // (노치가 넓은 아이콘을 가려 안 보이는 문제 회피). 외장 모니터가 주 디스플레이면 풀버전.
@@ -47,6 +52,7 @@ function shouldCompact() {
     const c = JSON.parse(readFileSync(cacheF, "utf8"));
     if (c.at && Date.now() - c.at < 30000) return c.compact;
   } catch {}
+  if (READ_ONLY_DIAGNOSTICS) return false;
   let compact = false;
   try {
     const out = execSync("system_profiler SPDisplaysDataType", { encoding: "utf8", timeout: 8000 });
@@ -1018,6 +1024,9 @@ async function getClaude(acc = {}, idx = 0) {
       retryAt = Number(fail.until) || null;
       throw new Error(`usage api ${fail.status} (waiting)`);
     }
+    // The support report observes existing evidence only. Enter the same
+    // fallback path without opening Keychain, fetching, renewing or writing.
+    if (READ_ONLY_DIAGNOSTICS) throw new Error("diagnostics-cache-miss");
     const res = await fetchClaudeUsage(acc);
     if (!res.ok) {
       failStatus = res.status;
@@ -1092,7 +1101,8 @@ async function getClaude(acc = {}, idx = 0) {
       };
     }
     // 클린 환경(첫 설치·미로그인·키체인 거부) → raw 에러 대신 원인 분류
-    const reason = failStatus === 401 || failStatus === 403 || /401|403|unauthorized|invalid.*token/i.test(msg)
+    const reason = READ_ONLY_DIAGNOSTICS && !failStatus ? "diagnostics-cache-miss"
+      : failStatus === 401 || failStatus === 403 || /401|403|unauthorized|invalid.*token/i.test(msg)
       ? "auth"
       : failStatus === 429 || /429|rate limit/i.test(msg)
       ? "rate-limit"
@@ -1640,8 +1650,9 @@ async function getCopilotPremiumUsage() {
   if (!cfg.username || !cfg.tokenEnv) return { ...base, enabled: true, state: "unavailable", reason: "needs-config" };
   try {
     const cached = JSON.parse(readFileSync(COPILOT_CACHE_FILE, "utf8"));
-    if (Date.now() - Number(cached.at) < COPILOT_TTL_MS) return { ...base, ...cached, state: "fresh", source: "github-api" };
+    if ((!READ_ONLY_DIAGNOSTICS || validObservationTime(cached.at)) && Date.now() - Number(cached.at) < COPILOT_TTL_MS) return { ...base, ...cached, state: "fresh", source: "github-api" };
   } catch {}
+  if (READ_ONLY_DIAGNOSTICS) return { ...base, enabled: true, state: "unavailable", source: "github-api", reason: "diagnostics-cache-miss" };
   try {
     const res = await fetchCopilotPremiumUsage(cfg);
     if (!res.ok) throw new Error(`github api ${res.status}`);
@@ -1866,7 +1877,7 @@ if (argv[0] === "--renew-login") {
 // ───────────────────────── 메인 ─────────────────────────
 const accounts = loadAccounts();
 const claudes = await Promise.all(accounts.map((a, i) => getClaude(a, i)));
-recordForecastObservations(claudes);
+if (!READ_ONLY_DIAGNOSTICS) recordForecastObservations(claudes);
 for (let accountIndex = 0; accountIndex < claudes.length; accountIndex++) {
   const account = claudes[accountIndex];
   const state = account.state ?? (account.items.length ? "fresh" : "unavailable");
@@ -1875,7 +1886,7 @@ for (let accountIndex = 0; accountIndex < claudes.length; accountIndex++) {
 const codexProfiles = loadCodexProfiles();
 const codexReadings = codexProfiles.map((profile) => ({ ...getCodex(profile), profile }));
 for (const reading of codexReadings) {
-  recordCodexForecastObservations(reading);
+  if (!READ_ONLY_DIAGNOSTICS) recordCodexForecastObservations(reading);
   reading.items = reading.items.map((item) => ({ ...item, forecast: codexForecastForItem(reading, item) }));
 }
 const selectedProfile = selectedCodexProfile(codexProfiles);
@@ -1977,6 +1988,7 @@ function buildDiagnostics() {
   lines.push(`TokenJuice diagnostics · ${new Date().toISOString()}`);
   lines.push(`platform: ${process.platform} · bun ${process.versions?.bun || "?"} · compact ${COMPACT}`);
   lines.push(`config: api=${apiModeEnabled()} · autoRenew=${autoRenewEnabled()} · notify=${notifyConfig().enabled ? "on" : "off"} · forecast=${forecastEnabled() ? "on" : "off"} · sessionStatus=${sessionStatusEnabled() ? "on" : "off"} · topics=${SHOW_TOPICS}`);
+  if (READ_ONLY_DIAGNOSTICS) lines.push("scope: existing local observations only; no API or login renewal");
   claudes.forEach((cl, i) => {
     const state = cl.state ?? (cl.stale ? "stale" : cl.items.length ? "fresh" : "unavailable");
     const b = trustBadge({ state, source: cl.source });

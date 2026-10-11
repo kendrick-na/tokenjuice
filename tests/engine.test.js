@@ -1593,6 +1593,63 @@ test("Codex limits: fresh log is live, a 2h-old log is stale", () => {
 });
 
 // ── R8 · diagnostics, privacy ────────────────────────────────────────────
+test("support diagnostics read existing observations without API, renewal or history writes", async () => {
+  config({api:true,autoRenew:true,forecast:true,codexForecast:true,
+    copilot:{enabled:true,username:"fixture-user",tokenEnv:"FIXTURE_TOKEN",monthlyBudgetUsd:10}});
+  usage(401);copilotUsage(200,{total_amount:1});
+  codexPaceSample({at:Date.now(),reset:Math.floor(Date.now()/1000)+3600});
+  const configFile=path.join(home,".config/claude-codex-battery/config.json");
+  const before=readFileSync(configFile,"utf8");
+  const missing=run("--diagnostics");
+  expect(calls()).toBe(0);expect(copilotCalls()).toBe(0);
+  expect(existsSync(path.join(home,".cache/claude-codex-battery"))).toBe(false);
+  await sleep(100);expect(renewCalls()).toHaveLength(0);
+  expect(missing).toContain("scope: existing local observations only; no API or login renewal");
+  for(const name of ["claude-0.json","claude-0.fail.json","quota-history.json","codex-quota-history.json"])
+    expect(existsSync(path.join(home,".cache/claude-codex-battery",name))).toBe(false);
+  expect(readFileSync(configFile,"utf8")).toBe(before);
+  const at=Date.now()-120000;
+  const sample=JSON.stringify({ok:true,items:[{name:"5-hour",used:35,resets:new Date(Date.now()+3600000).toISOString()}],
+    state:"fresh",source:"api",at,observedAt:at,lastSuccessAt:at});
+  cache("claude-0.json",sample);
+  const stale=run("--diagnostics");
+  expect(stale).toContain("claude[0]: stale");expect(stale).toContain("config: api=true");
+  expect(readFileSync(path.join(home,".cache/claude-codex-battery/claude-0.json"),"utf8")).toBe(sample);
+  expect(calls()).toBe(0);expect(copilotCalls()).toBe(0);
+});
+test("copy diagnostics preserves existing fresh caches and writes only the requested clipboard", () => {
+  config({api:true,autoRenew:true,copilot:{enabled:true,username:"fixture-user",tokenEnv:"FIXTURE_TOKEN"}});
+  const at=Date.now();
+  const claudeFile=cache("claude-0.json", {ok:true,source:"api",at,items:[{name:"5-hour",used:35}]});
+  const copilotFile=cache("copilot-premium-usage.json", {enabled:true,at,amountUsd:2});
+  const before=[claudeFile,copilotFile].map(file=>readFileSync(file,"utf8"));
+  const clipboard=path.join(home,"clipboard.txt");
+  if (process.platform === "darwin") {
+    const fake=write("bin/pbcopy", '#!/bin/sh\ncat > "$CCB_TEST_CLIPBOARD"\n');
+    chmodSync(fake,0o755);
+  }
+  const output=runWithEnv({CCB_COMPACT:"",PATH:`${path.join(home,"bin")}${path.delimiter}${process.env.PATH}`,CCB_TEST_CLIPBOARD:clipboard},"--copy-diagnostics");
+  expect(output).toContain("claude[0]: fresh");
+  expect(output).toContain("copilot: fresh");
+  expect(output).not.toContain(SECRET_PROMPT);
+  expect(output).not.toContain(SECRET_EMAIL);
+  expect([claudeFile,copilotFile].map(file=>readFileSync(file,"utf8"))).toEqual(before);
+  expect(existsSync(path.join(home,".cache/claude-codex-battery/display.json"))).toBe(false);
+  expect(calls()).toBe(0);expect(copilotCalls()).toBe(0);expect(renewCalls()).toHaveLength(0);
+  if (process.platform === "darwin") expect(readFileSync(clipboard,"utf8")).toBe(output.trimEnd());
+});
+test("diagnostics rejects mixed mutating commands before changing configuration or invoking CLI", () => {
+  const file=path.join(home,".config/claude-codex-battery/config.json");
+  const before=readFileSync(file,"utf8");
+  for (const command of ["--init-config","--renew-login","--auto-renew-on","--export-widget-snapshot"]) {
+    const result=spawnSync(process.execPath,[ENGINE,command,"--diagnostics"],{encoding:"utf8",env:engineEnv()});
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("diagnostics must run separately");
+  }
+  expect(readFileSync(file,"utf8")).toBe(before);
+  expect(existsSync(path.join(home,".cache/claude-codex-battery"))).toBe(false);
+  expect(renewCalls()).toHaveLength(0);
+});
 test("diagnostics and every output stay free of prompt text", () => {
   usage(200, okUsage());
   claudeSession();

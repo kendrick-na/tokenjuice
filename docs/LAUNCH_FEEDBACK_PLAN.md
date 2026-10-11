@@ -36,6 +36,8 @@ Windows 후속 수정 `0cbe94b`은 Engine/Windows CI success이며 짧은 경로
 
 ## 1. 출시 전략
 
+현재 채널 판단은 [경쟁 지도 §7~§10](COMPETITOR_GAP_MAP_2026-10-11.md#7-경쟁사-출시-채널과-가격-비교)을 우선 적용한다. C01~C05로 desktop 베타 연결·복구·설치·UI·피드백을 개선하면서 C06 Android 직접 연결·위젯을 설계한다. 수동 Pocket 포장을 모바일 live tracker 완료로 인정하지 않으며 C08 서명 AAB·내부 테스트·제출 준비 목표를 유지한다. TWA/오프라인 래퍼/네이티브 선택은 미확정이다. 아래 채널 표는 현재 가능한 배포 형태이지 최종 범위를 축소하는 결정이 아니다.
+
 2026-10-10 로컬 후보 검토 패키지를 별도로 준비했다. 고정 source archive·동일 CI의
 Windows exe/engine·검증 키트·SHA256SUMS·알려진 제한을 포함하며 설치/공개 배포·스토어
 제출은 하지 않았다. 출처·해시·전체 TODO별 완료/차단은 [후보 검토 원장](RELEASE_CANDIDATE_REVIEW.md)
