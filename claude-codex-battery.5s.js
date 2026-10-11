@@ -14,6 +14,7 @@ import zlib from "node:zlib";
 import { createCipheriv, pbkdf2Sync, randomBytes, createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
+import { Database } from "bun:sqlite";
 
 const HOME = os.homedir();
 const IS_MAC = process.platform === "darwin";
@@ -624,6 +625,8 @@ function stateRecoveryHint(state) {
 // plain instruction, never an automatic retry, credential operation, or
 // provider-specific action when we cannot establish the cause.
 function recoveryActionFor({ state, reason, stale } = {}) {
+  if (reason === "refresh-in-progress") return "진행 중인 조회가 끝난 뒤 다시 확인";
+  if (reason === "request-coordination-unavailable") return "지원 진단으로 로컬 요청 조정 오류 확인";
   if (reason === "needs-api") return "Claude usage API 모드 켜기";
   if (reason === "app-stale") return "Claude 메뉴 막대 아이콘에서 사용량 화면 열기";
   if (state === "auth_expired" || reason === "auth") return "Claude Code에서 다시 로그인";
@@ -872,6 +875,7 @@ async function fetchClaudeUsage(acc) {
   if (fx) {
     appendFileSync(fx + ".calls", `${Date.now()}\n`);
     const f = JSON.parse(readFileSync(fx, "utf8"));
+    if (Number.isSafeInteger(f.delayMs) && f.delayMs > 0 && f.delayMs <= 2000) await Bun.sleep(f.delayMs);
     return new Response(JSON.stringify(f.body ?? {}), { status: f.status ?? 200, headers: f.headers ?? {} });
   }
   const token = readClaudeToken(acc);
@@ -956,7 +960,36 @@ function renewStatusLine() {
 const CLAUDE_TTL_MS = 60 * 1000; // API는 최대 60초마다만 호출 (레이트리밋 보호). 세션 컨텍스트는 매 실행 실시간.
 const CLAUDE_CACHE_MAX_STALE_MS = 2 * 60 * 60 * 1000;
 const CLAUDE_APP_LIVE_MS = 30 * 60 * 1000; // app samples every ~15 min while it polls
-async function getClaude(acc = {}, idx = 0) {
+function freshClaudeApiCache(cacheFile) {
+  try {
+    const cached = JSON.parse(readFileSync(cacheFile, "utf8"));
+    if (validClaudeCacheObservations(cached) && validObservationTime(cached.at)
+      && [cached.at, cached.observedAt ?? cached.at, cached.lastSuccessAt ?? cached.at].every(time => Date.now() - time < CLAUDE_TTL_MS)) {
+      if (!validClaudeCache(cached)) return invalidClaudeQuota(cached.source || "api");
+      return { ...cached, ...usageState({state:"fresh",source:cached.source || "api",at:cached.at,
+        observedAt:cached.observedAt ?? cached.at,lastSuccessAt:cached.lastSuccessAt ?? cached.at}),
+        ok:true,fresh:true,stale:false };
+    }
+  } catch {}
+  return null;
+}
+// Atomic lease across Bun processes. SQLite serializes the conditional write;
+// an expired owner's release cannot remove a newer lease. No credentials or
+// quota are stored here. The 45s lease exceeds Keychain + HTTP timeouts and
+// expires after a crash rather than requiring deletion of an arbitrary lock.
+function claimClaudeRequest(idx) {
+  let db;
+  try {
+    db = new Database(path.join(CACHE_DIR,"claude-request-leases.sqlite"),{create:true});
+    db.exec("PRAGMA busy_timeout=1000; CREATE TABLE IF NOT EXISTS leases (profile INTEGER PRIMARY KEY, owner TEXT NOT NULL, expires INTEGER NOT NULL)");
+    const owner=randomBytes(16).toString("hex"), now=Date.now();
+    const claim=db.query("INSERT INTO leases VALUES (?, ?, ?) ON CONFLICT(profile) DO UPDATE SET owner=excluded.owner, expires=excluded.expires WHERE leases.expires <= ?")
+      .run(idx,owner,now+45000,now);
+    if (!claim.changes) { db.close(); return null; }
+    return {release(){try {db.query("DELETE FROM leases WHERE profile=? AND owner=?").run(idx,owner);} finally {db.close();}}};
+  } catch {try {db?.close();} catch {} throw new Error("request-coordination-unavailable");}
+}
+async function getClaude(acc = {}, idx = 0, waitDeadline = Date.now()+16000) {
   // Claude desktop's meter is a fallback only: it samples irregularly and stops
   // entirely unless its tray usage view was opened in the last 24h, so
   // preferring it froze the battery on one old sample. The API answer is live.
@@ -981,28 +1014,8 @@ async function getClaude(acc = {}, idx = 0) {
 
   // 2순위: 우리 API 캐시가 신선하면 API 스킵
   const cacheFile = path.join(CACHE_DIR, `claude-${idx}.json`);
-  if (existsSync(cacheFile)) {
-    try {
-      const cached = JSON.parse(readFileSync(cacheFile, "utf8"));
-      if (validClaudeCacheObservations(cached) && validObservationTime(cached.at)
-        && [cached.at, cached.observedAt ?? cached.at, cached.lastSuccessAt ?? cached.at].every((time) => Date.now() - time < CLAUDE_TTL_MS)) {
-        if (!validClaudeCache(cached)) return invalidClaudeQuota(cached.source || "api");
-        return {
-          ...cached,
-          ...usageState({
-            state: "fresh",
-            source: cached.source || "api",
-            at: cached.at,
-            observedAt: cached.observedAt ?? cached.at,
-            lastSuccessAt: cached.lastSuccessAt ?? cached.at,
-          }),
-          ok: true,
-          fresh: true,
-          stale: false,
-        };
-      }
-    } catch {}
-  }
+  const freshCache=freshClaudeApiCache(cacheFile);
+  if (freshCache) return freshCache;
   // 3순위: usage API 직접 호출 (여기서만 키체인 토큰을 읽음 — 옵트인 상태에서만 도달)
   // 실패하면 대기시간을 기록해 둔다. 안 그러면 5초 실행마다 API를 두드려 429가 풀리지 않는다.
   const failFile = path.join(CACHE_DIR, `claude-${idx}.fail.json`);
@@ -1014,7 +1027,9 @@ async function getClaude(acc = {}, idx = 0) {
   let refreshing = false;
   let failStatus = null;
   let retryAt = null;
+  let lease = null;
   try {
+    const checkBackoff=()=>{
     let fail = null;
     try { fail = JSON.parse(readFileSync(failFile, "utf8")); } catch {}
     if (fail && Date.now() < Number(fail.until)) {
@@ -1024,9 +1039,24 @@ async function getClaude(acc = {}, idx = 0) {
       retryAt = Number(fail.until) || null;
       throw new Error(`usage api ${fail.status} (waiting)`);
     }
+    return null;
+    };
+    const blocked=checkBackoff();
+    if (blocked) return blocked;
     // The support report observes existing evidence only. Enter the same
     // fallback path without opening Keychain, fetching, renewing or writing.
     if (READ_ONLY_DIAGNOSTICS) throw new Error("diagnostics-cache-miss");
+    lease=claimClaudeRequest(idx);
+    if (!lease) {
+      if (Date.now() >= waitDeadline) throw new Error("refresh-in-progress");
+      await Bun.sleep(50);
+      return await getClaude(acc,idx,waitDeadline);
+    }
+    // Another process can finish between the initial reads and our claim.
+    const completed=freshClaudeApiCache(cacheFile);
+    if (completed) return completed;
+    const newlyBlocked=checkBackoff();
+    if (newlyBlocked) return newlyBlocked;
     const res = await fetchClaudeUsage(acc);
     if (!res.ok) {
       failStatus = res.status;
@@ -1101,7 +1131,8 @@ async function getClaude(acc = {}, idx = 0) {
       };
     }
     // 클린 환경(첫 설치·미로그인·키체인 거부) → raw 에러 대신 원인 분류
-    const reason = READ_ONLY_DIAGNOSTICS && !failStatus ? "diagnostics-cache-miss"
+    const reason = /^(refresh-in-progress|request-coordination-unavailable)$/.test(msg) ? msg
+      : READ_ONLY_DIAGNOSTICS && !failStatus ? "diagnostics-cache-miss"
       : failStatus === 401 || failStatus === 403 || /401|403|unauthorized|invalid.*token/i.test(msg)
       ? "auth"
       : failStatus === 429 || /429|rate limit/i.test(msg)
@@ -1135,6 +1166,8 @@ async function getClaude(acc = {}, idx = 0) {
       observedAt: validObservationTime(observedAt) ? observedAt : null,
       lastSuccessAt: lastGoodAt,
     };
+  } finally {
+    try {lease?.release();} catch {}
   }
 }
 
@@ -2478,6 +2511,8 @@ for (let ai = 0; ai < accounts.length; ai++) {
   if (state !== "fresh" && state !== "fallback") {
     const cause = state === "auth_expired" ? "인증 실패 · Claude Code에서 다시 로그인하세요"
       : state === "rate_limited" ? "제공자 요청 제한 · 다음 확인 시각까지 기다리세요"
+      : cl.reason === "refresh-in-progress" ? "다른 조회가 진행 중 · 중복 API 요청을 보내지 않습니다"
+      : cl.reason === "request-coordination-unavailable" ? "로컬 요청 조정 오류 · API 요청을 중단했습니다"
       : cl.reason === "needs-api" ? "연결 안 됨 · 로컬 사용량 없음, API 연결은 선택 사항입니다"
       : stateRecoveryHint(state) || "최신 사용량을 확인하지 못했습니다";
     out.push(`원인 · ${cause} | size=12 color=#ffcc00`);
@@ -2532,6 +2567,8 @@ for (let ai = 0; ai < accounts.length; ai++) {
     const retry = fmtRetryAt(cl.retryAt);
     out.push(`⏳ 제공자 제한 중 · ${stateRecoveryHint("rate_limited")}${retry ? ` — ${retry}` : ""} | size=12 color=#ffcc00`);
     out.push("--그때까지 요청하지 않으며 자동으로 다시 확인합니다 | size=11 color=#8b949e");
+  } else if (cl.reason === "refresh-in-progress" || cl.reason === "request-coordination-unavailable") {
+    out.push(`${cl.reason === "refresh-in-progress" ? "⏳ 조회 진행 중 · 중복 요청 없이 기다립니다" : "⚠️ 로컬 요청 조정 오류 · 지원 진단을 확인하세요"} | size=12 color=#ffcc00`);
   } else {
     out.push("⚠️ Couldn't load usage | size=12 color=#ff453a");
     out.push(`--${(cl.error || "").slice(0, 60)} | size=11 color=#8b949e`);

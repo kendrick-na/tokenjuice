@@ -10,6 +10,7 @@ import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { createDecipheriv, pbkdf2Sync } from "node:crypto";
+import { Database } from "bun:sqlite";
 
 const ROOT = path.resolve(import.meta.dir, "..");
 const ENGINE = path.join(ROOT, "claude-codex-battery.5s.js");
@@ -72,6 +73,57 @@ async function waitFor(condition, description, timeoutMs = 3000) {
 const okUsage = (fiveUsed = 20, weekUsed = 40) => ({
   five_hour: { utilization: fiveUsed, resets_at: new Date(Date.now() + 3 * 3600e3).toISOString() },
   seven_day: { utilization: weekUsed, resets_at: new Date(Date.now() + 3 * 86400e3).toISOString() },
+});
+
+async function parallelClaudeRenders() {
+  return await Promise.all(Array.from({length:6},async()=>{
+    const child=Bun.spawn([process.execPath,ENGINE,"--json"],{stdout:"pipe",stderr:"pipe",env:engineEnv({
+      CCB_COMPACT:"0",CCB_API:"",CCB_TOPICS:"",CCB_TEST_USAGE_FIXTURE:fx,
+      CCB_CLAUDE_BIN:path.join(home,"fake-claude"),CCB_TEST_NOTIFY_LOG:path.join(home,"notify.log")})});
+    const [out,error,status]=await Promise.all([new Response(child.stdout).text(),new Response(child.stderr).text(),child.exited]);
+    expect(status).toBe(0);expect(error).toBe("");
+    return JSON.parse(out);
+  }));
+}
+test("parallel cold-cache renders coalesce one Claude request without inventing fresh data", async () => {
+  writeFileSync(fx,JSON.stringify({status:200,body:okUsage(),delayMs:750}));
+  const outputs=await parallelClaudeRenders();
+  expect(calls()).toBe(1);
+  for(const output of outputs) {
+    expect(output.claude[0].state).toBe("fresh");
+    expect(output.claude[0].items.map(item=>item.used)).toEqual([20,40]);
+  }
+});
+test("parallel failed renders share provider backoff without duplicate requests or renewal", async () => {
+  writeFileSync(fx,JSON.stringify({status:429,headers:{"retry-after":"3600"},delayMs:750}));
+  const outputs=await parallelClaudeRenders();
+  expect(calls()).toBe(1);expect(renewCalls()).toHaveLength(0);
+  const failure=JSON.parse(readFileSync(path.join(home,".cache/claude-codex-battery/claude-0.fail.json"),"utf8"));
+  for(const output of outputs) {
+    expect(output.claude[0].state).toBe("rate_limited");
+    expect(output.claude[0].retryAt).toBe(failure.until);
+    expect(output.claude[0].items).toEqual([]);
+  }
+  run("--diagnostics");expect(calls()).toBe(1);
+});
+test("expired crash leases recover and corrupt coordination storage fails closed", () => {
+  const file=write(".cache/claude-codex-battery/claude-request-leases.sqlite","");
+  const db=new Database(file);
+  db.exec("CREATE TABLE leases (profile INTEGER PRIMARY KEY, owner TEXT NOT NULL, expires INTEGER NOT NULL)");
+  db.query("INSERT INTO leases VALUES (0, ?, ?)").run("expired-owner",Date.now()-1);
+  db.close();usage(200,okUsage());
+  expect(json().claude[0].state).toBe("fresh");expect(calls()).toBe(1);
+  const verified=new Database(file);
+  expect(verified.query("SELECT COUNT(*) AS count FROM leases").get().count).toBe(0);
+  verified.close();
+  cache("claude-0.json",{});
+  writeFileSync(file,"invalid database");
+  const failed=json().claude[0];
+  expect(failed.state).toBe("unavailable");expect(failed.reason).toBe("request-coordination-unavailable");
+  const panel=run();
+  expect(panel).toContain("로컬 요청 조정 오류 · API 요청을 중단했습니다");
+  expect(panel).toContain("NEXT · 지원 진단으로 로컬 요청 조정 오류 확인");
+  expect(calls()).toBe(1);
 });
 
 function codexSession({ usedPercent = 40, ageMin = 1, complete = false } = {}) {

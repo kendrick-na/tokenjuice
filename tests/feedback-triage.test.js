@@ -2,8 +2,9 @@ import {test, expect} from "bun:test";
 import {triageIssues,readFeedback} from "../scripts/feedback-triage.mjs";
 import {readFileSync} from "node:fs";
 const now = Date.UTC(2026,9,11);
-test("public feedback form discloses login and visibility before requiring explicit privacy checks",()=>{
-  const form=readFileSync(new URL("../.github/ISSUE_TEMPLATE/feedback.yml",import.meta.url),"utf8");
+for (const newline of ["\n", "\r\n"]) test(`public feedback privacy checks survive ${newline === "\n" ? "LF" : "CRLF"} checkouts`,()=>{
+  const source=readFileSync(new URL("../.github/ISSUE_TEMPLATE/feedback.yml",import.meta.url),"utf8");
+  const form=source.replace(/\r\n/g,"\n").replace(/\n/g,newline).replace(/\r\n/g,"\n");
   expect(form).toContain("GitHub 로그인");
   expect(form).toContain("공개 이슈");
   expect(form.indexOf("공개 이슈")).toBeLessThan(form.indexOf("id: type"));
