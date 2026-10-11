@@ -1186,4 +1186,8 @@ strict release-verify exit 0: 166 tests/1920 assertions, 기존 여섯 browser s
 
 이전 a2236db의 Engine CI는 성공했지만 Windows CI 38128066899는 피드백 테스트의 LF 문자열 비교에서 실패했다. Windows checkout의 CRLF를 확인했고 두 줄바꿈 모두 개인정보 동의 필드를 검증하도록 수정했다. 피드백 양식 자체의 공개 범위·필수 동의는 유지한다.
 
-최신 로컬 Bun 테스트는 171개 통과, 실패 0개, assertion 2000개이며 Bun bundle과 diff 검사도 통과했다. 새 원격 Windows 실행·설치본 반영·실제 새 quota 대조는 아직 별도 단계다. 공개 Pocket v20과 desktop release v1.2.2는 유지한다.
+3c4be09의 Engine CI 38128618767과 Windows CI 38128618774는 모두 success다. Windows 엔진 회귀·tray self-test·실행·EXE 빌드/실행·artifact 업로드가 통과했으며 버전 태그가 없어 release 단계는 건너뛰었다. 실제 사용자 Windows 화면 검증을 대신하지 않는다.
+
+기존 Mac 설치본이 de84bc8 본문과 일치함을 확인하고 `/tmp/tokenjuice-coordination-backup.36WMMm/tokenjuice-battery.5s.js`에 백업했다. 엔진 한 파일만 3c4be09로 갱신했으며 shebang·아이콘·설정·인증·helper·LaunchAgent는 유지했다. 설치 plugin/helper 소스 일치와 SwiftBar 실행을 확인했다. 갱신 후 실제 diagnostics 전후 config/Claude cache/fail cache 해시가 동일하다. 18:32 KST 관측은 여전히 HTTP 429 대기이며 다음 확인 표시가 18:59다. 제한 종료 후 실제 새 quota 대조는 미완료다.
+
+설치본 반영 후 strict release-verify exit 0: Bun 테스트 171개 통과·실패 0개·assertion 2000개, 여섯 browser suite, 번들·스크립트/Windows 문법·격리 알림·설치본 일치. 공개 Pocket v20과 desktop release v1.2.2는 유지한다. 지속 수집·신규 설치·절전·실대화 요약 가치·사용자 조사·디자인 경쟁 검증·모바일 연결/스토어 게이트는 남아 있다.
