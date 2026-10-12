@@ -103,6 +103,33 @@ await 중 logout/철회/만료가 발생하면 과거 권한 응답으로 접근
 
 ## 출시 TODO
 
+### Readiness 및 종료 대기 후보
+
+`scripts/managed-summary-lifecycle.mjs`는 listener/signal 처리 없이 `handle`과 `drain`을
+제공한다. `origin`, 실제 site를 감싼 `handler`, 동기 `isReady`를 명시한다. `isReady`는 호스트가
+검증한 auth/권한/지속 저장소·운영 구성 상태에서 결정하며 boolean true만 허용한다. Promise,
+truthy·예외는 ready가 아니다. callback이 실제 의존성을 검증하지 않으면 readiness 증거가
+되지 않는다. 이 controller가 자체적으로 로그인·키 조회·모델 API·원장 초기화를 실행하지 않는다.
+
+구성 순서는 `gateway → site → lifecycle.handle → ingress`이다. 원래 HTTPS origin/Host
+검사를 유지하며 GET `/healthz`는 `{ready:true|false}`만 반환한다. query·다른 method는
+거부하고 사용자/대화/키/원장/활성 요청 수를 반환하지 않는다. health는 요약 호출을 발생시키지
+않는다. 준비 전/종료 중은 503이다. 일반 요청 최대 active는 기본 16, 설정 범위 1~256이며
+초과 시 429다. capacity 소진은 health false로 바꾸지 않아 부하를 의존성 실패로 오인하지 않는다.
+
+호스트가 종료 신호를 받으면 `drain(timeoutMs)`을 먼저 호출한다. 새 요청은 즉시 거부하고
+기존 handler가 응답을 반환할 때까지 기다린다. 기본 30초, 허용 1~120,000ms이며 timeout은
+`{drained:false}`다. false는 작업 취소·환불·원장 복구·resource dispose·완료가 아니며 종료
+상태를 되돌리지 않는다. 시간이 지난 작업이 끝나면 재호출로 true를 확인할 수 있다. 현재
+site/gateway는 생성 종료 후 buffered Response를 반환한다. 반환 뒤 계속 흐르는 streaming
+response의 완료까지 추적하는 controller가 아니므로 SSE/스트리밍을 붙일 때는 별도 drain이
+필요하다. 실제 호스팅 종료 제한과 최악 요청 시간에 맞는 signal/listener·대기·dispose 순서,
+강제 종료의 불명 결과/예산 유지, 재시작 검증은 다음 통합 게이트다.
+
+회귀는 합성 gateway 생성이 종료 deadline 뒤에도 응답·사용자 시도 원장을 보존하는지,
+중복 요청 차단·abort/refund 없음·health metadata 부재와 실제 loopback의 ingress/site 연결을
+검증한다. 실제 SIGTERM·호스트 배포·운영 TLS·실제 외부 요청/개인정보 계약은 검증 전이다.
+
 ### HTTPS ingress adapter 후보
 
 `scripts/managed-summary-ingress.mjs`의 `createManagedSummaryIngress`는 site 앞의 선택적
@@ -123,8 +150,8 @@ Secure-cookie/CSP를 유지하고 private 실패 내용은 `ingress_unavailable`
 load balancer에서 종료된 뒤 앱으로 HTTP 전달되고, 앱 포트는 외부 인터넷에서 직접 접근할
 수 없다. 하지만 실제 계정의 네트워크·socket·Host·TLS·private 경로/출처 설정은 검증 전이다.
 이 adapter를 Render 전용 자동 신뢰로 취급하지 않는다. 직접 TLS 서버는 기존 site를 사용하고,
-이 adapter는 HTTPS 입력도 거부한다. health/readiness·종료 중 drain·actual TLS·권한 저장소·
-로그/보존·운영 host launch 구성은 별도 작업이다.
+이 adapter는 HTTPS 입력도 거부한다. health/readiness·drain controller 후보는 위에 추가했지만
+actual TLS·권한 저장소·signal/listener 통합·로그/보존·운영 host launch 구성은 별도 작업이다.
 
 회귀는 127.0.0.1 임시 서버와 합성 canonical 신원만 사용한다. 실제 opaque 앱 세션·gateway를
 연결한 cookie/Origin/동의/로그아웃 검증은 실제 IdP 로그인이나 Render TLS 동작 증거가 아니다.

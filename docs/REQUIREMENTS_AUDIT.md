@@ -1653,3 +1653,27 @@ Render 실제 peer/Host/TLS 설정·직접 HTTP 차단·운영 health/drain·실
 PASS 및 POSIX gateway 통합 1개 skip을 로그로 확인했다. browser job·Windows EXE 생성/
 실행·artifact 업로드도 통과했고 tag release는 skipped다. 실제 호스팅/TLS/로그인·사용자
 수집을 확인한 결과가 아니며 전체 목표는 미완료로 유지한다.
+
+### 9.78 운영 중 readiness 및 종료 대기 controller 후보
+
+managed-summary-lifecycle.mjs는 명시적 HTTPS origin·handler·동기 isReady·bounded active를
+받는다. GET /healthz는 boolean ready만 반환하며 query/다른 method·잘못된 origin/Host를
+거부한다. 준비/종료 중 일반 요청은 503, active 상한은 429다. health가 요약이나 사용자
+gateway를 호출하거나 활성 수/키/원장을 출력하지 않는다. isReady의 실제 의존성 확인은
+호스트 책임이며 Promise/truthy/예외를 정상으로 취급하지 않는다.
+
+drain 시작은 되돌리지 않고 새 요청을 차단한다. 기존 buffered handler가 응답을 반환할
+때까지 기다리며 default 30초·최대 120초 deadline 뒤에는 drained false다. timeout이
+취소/환불/dispose/원장 복구를 실행하지 않으며 실제 작업은 이어서 완료될 수 있다. 별도
+호스트가 signal/listener/stop·실제 provider 최대 시간·강제 종료의 불명 결과를 관리해야 한다.
+streaming Response body의 완료까지 기다리는 기능은 아니며 현재 buffered site 계약만 검증했다.
+
+새 7 pass/90 assertions에서 health metadata 부재·부하 상태와 readiness 분리·동시 drain·
+deadline 후 계속 요청 거부·오류 후 capacity 회수, 실제 loopback ingress/site 연결을 확인했다.
+실제 합성 gateway 생성은 fake provider가 기다리는 동안 drain deadline을 넘기고 중복 503·
+abort 없음·기존 응답 완료·사용자 시도 used 1/remaining 1 보존을 확인했다. 실제 API 비용이나
+대화/계정 사용은 없다. POSIX 원장 통합 1개는 Windows에서 skip하며 나머지 6개는 실행한다.
+
+전체 Bun 244 pass·1 platform skip·2757 assertions·24 파일, strict release-verify
+--require-browser exit 0다. source/기획서의 후보 경계를 업데이트했다. 실제 SIGTERM·운영
+종료/재시작·TLS·auth/권한·호스팅/비용 승인·Claude 수집·스토어·인터뷰는 계속 미완료다.
