@@ -163,6 +163,10 @@ Pocket 제보 후속: 하단 **피드백** 또는 **문제 제보 준비**에서
 접수·응답·수정·재배포 1건이나 인터뷰 완료로 처리하지 않는다. DATA_CONTRACT의 Pocket
 제보 초안을 따른다.
 
+공개 반영 확인: `3c0951b`/cache v27, Pages 38287031448·Engine 38287031430·Windows
+38287031552 success 및 주요 공개 파일 10개 HTTP 200/SHA-256 일치(audit §9.83).
+실제 접수/인터뷰·native/스토어 gate는 유지한다.
+
 ### 1단계 — 공개 베타
 
 대상은 Claude Code 또는 Codex를 매일 사용하는 Mac 개발자다. GitHub Pages에서 Pocket을 체험하게 하고, GitHub Release에서 Mac/Windows 설치본을 제공한다.

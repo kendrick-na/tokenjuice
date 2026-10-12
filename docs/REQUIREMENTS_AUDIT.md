@@ -1830,3 +1830,11 @@ engine/helper 일치다. Pages/Engine CI에 신규 browser 검증과 precache fe
 
 실제 접수→응답→수정→배포 1건·신규 사용자/인터뷰·Claude 실수집·native/스토어·운영형
 로그인/요약은 미완료이며 P3-04 전체를 완료 처리하지 않는다.
+
+3c0951b의 Engine 38287031430·Windows 38287031552·Pages 38287031448는 모두 success다.
+Pages verify job 114937755991의 신규 3 pass/17 assertions 및 feedback browser PASS를
+로그로 확인했다. Windows EXE 생성·실행·artifact 업로드도 success이고 tag release는
+skipped다. 공개 index.html/app.js/app.css/sw.js/feedback.js/privacy.html/history.js/
+work-summary.js/work-files.js/manifest.webmanifest 10개 HTTP 200·SHA-256 소스 일치다.
+현재 공개 Pocket은 3c0951b/v27이며 desktop v1.2.2 고정 release를 새로 발행하지 않았다.
+단순 코드 push만으로 공개 반영을 주장하지 않으며 공개 byte 검증 이후 기록했다.
