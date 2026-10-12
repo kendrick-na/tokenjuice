@@ -1753,3 +1753,10 @@ fileURLToPath 패턴으로 바로잡아 child가 실제 실행된 뒤 신호 경
 --require-browser exit 0다. 공식 process 문서의 Windows 신호 제약에 따라 실제 SIGTERM
 2개는 Windows에서 skip하고 wiring 3개만 실행한다. 실제 호스팅 supervisor/grace period·
 production auth/키/TLS/volume·실모델·Claude 수집·모바일/스토어·인터뷰는 미완료다.
+
+7c46894의 Engine 38283843407·Windows 38283843432는 모두 success다. Ubuntu job
+114927345328의 wiring 3개 및 실제 owned child 2개 PASS, Windows job 114927345416의
+wiring 3개 PASS/actual SIGTERM 2개 skip을 로그로 확인했다. Ubuntu는 262 pass·1 skip·
+2728 assertions·26 파일이다(플랫폼별 assertion 수가 다름). browser job과 Windows EXE
+생성·실행·artifact 업로드도 통과했고 tag release는 skipped다. 실제 호스팅/사용자 프로세스
+종료나 실제 대화/로그인·배포를 수행한 것으로 기록하지 않는다.
