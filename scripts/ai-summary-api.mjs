@@ -4,6 +4,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 
 const ROUTES = new Set(["preview", "generate", "review", "discard"]);
 const PUBLIC_ERRORS = new Set(["approval_unavailable", "consent_required", "approval_already_used",
+  "daily_summary_attempts_exceeded", "attempt_ledger_unavailable", "attempt_clock_rollback", "attempt_migration_required",
   "preview_capacity", "draft_unavailable", "summary_running", "review_required", "invalid_field",
   "redacted_field", "too_large", "empty_session", "too_many_records", "multiple_sessions",
   "no_supported_messages", "no_evidence", "invalid_budget_policy", "budget_required", "budget_ledger_required",
@@ -118,7 +119,7 @@ function buildSummaryApi({ origin, accessToken, sessions } = {}) {
       const code = PUBLIC_ERRORS.has(error.message) || /^(?:local_)?summary_http_[45]\d\d$/.test(error.message)
         ? error.message : "summary_unavailable";
       const status = ["approval_unavailable", "draft_unavailable", "approval_already_used", "summary_running", "local_summary_busy"].includes(code) ? 409
-        : ["preview_capacity", "daily_summary_budget_exceeded"].includes(code) ? 429
+        : ["preview_capacity", "daily_summary_budget_exceeded", "daily_summary_attempts_exceeded"].includes(code) ? 429
         : ["consent_required", "review_required", "invalid_field", "redacted_field", "multiple_sessions",
           "empty_session", "no_supported_messages", "no_evidence", "too_large", "too_many_records"].includes(code) ? 400 : 503;
       return json({ error: code }, status);

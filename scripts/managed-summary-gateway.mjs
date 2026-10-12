@@ -3,6 +3,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { createDailySummaryBudget } from "./ai-summary-budget.mjs";
+import { createDailySummaryAttempts } from "./ai-summary-attempts.mjs";
 import { createSummarySessions } from "./ai-summary-sessions.mjs";
 import { createHostedSummaryApi, readSummaryBody } from "./ai-summary-api.mjs";
 import { prepareAiSummary } from "./ai-work-summary.mjs";
@@ -28,7 +29,6 @@ export function createManagedSummaryGateway({ origin, authenticate, apiKey, opti
   // rejected. Never reuse subscription credentials as model API credentials.
   const frozen = JSON.parse(JSON.stringify(options || {}));
   if (!prepareAiSummary("configuration check", frozen).budget) throw new Error("budget_required");
-  const perRequest = frozen.budget.maxUSD;
   const globalLedger = createDailySummaryBudget({ directory: budgetDirectory, dailyMaxUSD: globalDailyMaxUSD, now });
   const accounts = new Map();
   let pending = 0;
@@ -45,17 +45,16 @@ export function createManagedSummaryGateway({ origin, authenticate, apiKey, opti
     }
     if (accounts.has(id)) return accounts.get(id);
     if (accounts.size >= maxAccounts) throw new Error("gateway_capacity");
-    const ledger = createDailySummaryBudget({ directory: join(budgetDirectory, "accounts", id),
-      dailyMaxUSD: Math.ceil(perRequest * 1000000) * dailyRequests / 1000000, now });
+    const attempts = createDailySummaryAttempts({ directory: join(budgetDirectory, "accounts", id), dailyLimit: dailyRequests, now });
     const sessions = createSummarySessions({ apiKey, options: frozen, transport, now, budgetLedger: {
       reserve(amount) {
         // Failures consume an attempt; never refund uncertain provider calls.
         // Account reservation first is conservative if the global gate fails.
-        ledger.reserve(amount); globalLedger.reserve(amount);
+        attempts.reserve(); globalLedger.reserve(amount);
       },
     } });
     const token = randomBytes(32).toString("hex");
-    const entry = { sessions, token, active: 0, lastSeen: now(),
+    const entry = { sessions, token, attempts, active: 0, lastSeen: now(),
       api: createHostedSummaryApi({ origin, accessToken: token, sessions }) };
     accounts.set(id, entry); return entry;
   }
@@ -87,7 +86,8 @@ export function createManagedSummaryGateway({ origin, authenticate, apiKey, opti
         const body = await readSummaryBody(request, route.endsWith("/preview") ? 128000 : 20000);
         if (route.endsWith("/policy")) {
           if (Object.keys(body).length) return reply({ error: "invalid_request_body" }, 400);
-          return reply(policy);
+          entry = account(identity.subject); entry.active++; entry.lastSeen = now();
+          return reply({ ...policy, quota: entry.attempts.snapshot() });
         }
         if (route.endsWith("/preview")) {
           if (Object.keys(body).length !== 3 || body.confirmed !== true || body.policyVersion !== policyVersion)
@@ -102,9 +102,14 @@ export function createManagedSummaryGateway({ origin, authenticate, apiKey, opti
         entry = account(identity.subject); entry.active++; entry.lastSeen = now();
         const headers = new Headers(request.headers);
         headers.set("authorization", `Bearer ${entry.token}`);
-        return await entry.api(new Request(request.url, { method: "POST", headers, body: JSON.stringify(body) }));
+        const response = await entry.api(new Request(request.url, { method: "POST", headers, body: JSON.stringify(body) }));
+        const result = await response.json();
+        let quota = null;
+        try { quota = entry.attempts.snapshot(); } catch { /* Unknown, never zero. Keep any completed draft. */ }
+        return reply({ ...result, quota }, response.status);
       } catch (error) {
-        const codes = new Set(["gateway_capacity", "invalid_body_size", "request_body_timeout", "invalid_request_body"]);
+        const codes = new Set(["gateway_capacity", "invalid_body_size", "request_body_timeout", "invalid_request_body",
+          "attempt_migration_required", "attempt_ledger_unavailable", "attempt_clock_rollback"]);
         return reply({ error: codes.has(error.message) ? error.message : "summary_unavailable" },
           error.message === "gateway_capacity" ? 429 : error.message === "invalid_body_size" ? 413
             : error.message === "request_body_timeout" ? 408 : error.message === "invalid_request_body" ? 400 : 503);

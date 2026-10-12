@@ -1,4 +1,4 @@
-import { prepareManagedExcerpt, validateManagedPolicy } from "/managed-summary/excerpt.js";
+import { prepareManagedExcerpt, validateManagedPolicy, validateManagedQuota } from "/managed-summary/excerpt.js";
 import { reviewedSummary } from "/companion/work-summary.js";
 const get = id => document.getElementById(id), fields = ["goal", "completed", "blocked", "next"];
 let policy = null, selected = null, preview = null, draft = null, busy = false, consumed = false, timer;
@@ -6,16 +6,30 @@ const notice = text => { get("status").textContent = text; };
 const errors = { authentication_required: "계정 로그인 확인이 필요합니다. 호스트에서 로그인한 뒤 연결을 다시 확인하세요. 선택 내용은 자동 전송하지 않습니다." };
 errors.summary_not_enabled = "이 계정의 클라우드 요약이 활성화되지 않았습니다. 기본 추적은 별도 기능입니다.";
 errors.daily_summary_budget_exceeded = "하루 요청 시도 또는 전체 운영 한도에 도달했습니다. 자동 재시도하지 않습니다.";
+errors.daily_summary_attempts_exceeded = "오늘 요약 요청 시도를 모두 사용했습니다. UTC 날짜가 바뀐 후 직접 다시 확인하세요.";
+errors.attempt_ledger_unavailable = "요약 횟수 기록을 안전하게 읽지 못했습니다. 한도를 초기화하지 않았으며 운영자 확인이 필요합니다.";
+errors.attempt_clock_rollback = "서버 시각이 기록보다 뒤로 이동했습니다. 한도를 초기화하지 않고 요청을 차단했습니다.";
+errors.attempt_migration_required = "이전 예산 기록의 요청 횟수 전환이 필요합니다. 운영자 확인 전 새 한도를 부여하지 않습니다.";
 errors.transmission_consent_required = "전송 정책이 바뀌었거나 동의가 누락됐습니다. 연결을 다시 확인하고 발췌를 재선택하세요.";
 errors.approval_unavailable = "승인이 만료됐습니다. 발췌 업로드부터 다시 확인하세요.";
 errors.approval_already_used = "이미 사용한 승인입니다. 자동 재사용하지 않습니다.";
 errors.gateway_capacity = "서버 요청이 많습니다. 잠시 뒤 직접 연결을 다시 확인하세요.";
+function quotaFresh() {
+  const q = policy?.quota;
+  return !!q && Date.now() >= q.observedAt - 1000 && Date.now() - q.observedAt <= 120000 && Date.now() < q.resetsAt;
+}
+function renderQuota() {
+  const q = policy?.quota;
+  get("quota").textContent = !q ? "남은 요청 횟수 확인 불가 · 0회나 새 한도로 간주하지 않습니다. 계정 연결을 직접 다시 확인하세요."
+    : `${quotaFresh() ? "마지막 확인" : "오래된 관측 · 다시 확인 필요"}: UTC ${q.day} 구간 ${q.remaining}/${q.limit}회 남음 · ${q.used}회 시도 · ${new Date(q.resetsAt).toLocaleString()}에 구간 전환 · 확인 ${new Date(q.observedAt).toLocaleTimeString()}. 실패한 시도도 포함하며 성공 횟수·청구액이 아닙니다.`;
+}
 function controls() {
   get("connect").disabled = busy;
   get("file").disabled = busy || !policy;
   get("clear").disabled = busy || !(selected || preview || draft);
   get("upload").disabled = busy || !policy || !selected || !!preview || !get("upload-consent").checked;
-  get("generate").disabled = busy || !policy || !preview || consumed || Date.now() >= preview.expiresAt || !get("generate-consent").checked;
+  get("generate").disabled = busy || !policy || !preview || consumed || Date.now() >= preview.expiresAt
+    || (quotaFresh() && policy.quota.remaining === 0) || !get("generate-consent").checked;
   get("save").disabled = busy || !draft || !get("reviewed").checked;
 }
 async function api(route, body) {
@@ -25,8 +39,9 @@ async function api(route, body) {
       headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(100000) });
     value = await response.json();
   } catch { throw Error("요약 서버 응답을 확인하지 못했습니다. 이미 보낸 요청은 실행됐을 수 있습니다. 자동 재시도하지 않습니다."); }
+  if (policy && Object.hasOwn(value, "quota")) { policy.quota = validateManagedQuota(value.quota, policy.dailyRequests); renderQuota(); }
   if (!response.ok) {
-    if (response.status === 401 || value.error === "summary_not_enabled") policy = null;
+    if (response.status === 401 || value.error === "summary_not_enabled") { policy = null; renderQuota(); }
     throw Error(errors[value.error] || "요청에 실패했습니다. 선택·편집 내용은 유지하며 자동 재시도하지 않습니다.");
   }
   return value;
@@ -39,11 +54,14 @@ async function run(action) {
 }
 async function connect() {
   policy = null;
+  renderQuota();
   get("upload-consent").checked = false; get("generate-consent").checked = false;
-  policy = validateManagedPolicy(await api("policy", {}));
+  try { policy = validateManagedPolicy(await api("policy", {})); }
+  catch (error) { if (error.message === "invalid_policy") throw Error("서버의 요약 정책 형식을 확인하지 못했습니다. 업로드하지 않았습니다."); throw error; }
+  renderQuota();
   get("privacy").href = policy.privacyPolicyURL;
   if (selected) get("upload-policy").textContent = `${selected.bytes.toLocaleString()} bytes · ${selected.messages.length}개 발언 · ${selected.truncated ? "일부 발언 누락" : "선택 발언 범위"} · 정책 ${policy.policyVersion}. 원문 전체를 요약한다고 보장하지 않습니다.`;
-  notice(`계정 요약 권한 확인 · ${policy.model} · 하루 최대 ${policy.dailyRequests}회 요청 시도(UTC). 남은 횟수는 아직 제공하지 않습니다. 모델 다운로드나 개인 API 키 입력이 필요하지 않습니다.`);
+  notice(`계정 요약 권한 확인 · ${policy.model} · 하루 최대 ${policy.dailyRequests}회 요청 시도(UTC). 모델 다운로드나 개인 API 키 입력이 필요하지 않습니다.`);
 }
 get("connect").addEventListener("click", () => run(connect));
 get("file").addEventListener("change", () => run(async () => {
@@ -87,6 +105,7 @@ get("upload").addEventListener("click", () => run(async () => {
 get("generate").addEventListener("click", () => run(async () => {
   if (!policy || !preview || consumed || !get("generate-consent").checked || Date.now() >= preview.expiresAt) return;
   consumed = true; notice("동의한 발췌로 요약 중입니다. 중복 실행과 자동 재시도를 하지 않습니다.");
+  policy.quota = null; renderQuota();
   const result = await api("generate", { id: preview.id, digest: preview.digest, confirmed: true });
   if (result.method !== "cloud_generative" || !fields.every(field => typeof result.summary?.[field]?.text === "string"))
     throw Error("요약 초안 형식을 확인하지 못했습니다. 자동 재시도하지 않습니다.");
@@ -121,3 +140,4 @@ get("clear").addEventListener("click", () => run(async () => {
 }));
 if (location.protocol === "file:") { notice("파일로 직접 열면 서버 연결이 되지 않습니다. 운영 호스트의 HTTPS 주소에서 열어야 합니다. 공개 서비스는 아직 미개통입니다."); controls(); }
 else run(connect);
+setInterval(() => { renderQuota(); controls(); }, 30000);

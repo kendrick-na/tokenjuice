@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
-import { prepareManagedExcerpt, validateManagedPolicy } from "../managed-summary/excerpt.js";
+import { prepareManagedExcerpt, validateManagedPolicy, validateManagedQuota } from "../managed-summary/excerpt.js";
 import { createManagedSummarySite } from "../scripts/managed-summary-site.mjs";
 
 test("managed excerpt keeps only bounded local speaker text without raw metadata and secrets", () => {
@@ -48,4 +48,16 @@ test("managed site serves only public assets with same-origin CSP; no config or 
   const source = readFileSync(new URL("../managed-summary/app.js", import.meta.url), "utf8");
   expect(source).not.toMatch(/localStorage|sessionStorage|x-api-key|api\.anthropic/);
   expect(source).toContain('get("upload-consent").checked'); expect(source).toContain('get("generate-consent").checked');
+});
+
+test("quota rendering input distinguishes unknown from genuine zero and validates day, time and count", () => {
+  const stamp = Date.parse("2026-10-12T12:00:00Z");
+  const quota = { day: "2026-10-12", limit: 2, used: 1, remaining: 1,
+    resetsAt: Date.parse("2026-10-13T00:00:00Z"), observedAt: stamp };
+  expect(validateManagedQuota(quota, 2, stamp).remaining).toBe(1);
+  expect(validateManagedQuota({ ...quota, used: 2, remaining: 0 }, 2, stamp).remaining).toBe(0);
+  for (const value of [null, {}, { ...quota, used: "1" }, { ...quota, remaining: 2 },
+    { ...quota, limit: 3 }, { ...quota, resetsAt: stamp }, { ...quota, observedAt: stamp + 2000 },
+    { ...quota, day: "2026-10-11" }, { ...quota, used: -1 }, { ...quota, observedAt: Infinity }])
+    expect(validateManagedQuota(value, 2, stamp)).toBeNull();
 });

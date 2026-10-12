@@ -5,6 +5,7 @@
 <section class="intro"><p class="eyebrow">WORK CONTINUITY / WITHOUT MODEL DOWNLOADS</p><h1>모델 설치 없이,<br><em>맥락은 이어서.</em></h1><p>API 키를 따로 입력하지 않는 선택적 요약. 기기에서 발췌를 확인하고, 이번 전송에만 동의하세요. 실제 로그인·호스팅 연결 전 개발 후보입니다.</p></section>
 <ol class="steps" aria-label="작업 인계 단계"><li>01 기기 발췌</li><li>02 업로드 동의</li><li>03 생성 승인</li><li>04 검토 저장</li></ol>
 <p id="status" class="notice" role="status" aria-live="polite">요약 서버와 계정 권한을 확인 중입니다.</p>
+<p id="quota" class="notice" aria-live="polite">남은 요약 요청 횟수는 서버 확인 후 표시합니다. 확인 전에는 0회로 표시하지 않습니다.</p>
 <button id="connect" class="secondary" type="button">계정 연결 다시 확인</button>
 <section class="panel"><h2>01 / 한 대화 선택</h2><p>원문 파일은 이 기기에서만 파싱합니다. 도구 실행 결과·알려진 비밀값·식별 정보는 발췌에서 제외하지만 완전한 제거를 보장하지 않습니다. 파일 선택만으로 업로드하지 않습니다.</p><label for="file">Claude/Codex JSON·JSONL 또는 텍스트 · 8 MiB 이하</label><input id="file" type="file" accept=".json,.jsonl,.txt" disabled></section>
 <section id="upload-panel" class="panel" hidden><h2>02 / 이 발췌만 전송</h2><p id="upload-policy"></p><p class="warning">이 단계에서 승인하면 아래 발췌가 TokenJuice 서버로 전송됩니다. 아직 AI 제공자로 보내지 않습니다. 민감정보가 남아 있으면 파일을 수정하고 다시 선택하세요.</p><pre id="local-excerpt" aria-label="업로드할 정확한 발췌 JSON"></pre><a id="privacy" target="_blank" rel="noopener noreferrer">전송·보존 정책 읽기</a><label class="check"><input id="upload-consent" type="checkbox"> 발췌·수신자·보존 정책을 확인했고 이번 TokenJuice 업로드에 동의합니다</label><button id="upload" type="button" disabled>이 발췌로 전송 미리보기 만들기</button></section>

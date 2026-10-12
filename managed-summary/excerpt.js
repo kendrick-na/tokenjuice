@@ -13,6 +13,18 @@ export function prepareManagedExcerpt(raw, maxBytes = 20000) {
     messages, truncated: parsed.truncated || messages.length < parsed.messages.length };
 }
 
+export function validateManagedQuota(value, limit, now = Date.now()) {
+  if (!value || !Number.isInteger(value.limit) || value.limit !== limit
+    || !Number.isSafeInteger(value.used) || value.used < 0 || value.used > 1000000
+    || value.remaining !== Math.max(0, limit - value.used)
+    || !Number.isSafeInteger(value.observedAt) || value.observedAt < 0 || value.observedAt > 253402300799999 || value.observedAt > now + 1000
+    || typeof value.day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.day)
+    || new Date(value.observedAt).toISOString().slice(0, 10) !== value.day
+    || value.resetsAt !== Date.parse(`${value.day}T00:00:00.000Z`) + 86400000) return null;
+  return { day: value.day, limit, used: value.used, remaining: value.remaining,
+    resetsAt: value.resetsAt, observedAt: value.observedAt };
+}
+
 export function validateManagedPolicy(value) {
   let link;
   try { link = new URL(value?.privacyPolicyURL); } catch { throw Error("invalid_policy"); }
@@ -24,5 +36,6 @@ export function validateManagedPolicy(value) {
     || value.maxExcerptBytes !== 20000 || value.requiresProviderKey !== false || value.requiresModelDownload !== false)
     throw Error("invalid_policy");
   return { model: value.model, policyVersion: value.policyVersion, privacyPolicyURL: link.href,
-    dailyRequests: value.dailyRequests, maxExcerptBytes: value.maxExcerptBytes };
+    dailyRequests: value.dailyRequests, maxExcerptBytes: value.maxExcerptBytes,
+    quota: validateManagedQuota(value.quota, value.dailyRequests) };
 }

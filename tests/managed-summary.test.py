@@ -12,6 +12,7 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     page.on("request",lambda request:requests.append(request))
     page.goto("http://127.0.0.1:4183",wait_until="networkidle")
     expect(page.locator("#file")).to_be_enabled()
+    expect(page.locator("#quota")).to_contain_text("2/2회 남음")
     assert "API 키 입력이 필요하지 않습니다" in page.locator("#status").inner_text()
     source=Path(directory)/"session.jsonl"
     source.write_text(json.dumps({"sessionId":"PRIVATE_ID","type":"user","message":{"role":"user","content":"합성 목표 확인\napi_key=PRIVATE_SECRET"}},ensure_ascii=False)+"\n"+
@@ -36,6 +37,7 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     assert page.locator("#generate").is_disabled()
     page.locator("#generate-consent").check();page.locator("#generate").click()
     page.locator("#review-panel").wait_for(state="visible")
+    expect(page.locator("#quota")).to_contain_text("1/2회 남음")
     assert len([r for r in requests if r.url.endswith("/generate")])==1
     assert page.locator("#generate").is_disabled() and page.locator("#save").is_disabled()
     page.locator("#reviewed").check();page.locator("#next").fill("실제 변경과 테스트 확인 후 다음 작업")
@@ -65,6 +67,7 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     page.route("**/api/summary/policy",lambda route:route.fulfill(status=401,content_type="application/json",body='{"error":"authentication_required"}'))
     page.locator("#connect").click()
     expect(page.locator("#status")).to_contain_text("계정 로그인 확인")
+    expect(page.locator("#quota")).to_contain_text("남은 요청 횟수 확인 불가")
     assert page.locator("#file").is_disabled()
     assert page.locator("#next").input_value()==saved["next"]
     assert page.locator("#save").is_enabled()
@@ -79,3 +82,37 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     assert not errors,errors
     browser.close()
 print("PASS: managed cloud local excerpt/no-upload before consent, exact upload, separate generation consent, review/export/reopen, auth failure preservation, responsive/keyboard and no external browser calls")
+
+with TemporaryDirectory() as directory, sync_playwright() as p:
+    browser=p.chromium.launch(headless=True)
+    page=browser.new_page(viewport={"width":375,"height":812})
+    requests=[];errors=[]
+    page.on("request",lambda request:requests.append(request))
+    page.on("pageerror",lambda error:errors.append(str(error)))
+    page.goto("http://127.0.0.1:4183",wait_until="networkidle")
+    expect(page.locator("#quota")).to_contain_text("1/2회 남음")
+    source=Path(directory)/"session.txt"
+    source.write_text("두 번째 합성 작업 확인",encoding="utf-8")
+    page.locator("#file").set_input_files(str(source));page.locator("#upload-panel").wait_for(state="visible")
+    page.locator("#upload-consent").check();page.locator("#upload").click()
+    page.locator("#preview-panel").wait_for(state="visible")
+    page.locator("#generate-consent").check();page.locator("#generate").click()
+    page.locator("#review-panel").wait_for(state="visible")
+    expect(page.locator("#quota")).to_contain_text("0/2회 남음")
+    source.write_text("한도 소진 후 새 합성 발췌",encoding="utf-8")
+    page.locator("#file").set_input_files(str(source));page.locator("#upload-panel").wait_for(state="visible")
+    page.locator("#upload-consent").check();page.locator("#upload").click()
+    page.locator("#preview-panel").wait_for(state="visible")
+    page.locator("#generate-consent").check()
+    assert page.locator("#generate").is_disabled()
+    assert len([r for r in requests if r.url.endswith("/generate")])==1
+    page.evaluate("window.savedNow=Date.now;Date.now=()=>window.savedNow()+180000")
+    page.locator("#connect").click()
+    expect(page.locator("#quota")).to_contain_text("오래된 관측 · 다시 확인 필요")
+    assert "UTC" in page.locator("#quota").inner_text()
+    assert len([r for r in requests if r.url.endswith("/generate")])==1
+    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
+    assert all(r.url.startswith("http://127.0.0.1:4183/") for r in requests)
+    assert not errors,errors
+    browser.close()
+print("PASS: actual synthetic attempt exhaustion, zero distinct from unknown, no new generation at fresh zero, stale observation labels and no automatic provider retry")

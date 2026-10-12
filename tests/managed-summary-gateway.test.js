@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { mkdtempSync, rmSync, readFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createManagedSummaryGateway } from "../scripts/managed-summary-gateway.mjs";
@@ -120,4 +120,44 @@ hostTest("in-flight authentication has a bounded capacity, and rejects disposal 
     expect(() => gateway.dispose()).toThrow("summary_running");
     release(); for (const response of await Promise.all(pending)) expect(response.status).toBe(401);
   } finally { release(); await Promise.all(pending); gateway.dispose(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+hostTest("authenticated quota persists after pricing changes and failed requests consume attempts", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "tokenjuice-managed-test-"));
+  let { gateway, calls } = fixture(directory);
+  try {
+    const initial = await gateway.handle(request("policy")).then(r => r.json());
+    expect(initial.quota).toMatchObject({ used: 0, remaining: 1, limit: 1 });
+    const first = await generate(gateway, await preview(gateway)).then(r => r.json());
+    expect(first.quota).toMatchObject({ used: 1, remaining: 0 });
+    gateway.dispose(); ({ gateway, calls } = fixture(directory, { options: { ...options, budget: { ...options.budget, maxUSD: .001 } } }));
+    const after = await gateway.handle(request("policy")).then(r => r.json());
+    expect(after.quota.remaining).toBe(0);
+    const failed = await generate(gateway, await preview(gateway));
+    expect(failed.status).toBe(429); expect((await failed.json()).error).toBe("daily_summary_attempts_exceeded");
+    expect(calls).toHaveLength(0);
+    const bob = await gateway.handle(request("policy", {}, "bob")).then(r => r.json());
+    expect(bob.quota.remaining).toBe(1);
+  } finally { gateway.dispose(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+hostTest("completed draft survives unavailable quota observation without a fabricated allowance", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "tokenjuice-managed-test-"));
+  const setup = fixture(directory);
+  const defaultTransport = setup.config.transport; setup.gateway.dispose();
+  const { gateway } = fixture(directory, { transport: async (url, init) => {
+    const response = await defaultTransport(url, init);
+    if (!url.endsWith("count_tokens")) {
+      const id = readdirSync(join(directory, "accounts"))[0];
+      writeFileSync(join(directory, "accounts", id, "daily-attempts.lock"), "", { mode: 0o600 });
+    }
+    return response;
+  } });
+  try {
+    const response = await generate(gateway, await preview(gateway));
+    expect(response.status).toBe(200);
+    const draft = await response.json(); expect(draft.method).toBe("cloud_generative"); expect(draft.quota).toBeNull();
+    const policyResponse = await gateway.handle(request("policy"));
+    expect(policyResponse.status).toBe(503); expect((await policyResponse.json()).error).toBe("attempt_ledger_unavailable");
+  } finally { gateway.dispose(); rmSync(directory, { recursive: true, force: true }); }
 });
