@@ -93,6 +93,9 @@ run(async()=>{
   if(!response.ok)throw new Error("이 서버의 화면에서만 연결할 수 있습니다. 로컬 실행 주소를 확인하세요.");
   const session=await response.json();token=session.accessToken;
   const local=session.provider==="ollama_local";
+  get("active-mode").textContent=local
+    ? "현재 실행: 고급 로컬 Ollama 후보. 모델 설치가 필요한 선택 경로이며 기본 추적과 무관합니다."
+    : "현재 실행: 개인 API 키 개발 후보. TokenJuice 운영형 클라우드와 다르며 API 비용은 키 소유자가 부담합니다.";
   document.querySelector(".badge").textContent=local?"이 컴퓨터의 모델 · 선택 승인":"로컬 서버 · 클라우드 선택 전송";
   if(local)document.querySelector("footer").textContent="메모리 전용 대화 처리 · 다운로드는 직접 관리 · 실행 중이 아닌 서버 세션은 최대 5분 후 만료 · 생성 취소/즉시 자원 해제 보장 아님";
   notice(local?`로컬 Ollama 모드 · ${session.model}. 모델 설치·전송은 자동 실행하지 않습니다. 파일 선택 후 내용을 확인하고 승인하세요.`:`로컬 서버 연결됨 · ${session.model} · 오늘 예약 예산 USD ${session.dailyMaxUSD}. 파일을 선택해도 승인 전에는 제공자에게 보내지 않습니다.`);

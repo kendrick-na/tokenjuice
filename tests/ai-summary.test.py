@@ -12,6 +12,10 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     page.on("request",lambda request:requests.append(request))
     page.goto("http://127.0.0.1:4181",wait_until="networkidle")
     expect(page.locator("#file")).to_be_enabled()
+    expect(page.get_by_text("기본 기능 · 모델 설치 불필요",exact=True)).to_be_visible()
+    expect(page.get_by_text("서비스 운영형 · 준비 중",exact=True)).to_be_visible()
+    page.get_by_text("03 / 고급 옵션 · 개인 키와 로컬 모델",exact=True).click()
+    assert "개인 API 키 개발 후보" in page.locator("#active-mode").inner_text()
     source=Path(directory)/"session.txt"
     source.write_text("합성 작업 목표\napi_key=SECRET_RAW",encoding="utf-8")
     page.locator("#file").set_input_files(str(source))
@@ -76,6 +80,8 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     page.goto("http://127.0.0.1:4182",wait_until="networkidle")
     expect(page.locator("#file")).to_be_enabled()
     assert "이 컴퓨터의 모델" in page.locator(".badge").inner_text()
+    page.get_by_text("03 / 고급 옵션 · 개인 키와 로컬 모델",exact=True).click()
+    assert "고급 로컬 Ollama 후보" in page.locator("#active-mode").inner_text()
     source=Path(directory)/"session.txt"
     source.write_text("합성 작업 목표\napi_key=SECRET_RAW",encoding="utf-8")
     page.locator("#file").set_input_files(str(source))

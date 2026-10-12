@@ -3,6 +3,11 @@
 <body><a class="skip" href="#main">본문으로</a><main id="main">
   <header><strong>TOKENJUICE <span>HANDOFF</span></strong><span class="badge">로컬 서버 · 클라우드 선택 전송</span></header>
   <section class="intro"><p class="eyebrow">WORK CONTINUITY / LOCAL CANDIDATE</p><h1>다음 세션에,<br><em>핵심만 이어서.</em></h1><p>대화를 압축하고 직접 검토하는 작업 인계 공간. 완료 주장은 실제 변경 파일과 테스트로 확인하세요.</p></section>
+  <section class="modes" aria-label="설치와 요약 처리 방식">
+    <article><p class="eyebrow">01 / EVERYDAY</p><h2>추적은 가볍게.</h2><p>사용량·리셋 확인에는 AI 모델 다운로드나 요약 API 키가 필요하지 않습니다. 요약은 별도 선택 기능입니다.</p><span class="mode-state">기본 기능 · 모델 설치 불필요</span></article>
+    <article><p class="eyebrow">02 / OPTIONAL CLOUD</p><h2>요약만 클라우드로.</h2><p>서비스가 API 연결을 관리하는 방향입니다. 호스팅·로그인·보존 정책 연결 전으로, 여기서는 아직 활성화할 수 없습니다.</p><span class="mode-state">서비스 운영형 · 준비 중</span></article>
+    <details><summary>03 / 고급 옵션 · 개인 키와 로컬 모델</summary><p>현재 아래 화면은 운영자가 실행한 개인 API 키 또는 Ollama 개발 후보입니다. 개인 키는 별도 API 비용, Ollama는 모델 설치와 기기 자원이 필요합니다. 일반 사용자 필수 설치가 아닙니다.</p><p id="active-mode">현재 실행 방식을 확인 중입니다.</p></details>
+  </section>
   <ol class="steps" aria-label="작업 인계 단계"><li>01 선택</li><li>02 전송 확인</li><li>03 생성</li><li>04 검토 저장</li></ol>
   <p id="status" class="notice" role="status" aria-live="polite">로컬 서버에 연결 중입니다.</p>
   <section class="panel"><h2>01 / 한 대화 선택</h2><p>선택한 파일의 원문은 이 컴퓨터의 서버 메모리에서 처리합니다. 미리보기까지는 제공자에게 보내지 않습니다. 자동 폴더 탐색·원문 파일 저장은 하지 않습니다.</p><label for="file">Claude/Codex JSON·JSONL 또는 텍스트 · 8 MiB 이하</label><input id="file" type="file" accept=".json,.jsonl,.txt" disabled><button id="clear" class="secondary" type="button" disabled>화면과 서버 초안 지우기</button></section>

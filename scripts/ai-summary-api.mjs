@@ -20,7 +20,7 @@ const plain = value => value !== null && typeof value === "object" && !Array.isA
 const hex = value => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 const exact = (value, keys) => plain(value) && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
 
-async function readBody(request, limit) {
+export async function readSummaryBody(request, limit) {
   const declared = request.headers.get("content-length");
   if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > limit)) throw new Error("invalid_body_size");
   const reader = request.body?.getReader();
@@ -50,9 +50,25 @@ async function readBody(request, limit) {
   } finally { clearTimeout(timer); reader.releaseLock(); }
 }
 
-export function createLocalSummaryApi({ origin, accessToken, sessions } = {}) {
+export function createLocalSummaryApi(config = {}) {
+  const { origin } = config;
   const match = typeof origin === "string" && /^http:\/\/127\.0\.0\.1:(\d{1,5})$/.exec(origin);
-  if (!match || +match[1] < 1 || +match[1] > 65535 || !hex(accessToken)
+  if (!match || +match[1] < 1 || +match[1] > 65535) throw new Error("invalid_local_api_config");
+  return buildSummaryApi(config);
+}
+
+// Hosting adapter only. Authentication must be verified by the managed gateway
+// before constructing its internal per-account capability request.
+export function createHostedSummaryApi(config = {}) {
+  let url;
+  try { url = new URL(config.origin); } catch { throw new Error("invalid_hosted_api_config"); }
+  if (url.protocol !== "https:" || url.origin !== config.origin || url.username || url.password)
+    throw new Error("invalid_hosted_api_config");
+  return buildSummaryApi(config);
+}
+
+function buildSummaryApi({ origin, accessToken, sessions } = {}) {
+  if (!hex(accessToken)
     || !["preview", "generate", "review", "discard"].every(method => typeof sessions?.[method] === "function"))
     throw new Error("invalid_local_api_config");
   const expected = Buffer.from(accessToken, "utf8");
@@ -81,7 +97,7 @@ export function createLocalSummaryApi({ origin, accessToken, sessions } = {}) {
     if (active >= 3) return json({ error: "request_capacity" }, 429);
     active++;
     try {
-      const body = await readBody(request, route === "preview" ? 9 * 1024 * 1024 : 20000);
+      const body = await readSummaryBody(request, route === "preview" ? 9 * 1024 * 1024 : 20000);
       if (route === "preview") {
         if (!exact(body, ["raw"]) || typeof body.raw !== "string") return json({ error: "invalid_request_body" }, 400);
         return json(sessions.preview(owner, body.raw));
