@@ -1203,3 +1203,13 @@ Gradle 실행기·기본 wrapper 배포 캐시와 저장소의 Android 앱 구�
 기존 최신 Engine 38128618767·Windows 38128618774·Pages 38078400767 success를 다시 확인했다. 공개 Pocket index.html·app.js·app.css·sw.js·manifest.webmanifest는 각각 HTTP 200이며 로컬 파일 SHA-256과 일치한다. Android 결과가 아니다.
 
 이번 strict release-verify exit 0: 테스트 171개·실패 0개·assertion 2000개, 여섯 browser suite, 번들·문법·격리 알림·설치 plugin/helper 일치. 앱 코드는 변경하지 않았으며 위 결과로 실제 Claude 복구·Android 빌드·신규 설치·절전·사용자 조사·스토어 완료를 판정하지 않는다.
+
+### 9.51 Pocket 제공자 식별과 우선 행동 이동
+
+모바일 예시 화면에서 Codex 제한의 상단 제목이 제공자 없이 한도로 표시되는 문제를 확인했다. priority는 이름 없는 Codex payload를 읽었지만 카드 렌더링은 별도로 Codex 이름을 붙이고 있었다. 또한 컨텍스트 상태 보기와 계정 연결 확인이 모두 계정 목록 시작으로 이동했다. 제공자 식별 회귀 테스트는 수정 전 실패했다.
+
+화면용 descriptor에서 제공자 이름과 계정별 목적지를 파생한다. Codex·로컬 provider·Claude 다계정의 해당 카드로 이동하고 컨텍스트는 별도 컨텍스트 카드로 이동한다. 이동 뒤 카드에 키보드 포커스와 명확한 윤곽을 제공하고 모션 감소 설정에서는 즉시 스크롤한다. 외부 파일의 ID를 이동 대상으로 사용하지 않는다. quota 계산·인증·저장 계약·외부 전송은 변경하지 않았다.
+
+기존 browser suite에 제공자 식별·각 provider 인증 실패 목적지·Claude 두 번째 계정·컨텍스트 목적지·모션 감소 검증을 추가했다. 수정 후 단독 suite와 strict release-verify 모두 exit 0이며 테스트 171개/2000 assertions·여섯 browser suite·설치본 일치가 통과했다. 모바일 예시 캡처에서도 Codex 식별을 확인했다. 이번 변경은 동선 수정이며 화면 밀도·경쟁사 대비 전체 디자인 품질·실제 수집/사용자 재개 가치 완료가 아니다.
+
+로컬 Pocket cache는 v21 후보다. 원격 CI와 Pages 배포·공개 파일 대조는 후속 검증으로 구분하며 desktop 엔진/릴리스는 바꾸지 않는다.

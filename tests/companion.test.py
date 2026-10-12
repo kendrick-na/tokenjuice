@@ -286,6 +286,7 @@ def main() -> None:
             assert page.get_by_text("예시 화면", exact=True).is_visible()
             assert page.get_by_text("실제 사용량이 아니며 이 기기에 저장되지 않습니다. 내 상태를 보려면 Mac에서 내보낸 스냅샷을 가져오세요.").is_visible()
             assert page.get_by_text("제공자 제한 중", exact=True).is_visible()
+            assert page.locator("#priority-card h1").inner_text().startswith("Codex ·"), "priority must identify the failing provider"
             assert page.get_by_text("NOW", exact=True).is_visible()
             assert page.get_by_text("WHY", exact=True).is_visible()
             assert page.get_by_text("NEXT", exact=True).is_visible()
@@ -432,6 +433,7 @@ def main() -> None:
             for state, label in state_labels.items():
                 for kind in ("claude", "codex", "provider"):
                     state_snapshot = json.loads(json.dumps(fresh_snapshot))
+                    state_snapshot["codex"]["state"] = "fresh"
                     payload = state_snapshot["claude"][0] if kind == "claude" else state_snapshot["codex"] if kind == "codex" else state_snapshot["providers"][0]
                     payload.update(state=state, items=SNAPSHOT["claude"][0]["items"])
                     state_path.write_text(json.dumps(state_snapshot), encoding="utf-8")
@@ -447,6 +449,9 @@ def main() -> None:
                     assert "원인" in account.locator(".failure-evidence").inner_text(), (kind, state)
                     assert "마지막 성공" in account.locator(".failure-evidence").inner_text(), (kind, state)
                     if state == "auth_expired":
+                        page.locator("#priority-action").click()
+                        assert page.evaluate("document.activeElement.classList.contains('account')")
+                        assert page.evaluate("document.activeElement.classList.contains(" + json.dumps(kind) + ")")
                         assert "이 웹 화면은 재로그인하지 않습니다" in account.inner_text()
                         assert "인증에 실패" in account.inner_text()
                         screenshot_dir = os.environ.get("TOKENJUICE_TEST_SCREENSHOT_DIR")
@@ -461,6 +466,32 @@ def main() -> None:
                 page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
                 assert page.locator(".account.claude .metric").count() == 1
                 assert page.locator(".account.claude").get_by_text("65%").is_visible()
+            page.locator("#snapshot-file").set_input_files(str(fresh_path))
+            page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+
+            # Context CTA must focus its own instrument, not the quota list.
+            context_snapshot = json.loads(json.dumps(fresh_snapshot))
+            context_snapshot["codex"]["state"] = "fresh"
+            state_path.write_text(json.dumps(context_snapshot), encoding="utf-8")
+            page.locator("#snapshot-file").set_input_files(str(state_path))
+            page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+            page.emulate_media(reduced_motion="reduce")
+            page.evaluate("""() => { const original = Element.prototype.scrollIntoView;
+              window.scrollMode = null;
+              Element.prototype.scrollIntoView = function(options) { window.scrollMode = options.behavior; original.call(this, options); };
+            }""")
+            page.locator("#priority-action").click()
+            assert page.evaluate("document.activeElement.id") == "context-card"
+            assert page.evaluate("window.scrollMode") == "auto"
+            # Multiple Claude profiles retain distinct, stable view targets.
+            context_snapshot["claude"].append({**context_snapshot["claude"][0], "account": "Second profile", "state": "auth_expired"})
+            state_path.write_text(json.dumps(context_snapshot), encoding="utf-8")
+            page.locator("#snapshot-file").set_input_files(str(state_path))
+            page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+            assert page.locator("#priority-card h1").inner_text().startswith("Second profile ·")
+            page.locator("#priority-action").click()
+            assert page.evaluate("document.activeElement.id") == "quota-claude-1"
+            page.emulate_media(reduced_motion="no-preference")
             page.locator("#snapshot-file").set_input_files(str(fresh_path))
             page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
 

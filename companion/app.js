@@ -111,7 +111,7 @@ function metric(item) {
   const forecast = item.forecast?.beforeReset ? `<span class="forecast danger">리셋 전 소진 예상</span>` : item.forecast ? `<span class="forecast">로컬 추정</span>` : "";
   return `<div class="metric"><div class="metric-line"><span>${escapeHtml(item.name)}</span><strong>${Math.round(left)}<small>% 남음</small></strong></div><div class="bar ${tone}" role="progressbar" aria-label="${escapeHtml(item.name)} ${Math.round(left)}% 남음" aria-valuenow="${Math.round(left)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${left}%"></i></div><div class="metric-meta"><span>${timeText(item.resets)}</span>${forecast}</div></div>`;
 }
-function card(name, payload, kind) {
+function card(name, payload, kind, index = 0) {
   const status = copyFor(payload);
   const displayable = ["fresh", "fallback"].includes(payload.state);
   const itemMarkup = displayable && payload.items?.length ? payload.items.map(metric).join("")
@@ -122,9 +122,16 @@ function card(name, payload, kind) {
   const observedAt = payload.lastSuccessAt;
   const failureEvidence = displayable ? "" : `<div class="failure-evidence"><p><b>원인</b> ${escapeHtml(status.meaning)}</p><p>${observedAt ? timeText(observedAt, "마지막 성공") : "마지막 성공 시각 없음"}</p>${payload.state === "auth_expired" ? `<p>이 웹 화면은 재로그인하지 않습니다. Mac에서 ${kind === "claude" ? "Claude Code" : "해당 제공자"} 로그인을 갱신한 뒤 새 스냅샷을 가져오세요.</p>` : ""}</div>`;
   const detailEvidence = displayable ? `<p class="state-explainer"><b>데이터 상태</b>${status.meaning}</p><p class="last-success">${observedAt ? timeText(observedAt, "마지막 성공") : "마지막 성공 시각 없음"}</p>` : "";
-  return `<article class="account ${kind}"><header class="account-head"><div><span class="account-name">${escapeHtml(name)}</span></div><span class="state ${status.tone}">${status.label}</span></header>${itemMarkup}${failureEvidence}<p class="recovery"><b>다음 행동</b>${status.action}${payload.retryAt ? ` ${timeText(payload.retryAt, "다음 확인")}.` : ""}</p><details class="account-detail"><summary>${displayable ? "데이터 신뢰·마지막 성공 보기" : "데이터 출처 보기"}</summary><div><p class="source">${escapeHtml(source)}</p>${detailEvidence}</div></details></article>`;
+  return `<article id="quota-${kind}-${index}" tabindex="-1" class="account ${kind}"><header class="account-head"><div><span class="account-name">${escapeHtml(name)}</span></div><span class="state ${status.tone}">${status.label}</span></header>${itemMarkup}${failureEvidence}<p class="recovery"><b>다음 행동</b>${status.action}${payload.retryAt ? ` ${timeText(payload.retryAt, "다음 확인")}.` : ""}</p><details class="account-detail"><summary>${displayable ? "데이터 신뢰·마지막 성공 보기" : "데이터 출처 보기"}</summary><div><p class="source">${escapeHtml(source)}</p>${detailEvidence}</div></details></article>`;
 }
-function allPayloads(snapshot) { return [...snapshot.claude, snapshot.codex, ...(snapshot.providers || [])]; }
+function allPayloads(snapshot) {
+  // Derive view targets instead of using imported IDs. Keep them out of exports.
+  return [
+    ...snapshot.claude.map((account, index) => ({ ...account, account: account.account || "Claude", target: `quota-claude-${index}` })),
+    { ...snapshot.codex, account: "Codex", target: "quota-codex-0" },
+    ...(snapshot.providers || []).map((provider, index) => ({ ...provider, account: provider.label || "Local provider", target: `quota-provider-${index}` })),
+  ];
+}
 function contextSessions(snapshot) {
   return Array.isArray(snapshot.sessions) ? snapshot.sessions.filter((session) => session && session.kind === "context" && Number.isFinite(Number(session.pct))) : [];
 }
@@ -166,6 +173,7 @@ function saveCheckpoint(risk) {
 }
 function renderContext(snapshot) {
   const card = $("#context-card");
+  card.tabIndex = -1;
   const risk = contextRisk(snapshot);
   if (!risk) { card.hidden = true; card.innerHTML = ""; return; }
   const session = risk.session;
@@ -186,6 +194,7 @@ function priority(snapshot) {
       copy: `${context.session.name || "현재 세션"}의 컨텍스트가 ${Math.round(context.pct)}% 사용되었습니다.`,
       tone: context.tone,
       cta: "컨텍스트 상태 보기",
+      target: "context-card",
       why: `로컬 세션 로그 추정 · ${context.session.model || "모델 정보 없음"} · ${context.session.win ? `${Math.round(context.session.win / 1000)}k 창` : "창 크기 없음"}`,
       next: context.next,
     };
@@ -198,6 +207,7 @@ function priority(snapshot) {
       copy: "최신 값을 확인할 때까지 잔여량 숫자를 표시하지 않습니다.",
       tone: state.tone,
       cta: issue.state === "auth_expired" ? "연결 상태 확인" : "새 스냅샷 가져오기",
+      target: issue.target,
       why: `${issue.sourceLabel || issue.source || "데이터 경로 정보 없음"} · ${issue.lastSuccessAt ? timeText(issue.lastSuccessAt, "마지막 성공") : "성공한 확인 없음"}`,
       next: issue.state === "auth_expired" ? "Mac에서 제공자 로그인을 갱신하세요." : state.action,
     };
@@ -212,6 +222,7 @@ function priority(snapshot) {
       copy: `${urgency} ${timeText(lowest.item.resets)}.`,
       tone: lowest.remaining < 20 ? "danger" : lowest.remaining < 50 ? "caution" : "good",
       cta: "세부 한도 보기",
+      target: lowest.payload.target,
       why: `${lowest.payload.sourceLabel || lowest.payload.source || "데이터 경로 정보 없음"} · ${lowest.payload.lastSuccessAt ? timeText(lowest.payload.lastSuccessAt, "마지막 성공") : "성공한 확인 없음"}`,
       next: lowest.remaining < 20 ? "다음 작업 전환을 검토하고, 실제 checkpoint 저장은 다음 단계에서 연결합니다." : "현재 상태를 확인하고 작업을 계속하세요.",
     };
@@ -232,7 +243,12 @@ function renderPriority(snapshot) {
   $("#priority-card").innerHTML = `<p id="priority-label">${item.eyebrow}</p><h1>${escapeHtml(item.title)}</h1><div class="decision-grid"><div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div><button id="priority-action" type="button">${item.cta} <b aria-hidden="true">→</b></button>`;
   $("#priority-action").addEventListener("click", () => {
     if (item.cta.includes("가져오기")) fileInput.click();
-    else $("#accounts").scrollIntoView({ behavior: "smooth", block: "start" });
+    else {
+      const target = document.getElementById(item.target);
+      if (!target) return;
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    }
   });
 }
 function render(snapshot, { demo = false } = {}) {
@@ -250,8 +266,8 @@ function render(snapshot, { demo = false } = {}) {
     : "";
   renderPriority(snapshot);
   renderContext(snapshot);
-  const providers = (snapshot.providers || []).map((provider) => card(provider.label || "Local provider", provider, "provider"));
-  $("#accounts").innerHTML = [...snapshot.claude.map((account) => card(account.account || "Claude", account, "claude")), card("Codex", snapshot.codex, "codex"), ...providers].join("");
+  const providers = (snapshot.providers || []).map((provider, index) => card(provider.label || "Local provider", provider, "provider", index));
+  $("#accounts").innerHTML = [...snapshot.claude.map((account, index) => card(account.account || "Claude", account, "claude", index)), card("Codex", snapshot.codex, "codex"), ...providers].join("");
 }
 function updateTransport(demo = false) {
   $("#transport").textContent = demo
