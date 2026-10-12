@@ -1311,3 +1311,13 @@ Ollama는 로컬 daemon을 통한 클라우드 모델도 지원하므로 loopbac
 합성 HTTP 왕복과 로컬/클라우드 화면 승인·1회 생성·수정·저장·초안 삭제, Pocket 로컬 파일의 출처/재검토/저장과 375/812/1280 폭을 검증했다. 기술 정보는 펼친 상태에서 실제 표시 내용을 검사한다. 로컬 375px 합성 화면을 시각 확인했고 외부 브라우저 요청·원문/key 저장은 없었다. 실제 모델·daemon·실대화 전송·요금 호출은 하지 않았다.
 
 strict 회귀는 191 pass/2336 assertions·확장된 여섯 browser suite·번들·문법·격리 알림을 통과했고 마지막 Mac 설치본 불일치로 전체 exit 1이다. 설치본 변경·로그인 갱신·스토어 제출은 없다. 원격 CI/v26 공개 반영, 실제 모델 의미 품질·작업 재개 효과·실수집·모바일·스토어·실사용자 피드백 목표는 남는다.
+
+### 9.61 설치본 일치 복구와 v26 공개 확인
+
+29bd977의 Windows 38197439793·Engine 38197439818·Pages 38197439838는 success다. Windows 로그에서 timestamp 회귀 pass(1562ms), 로컬 HTTP 승인 테스트 pass, tray selftest 및 EXE exit 0을 확인했다. 공개 sw.js·work-summary.js SHA-256이 소스와 일치해 Pocket cache v26 반영을 확인했다. 실제 로컬 요약 모델이나 모바일 계정 연결이 공개 웹에 포함됐다는 뜻은 아니다.
+
+실행 Mac 설치본은 bded47b부터 검증된 JSON 알림 전달 7줄이 빠져 있었다. 최신 저장소 엔진과 bded47b 엔진 사이 추가 차이가 없는 것을 확인하고, 기존 plugin을 `/tmp/tokenjuice-installed-events-backup.O5BCdt/tokenjuice-battery.5s.js`에 원본 그대로 백업했다. apply_patch로 이 차이만 반영했으며 shebang·파일 실행 모드와 기존 설정을 유지했다. 백업은 임시 경로라 OS 정리 뒤 보존을 보장하지 않는다. 전체 installer·LoginItems·서비스 재등록이나 인증 갱신은 실행하지 않았다.
+
+plugin 본문과 wake helper는 소스와 일치하고 config 파일 SHA-256도 변경 전후 동일하다. 전체 strict release-verify exit 0: 191 tests/2336 assertions, 확장된 여섯 browser suite, 번들·문법·격리 알림·설치본 검증을 통과했다. SwiftBar PID 존재는 확인했지만 직접 메뉴 화면 확인은 UI 도구 timeout 두 번으로 실패해 실제 표시를 검증한 결과로 쓰지 않는다.
+
+11:53 KST 읽기 전용 diagnostics는 Claude HTTP401/auth expired·trust blocked, 마지막 성공 146h 전·다음 retry 12:00, Codex local fresh를 표시했다. API/갱신을 추가 호출하지 않았고 autoRenew=false·알림/예측/topics off를 유지했다. 소스 일치는 Claude 인증·지속 수집 복구를 대신하지 않는다. 공식 Claude Code 재로그인 확인과 실제 계정 수치 대조, 모델 설치 동의/의미 품질·작업 재개 효과·모바일·스토어·실사용자 피드백은 남는다.
