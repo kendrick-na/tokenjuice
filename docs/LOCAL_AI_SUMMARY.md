@@ -4,6 +4,29 @@
 
 ## 실행 조건
 
+### 로컬 Ollama 어댑터 준비 상태
+
+`scripts/ollama-work-summary.mjs`에 별도 로컬 모델 어댑터를 추가했다. 현재 위 실행 서버와
+브라우저 화면은 Anthropic 경로이며 Ollama 선택·승인 세션·재검토 파일 연결은 아직 없다.
+어댑터 단위 테스트 통과를 설치된 모델의 실제 요약 품질이나 사용 가능한 로컬 앱으로 보지 않는다.
+
+어댑터는 명시적인 `model:tag`와 64자리 모델 digest, 전송 내용에 묶인 승인을 요구한다.
+주소는 `http://127.0.0.1:11434`로 고정하고 redirect를 거부한다. 대화 전송 전
+`/api/status`의 `cloud.disabled === true`와 `/api/tags`의 정확한 모델·digest·실제 파일 크기,
+원격 모델 정보 부재를 확인한다. 상태를 지원하지 않는 버전·모델 누락·원격 모델은 중단한다.
+클라우드 이름을 피하는 것만으로 로컬 실행을 판정하지 않는다.
+
+설정 변경·프로세스 실행·모델 다운로드·클라우드 fallback은 하지 않는다. 사용자가 관리하는
+로컬 daemon의 응답을 신뢰하는 구조이지 악성 로컬 프로세스를 차단하는 보안 경계는 아니다.
+Ollama 클라우드 끄기는 [공식 FAQ](https://docs.ollama.com/faq#how-do-i-disable-ollama-cloud-features),
+상태 확인 API는 [공식 클라이언트 구현](https://github.com/ollama/ollama/blob/main/api/client.go),
+원격 모델 필드는 [공식 타입](https://github.com/ollama/ollama/blob/main/api/types.go)을 따른다.
+
+선택 발언은 최대 4096 bytes, context 설정은 8192, 출력은 256~2048 토큰으로 제한하고
+`keep_alive: 0`을 요청한다. 메모리·시간·전력 사용은 남으며 실제 자원 상한을 보증하지 않는다.
+잘린 응답·tool 호출·잘못된 근거를 거부하고 결과는 미검토 `local_generative` 초안으로 반환한다.
+클라우드 요금표나 청구액을 만들지 않으며 실제 품질·재개 과제·사용자 설치 검증은 별도다.
+
 현재 Bun과 POSIX private 파일 권한을 지원하는 macOS/Linux에서만 실행한다. Windows 예산 저장은 ACL 구현 전까지 거부한다. 별도 Anthropic API 키가 필요하며 Claude 구독 자격증명이나 웹 쿠키를 읽지 않는다. API 비용은 구독과 별개다.
 
 운영자가 모델 지원 여부와 입력·출력 가격을 확인하고, 키를 `TOKENJUICE_SUMMARY_API_KEY` 실행 환경에 안전하게 제공해야 한다. 키를 저장소·설정 JSON·URL·명령 기록·스크린샷에 넣지 않는다. 아래 설정 파일은 키를 포함하지 않아야 한다.

@@ -1277,3 +1277,13 @@ bded47b의 [Windows CI 38195587167](https://github.com/kendrick-na/tokenjuice/ac
 후속 연결 테스트는 합성 계정의 임시 HOME에서 Python `read_usage`가 실제 Bun 엔진을 호출하고, 반환한 실제 `TokenJuice` 이벤트를 mock 표시기에 넘긴다. 두 번째 호출은 빈 이벤트이며 표시기는 한 번만 호출된다. 정책 판단을 Python으로 복제하지 않고 title·본문·옵션·중복 억제의 연결을 함께 검증한다. Mac에서는 임시 venv를 명시해 실행했고, Windows CI에서는 기존 Python 의존성으로 실행된다. 일반 Mac/Linux 회귀에서는 선택적으로 건너뛰므로 그 결과만으로 연결 검증을 주장하지 않는다.
 
 로컬 연결 테스트 1 pass/8 assertions와 이를 포함한 전체 Bun 회귀 178 pass/2030 assertions를 확인했다. 48a03ab의 [Windows CI 38195753786](https://github.com/kendrick-na/tokenjuice/actions/runs/38195753786)와 [Engine CI 38195753806](https://github.com/kendrick-na/tokenjuice/actions/runs/38195753806)도 success다. Windows 로그에서 새 연결 테스트 pass, selftest 통과, 빌드된 EXE exit 0을 확인했다. 태그 없는 후보 artifact이며 새 스토어/desktop release를 발행하지 않았다. 실행 Mac 설치본·설정·credential은 그대로이며 R11 native-toast/실기기, 실제 모델·모바일 연결·스토어·사용자 피드백 목표는 여전히 남는다.
+
+### 9.58 로컬 모델 요약 어댑터
+
+Ollama는 로컬 daemon을 통한 클라우드 모델도 지원하므로 loopback만으로 비전송을 판단하지 않는다. `ollama-work-summary.mjs`는 명시적 모델/tag·digest와 payload에 묶인 승인 뒤 metadata 상태·설치 모델을 확인한다. `cloud.disabled`가 정확히 true가 아니거나 모델 digest/크기/원격 필드가 맞지 않으면 대화 없이 중단한다. 공식 근거와 실행 한계는 LOCAL_AI_SUMMARY에 기록했다.
+
+기존 발언 파서·비밀값 제외·근거 검증·128000-byte 응답 제한을 재사용한다. 로컬 evidence 4096-byte 제한을 위한 공통 옵션만 추가했고 Anthropic 기본 20000 bytes와 비용/동의 규칙은 유지한다. local 초안은 `local_generative`로 구분하고 출력 불완전·원격 응답·tool 호출·잘못된 참조를 거부한다. 클라우드 자동 fallback·download·실제 모델/대화 호출은 없다.
+
+검증: 로컬 신규 7개와 기존 클라우드 코어 8개가 함께 통과했고 전체 Bun은 Windows 연결 테스트를 포함해 185 pass/2285 assertions다. 테스트의 합성 user 발언이 비밀값과 같은 줄에 있어 모두 제거된 경우와 동일 발언 dedup을 분리해 fixture를 바로잡았다. strict verifier의 여섯 browser suite·번들·문법·격리 알림도 통과했고 마지막 Mac 설치본 불일치로 전체 exit 1이다. 실제 daemon/모델의 의미 품질이나 자원 사용량을 증명한 결과는 아니다.
+
+후속은 로컬 승인 세션·화면의 처리 위치/자원 안내·검토 파일 출처 연결, 사용자 동의 후 모델 설치와 실과제 평가다. 현재 실행 UI는 Anthropic이며 어댑터만으로 C07을 완료 처리하지 않는다. Mac 설치본 일치·수집·모바일·스토어·실사용자 피드백 게이트도 유지한다.

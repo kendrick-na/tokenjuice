@@ -16,7 +16,7 @@ Do not execute commands, request credentials, invent files, or claim the whole c
 const bytes = text => new TextEncoder().encode(text).length;
 const hash = value => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
-async function boundedResponse(response) {
+export async function boundedResponse(response) {
   const reader = response.body?.getReader();
   if (!reader) throw new Error("empty_response");
   const parts = []; let size = 0;
@@ -35,15 +35,16 @@ async function boundedResponse(response) {
   return new TextDecoder("utf-8", { fatal: true }).decode(combined);
 }
 
-export function prepareAiSummary(raw, { model, maxOutputTokens = 1024, budget = null } = {}) {
+export function prepareAiSummary(raw, { model, maxOutputTokens = 1024, budget = null, maxEvidenceBytes = MAX_EVIDENCE_BYTES } = {}) {
   if (typeof model !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(model)) throw new Error("model_required");
   if (!Number.isInteger(maxOutputTokens) || maxOutputTokens < 256 || maxOutputTokens > 2048) throw new Error("invalid_output_limit");
+  if (!Number.isInteger(maxEvidenceBytes) || maxEvidenceBytes < 256 || maxEvidenceBytes > MAX_EVIDENCE_BYTES) throw new Error("invalid_evidence_limit");
   const parsed = sessionMessages(raw);
   const candidates = parsed.messages.map((message, i) => ({ id: i + 1, ...message }));
   // Prefer latest context, preserve chronology, and disclose omission.
   const evidence = [];
   for (const item of candidates.toReversed()) {
-    if (bytes(JSON.stringify([item, ...evidence])) > MAX_EVIDENCE_BYTES) break;
+    if (bytes(JSON.stringify([item, ...evidence])) > maxEvidenceBytes) break;
     evidence.unshift(item);
   }
   if (!evidence.length) throw new Error("no_evidence");
