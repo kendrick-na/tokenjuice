@@ -1697,3 +1697,10 @@ cache 그대로 보존도 확인한다. targeted 9 pass/30 assertions다. 8개 �
 분리 후 전체 Bun은 252 pass·1 platform skip·2786 assertions·24 파일이고 strict
 release-verify --require-browser exit 0다. 엔진 기능/설치본/설정·실제 대화·API 호출은
 변경하지 않았다. 원격 실패를 단순 재실행으로 성공 처리하지 않고 수정 커밋의 CI로 검증한다.
+
+64576a3의 Engine 38280836988·Windows 38280837172는 모두 success다. Windows job
+114917446305의 분리한 9개 예측 안전 case PASS(각 120~136ms)를 로그로 확인했고 lifecycle
+일반 6개도 실행됐다. POSIX 원장 생성/drain 1개는 기존 플랫폼 제약으로 skip이다. EXE 생성/
+실행·artifact 업로드와 browser job도 통과했고 tag release는 skipped다. lifecycle 후보 및
+test harness 회귀는 이 범위에서 완료했지만 실제 운영 종료·배포·로그인·수집·스토어·인터뷰를
+완료 처리하지 않는다.
