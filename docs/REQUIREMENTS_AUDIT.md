@@ -1866,3 +1866,10 @@ triage suite 9 pass/49 assertions, 전체 strict release-verify --require-browse
 6h 전·retry 9m(03:07), Codex fresh/live다. 02:40의 429와 다른 후속 관측이며 현재
 Claude 복구가 아니다. 기존 관측만 읽고 API/renewal·설정 변경을 하지 않았다.
 P3-05 전체 및 실제 사용자/모델/스토어·수집 복구 게이트는 여전히 미완료다.
+
+1bcbed1의 Engine 38288041198·Windows 38288041137는 모두 success다. Ubuntu job
+114941022758와 Windows job 114941024902에서 same-day updates 신규 PASS를 로그로
+확인했다. Ubuntu 전체는 266 pass·1 skip·2750 assertions(플랫폼별 assertion 수 차이)이며
+browser job도 success다. Windows EXE 생성·실행·artifact 업로드 통과, tag release는 skipped다.
+Pocket 소스는 변경하지 않아 새 Pages 배포를 실행한 것으로 기록하지 않는다. 실제 예약
+실행/새 제보 포착·문제 재현/사용자 확인은 이 CI로 증명되지 않는다.
