@@ -1524,3 +1524,8 @@ targeted browser 3개 시나리오와 strict release-verify --require-browser ex
 Codex local fresh다. API/갱신·로그인·설정 변경 없이 기존 관측만 읽었다. 앞선 실제 메뉴바
 확인은 Mac 잠금 때문에 불가했고, 잠금 해제/재로그인 완료 답변이 없다. 실제 수집·신규 설치·
 전체 디자인·호스팅·스토어·실사용 피드백 게이트는 여전히 미완료다.
+
+6573b93의 Engine 38221694577와 Windows 38221694622는 모두 success다. browser job 로그에서
+재연결 편집 보존·합성 한도 소진·로그아웃/늦은 응답 제외의 3개 managed 시나리오 PASS를
+확인했다. Windows EXE 생성·실행·artifact 업로드도 통과했고 tag release는 skipped다.
+이로써 이번 CI 경쟁 상태 보강의 원격 재검증까지 완료했으며 실제 출시 완료와는 구분한다.
