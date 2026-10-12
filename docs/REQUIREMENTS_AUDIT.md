@@ -1224,4 +1224,6 @@ da125f2의 Engine 38191643356·Windows 38191643480·Pages 38191643487 success를
 
 이번 strict release-verify exit 0: 테스트 171개/2000 assertions·여섯 browser suite·번들·문법·격리 알림·설치본 일치. quota 계산·desktop·인증·외부 전송은 바꾸지 않았다. 2026-10-12 10:28 KST 설치본 진단은 여전히 Claude HTTP 401이며 사용자 로그인 확인 요청이 남아 있다.
 
-로컬 cache v22는 새 후보이며 원격 CI/Pages/공개 파일 검증은 별도다. 전체 경쟁 디자인·실기기·실대화 요약 가치·모바일 연결·사용자 인터뷰·스토어 목표는 미완료로 유지한다.
+후속 확인: 6afce92의 Engine 38192085998·Windows 38192085974·Pages 38192085958 모두 success다. 공개 app.js·app.css·sw.js의 SHA-256이 같은 커밋과 일치해 cache v22 공개 반영을 확인했다. 전체 경쟁 디자인·실기기·실대화 요약 가치·모바일 연결·사용자 인터뷰·스토어 목표는 미완료로 유지한다.
+
+실제 요약 실행 조건도 다시 확인했다. 현재 로컬 요약 서비스는 명시적인 cloud API key를 요구하며, 이번 프로세스에는 TOKENJUICE_SUMMARY_API_KEY가 등록돼 있지 않다. PATH에서 ollama·llama-server 실행기를 찾지 못했다. 다른 위치에 설치된 모델이나 별도 프로세스의 키까지 부재하다고 단정하지 않는다. 실제 요약 provider 호출은 실행하지 않았다. 로컬 모델 설치/연동 또는 사용자 cloud API 방식과 비용/전송 동의, 검증 장비 선택을 요청했다. 10:30 KST의 기존 관측은 Claude HTTP 401이며 자동 갱신은 꺼져 있다.
