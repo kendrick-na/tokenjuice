@@ -1873,3 +1873,34 @@ P3-05 전체 및 실제 사용자/모델/스토어·수집 복구 게이트는 �
 browser job도 success다. Windows EXE 생성·실행·artifact 업로드 통과, tag release는 skipped다.
 Pocket 소스는 변경하지 않아 새 Pages 배포를 실행한 것으로 기록하지 않는다. 실제 예약
 실행/새 제보 포착·문제 재현/사용자 확인은 이 CI로 증명되지 않는다.
+
+### 9.85 공개 첫 사용자 UI 비교와 플랫폼 안내 복구
+
+competitor-profiling으로 기존 5개 프로필을 현재 공개 첫 화면 관측으로 보강했다.
+Firecrawl/DataForSEO 미연결을 표시하고 공식 페이지·비로그인 Chromium networkidle을
+사용했다. 375×812/1280×900의 6개 표면 모두 HTTP200·가로 넘침 없음, 12개 원본 캡처와
+DOM 선택 관측을 날짜별 raw에 보존했다. ClaudeCodeUsage는 GitHub 진입이지 VS Code
+실행 화면이 아니다. CTA bounding rect를 hit-area/WCAG 판정으로 바꾸지 않고 a/button
+수집에서 label 기반 import가 제외되는 한계를 명시했다. 가격·SEO·전환·native를 새로
+검증한 것으로 기록하지 않는다. 비교와 U01~U07은 UI_BENCHMARK_2026-10-13.md다.
+
+첫 화면 설치 진입이 없고 결과는 클릭 뒤에 있던 Pocket과 공개 경쟁 랜딩의 차이로부터
+상단 설치 링크와 desktop 예시를 추가했다. frontend-design에 따라 기존 serif/teal/lime를
+유지하며 2열 hero·실데이터 아닌 미리보기를 적용했다. 실제 잔여량 계산은 복제하지 않았다.
+예시 숫자는 명시된 정적 설명이며 실제 파일/계정 상태·자동 수집으로 표시하지 않는다.
+
+systematic-debugging의 red browser test는 iPhone UA에 Mac OS X가 포함되어 mobile보다
+Mac 분기를 먼저 타는 실제 오류를 재현했다. 분기 순서 한 수정으로 green을 확인한 뒤,
+별도 UX 후속으로 브라우저 힌트/직접 기기 선택과 Mac-touch/iPad 후보를 추가했다.
+하드웨어 확정 표현을 권장 경로로 고쳤다. 합성 iPhone/Android/Mac/Windows/unknown/
+desktop-touch 경우와 키보드 선택/aria-pressed·고정 URL·자동 설치/외부 요청 0을 검증했다.
+실제 iPad 하드웨어의 검증은 아니다. Mac 소스 ZIP·압축/터미널 맥락·중복 복제 금지와
+Windows v1.2.2 실제 asset URL/Python 포함·Bun 필요를 안내한다. EXE를 새로 발행하지 않았다.
+
+1280×900의 예시 전체 첫 화면 노출·375 가로 넘침/설치 타깃·시각 캡처를 검수했다.
+최종 strict release-verify --require-browser exit 0: 266 pass·1 skip·2891 assertions,
+기존 browser+신규 guide platform 회귀·설치 engine/helper 일치다. Pages/Engine에 신규
+browser gate를 연결하고 Pocket cache v28 후보로 갱신했다. 설정/설치본/인증·쿠키·제공자
+호출은 하지 않았고 경쟁 앱 결제·로그인·native 실행도 없다. 기존 편집을 강제로 reload하지
+않는다. 전체 UI 우열/경쟁사 수준·실계정/새 설치·메뉴바/노치·사용자 5명 및 전체 목표는
+여전히 미완료다.

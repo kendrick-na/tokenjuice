@@ -16,12 +16,13 @@
       <a class="skip-link" href="#content">본문으로 건너뛰기</a>
       <header class="masthead">
         <a class="brand" href="./" aria-label="TokenJuice Pocket 홈"><span class="brand-mark" aria-hidden="true">▰</span><span>TOKENJUICE</span><em>POCKET</em></a>
-        <span id="transport" class="transport" role="status" aria-live="polite">로컬 전용</span>
+        <nav class="masthead-actions" aria-label="시작과 연결 상태"><a id="install-entry" href="./guide.html" aria-label="Mac·Windows 설치 안내">설치</a><span id="transport" class="transport" role="status" aria-live="polite">로컬 전용</span></nav>
       </header>
 
       <div id="content" tabindex="-1">
       <p id="import-feedback" class="import-feedback" role="status" aria-live="polite" hidden></p>
       <section id="empty-state" class="empty-state" aria-labelledby="welcome-title">
+        <div class="welcome-copy">
         <p class="eyebrow">AI CODING WORKFLOW MONITOR</p>
         <h1 id="welcome-title">다음 막힘을<br><i>먼저</i> 보세요.</h1>
         <p class="explain">Claude Code·Codex를 자주 쓰다 한도·컨텍스트 때문에 작업이 끊기는 사람을 위한 화면입니다. 한도·리셋·데이터 최신성을 한곳에서 확인하며, 로그인·토큰·프롬프트·코드를 이 기기 밖으로 보내지 않습니다.</p>
@@ -39,6 +40,15 @@
           <summary>터미널로 내보내나요?</summary>
           <p><code>--export-widget-snapshot</code> 또는 암호화 전달용 <code>--export-sync-bundle</code>을 사용할 수 있습니다.</p>
         </details>
+        </div>
+        <aside id="welcome-preview" class="welcome-preview" aria-labelledby="welcome-preview-title">
+          <div class="preview-head"><h2 id="welcome-preview-title">화면 미리보기</h2><span>예시 · 실제 데이터 아님</span></div>
+          <p class="preview-decision"><b>NOW · 예시</b>제공자 제한을 먼저 확인하세요.</p>
+          <div class="preview-provider"><div><strong>Claude · 세션 예시</strong><span>62<small>% 남음</small></span></div><div class="preview-bar" aria-hidden="true"><i style="width:62%"></i></div><p>주간 예시 39% 남음 · 리셋은 가져온 파일에서 확인</p></div>
+          <div class="preview-provider preview-blocked"><div><strong>Codex · 상태 예시</strong><span>제한 중</span></div><p>숫자 대신 원인과 다음 행동을 안내합니다.</p></div>
+          <p class="preview-next"><b>NEXT · 예시</b>다음 확인 가능 시각까지 기다리세요.</p>
+          <p class="preview-disclaimer">설명을 위한 예시입니다. 실제 계정 값은 내 파일을 가져온 뒤 표시하며 이 화면은 자동 수집하지 않습니다.</p>
+        </aside>
         <input id="snapshot-file" type="file" accept="application/json,.json,.tokenjuice" hidden disabled>
       </section>
 

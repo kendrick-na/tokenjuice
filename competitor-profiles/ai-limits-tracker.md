@@ -20,3 +20,13 @@ JoCoding 제품이며 Limits와 별개. Mac panel/island와 기기 간 연결을
 
 SEO/트래픽/전환율은 수집하지 않았다. 공개 기능 설명과 실제 동작 검증은 다르다. 계정 연결·결제·설치는 수행하지 않았다.
 근거: [원본 수집 노트](raw/ai-limits-tracker/2026-10-11/scrapes/home.md).
+
+## 2026-10-13 공개 첫 화면 후속
+
+밝은 배경의 2열 desktop hero에 여러 기기의 제품 예시와 iOS/Mac/Play 시작 경로가 함께 보인다. 모바일 세 CTA y459/515/571/h48. 실제 계정 연결·동기화·결제 정확성은 확인하지 않았다.
+
+이번 범위는 UI 첫 사용자 과제다. 기능·가격의 이전 확인일은 유지하며 SEO/전환 지표는 없다.
+원자료: [관측 노트와 두 viewport 캡처](raw/ai-limits-tracker/2026-10-13/scrapes/ui-first-fold.md).
+비교/개선: [UI 벤치마크](../docs/UI_BENCHMARK_2026-10-13.md).
+
+Change Log: 2026-10-13 공개 시각 관측 추가. 이전 원자료는 덮어쓰지 않았으며 결제/설치/로그인은 하지 않았다.

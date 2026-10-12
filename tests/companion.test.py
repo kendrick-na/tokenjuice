@@ -579,7 +579,7 @@ def main() -> None:
             assert_no_horizontal_overflow(page)
             assert page.get_by_text("공개 베타", exact=True).is_visible()
             assert page.get_by_text("설치하고 메뉴바 확인").is_visible()
-            assert page.get_by_text("이 기기는 macOS로 확인되었습니다. 아래 메뉴바 설치 경로만 안내합니다.").is_visible()
+            assert page.get_by_text("브라우저 정보 기반 macOS 메뉴바 권장 경로입니다. 다르면 설치할 기기를 직접 선택하세요.").is_visible()
             assert page.locator('[data-install-platform="windows"]').is_hidden()
             assert page.locator('[data-install-platform="mac"] .install-steps li').count() == 3
             mac_card = page.locator('[data-install-platform="mac"]')

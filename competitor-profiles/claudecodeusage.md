@@ -20,3 +20,13 @@ README 화면은 synthetic fixture 렌더 캡처라고 명시한다. 실제 설�
 
 SEO/트래픽/전환율은 수집하지 않았다. 공개 기능 설명과 실제 동작 검증은 다르다. 계정 연결·결제·설치는 수행하지 않았다.
 근거: [원본 수집 노트](raw/claudecodeusage/2026-10-11/scrapes/readme.md).
+
+## 2026-10-13 공개 첫 화면 후속
+
+375/1280px로 GitHub 저장소 진입 표면을 캡처했다. GitHub navigation은 제품 고유 CTA나 VS Code 사용성 점수로 평가하지 않는다. 이전 README 화면/기능 설명을 실제 extension 실행으로 승격하지 않는다.
+
+이번 범위는 UI 첫 사용자 과제다. 기능·가격의 이전 확인일은 유지하며 SEO/전환 지표는 없다.
+원자료: [관측 노트와 두 viewport 캡처](raw/claudecodeusage/2026-10-13/scrapes/ui-first-fold.md).
+비교/개선: [UI 벤치마크](../docs/UI_BENCHMARK_2026-10-13.md).
+
+Change Log: 2026-10-13 공개 시각 관측 추가. 이전 원자료는 덮어쓰지 않았으며 결제/설치/로그인은 하지 않았다.

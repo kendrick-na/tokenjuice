@@ -1,4 +1,9 @@
-# 경쟁 비교 요약 — 2026-10-11
+# 경쟁 비교 요약 — 2026-10-13 UI 후속 / 2026-10-11 기능·출시 조사
+
+최신 공개 첫 화면 비교는 [2026-10-13 UI/UX 벤치마크](../docs/UI_BENCHMARK_2026-10-13.md)다.
+다섯 제품의 공개 표면과 Pocket을 375/1280px로 캡처했다. VibeUsage는 이번에 시각 관찰을
+추가했으며 ClaudeCodeUsage는 GitHub 저장소 표면이지 VS Code 실사용 화면이 아니다.
+가격/SEO/결제/실계정·native 전체 품질을 이번 캡처로 갱신하지 않는다. 아래는 이전 조사다.
 
 비교 대상은 AI Limits Tracker, Limits, OpenUsage, VibeUsage, ClaudeCodeUsage다.
 앞의 세 사이트와 TokenJuice의 실제 브라우저 화면을 관찰했다. 뒤의 두 제품은 공식 텍스트 조사다. 경쟁사 앱을 설치해 계정별 정확성을 검증하지 않았다.
