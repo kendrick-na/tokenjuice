@@ -86,10 +86,20 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     assert page.locator("#next").input_value()==saved["next"] and page.locator("#save").is_enabled()
     page.locator("#connect").click()
     expect(page.locator("#status")).to_contain_text("계정 로그인 확인")
-    page.route("**/api/summary/policy",lambda route:route.fulfill(status=401,content_type="application/json",body='{"error":"authentication_required"}'))
-    page.locator("#connect").click()
+    pending_policy=[]
+    page.route("**/api/summary/policy",lambda route:pending_policy.append(route))
+    with page.expect_request("**/api/summary/policy"):
+        page.locator("#connect").click()
+    expect(page.locator("#connect")).to_be_disabled()
+    # The previous identical error and unknown quota are still visible while
+    # this new request is pending. Neither proves that its finally ran.
     expect(page.locator("#status")).to_contain_text("계정 로그인 확인")
     expect(page.locator("#quota")).to_contain_text("남은 요청 횟수 확인 불가")
+    assert page.locator("#save").is_disabled()
+    assert len(pending_policy)==1
+    pending_policy[0].fulfill(status=401,content_type="application/json",body='{"error":"authentication_required"}')
+    expect(page.locator("#connect")).to_be_enabled()
+    expect(page.locator("#save")).to_be_enabled()
     assert page.locator("#file").is_disabled()
     assert page.locator("#next").input_value()==saved["next"]
     assert page.locator("#save").is_enabled()

@@ -1504,3 +1504,23 @@ API/실제 계정·설정·모델 설치·스토어 제출은 변경하지 않�
 전체 Bun 233 pass·1 platform skip·2605 assertions·22 파일. strict release-verify exit 0이며
 확장 7 browser suite·번들·문법·격리 알림·Mac 설치본 일치를 통과했다. 코드/UI 후보 연결과
 합성 검증이지 실계정/실모델/클라우드 개통이나 전체 투두 완료가 아니다.
+
+### 9.72 재연결 CI 경쟁 상태 재현 및 완료 조건 보강
+
+452b947의 Windows 38220584444는 success지만 Engine 38220584453의 browser job은
+managed-summary.test.py:95 저장 버튼 assertion에서 실패했다. 로컬 기존 suite는 통과했다.
+systematic-debugging으로 경로를 추적한 결과, 두 번째 policy 요청 중에도 이전의 동일한
+인증 실패 메시지와 quota unknown이 남는다. 따라서 그 두 텍스트를 기다리는 것은 새 요청의
+완료 증거가 아니며 busy=true인 동안 저장 버튼은 정상적으로 잠깐 비활성화된다.
+
+새 테스트는 policy 응답을 의도적으로 보류해 요청 발생·연결 버튼 비활성·이전 메시지·quota·
+저장 비활성을 확인한 뒤 401 응답을 해제한다. finally 이후 연결/저장 버튼 활성화를 조건으로
+기다리고 편집 보존·파일 선택 차단을 계속 검증한다. 제품 코드·deadline·skip 변경 없이
+이전 assertion이 경쟁 상태에서 실패하는 조건을 재현했다. 고정 sleep은 추가하지 않았다.
+targeted browser 3개 시나리오와 strict release-verify --require-browser exit 0이며 Bun은
+233 pass·1 platform skip·2605 assertions다. 수정 후 원격 CI 확인은 별도로 필요하다.
+
+17:07 KST 읽기 전용 진단은 Claude HTTP401/auth expired·trust blocked·마지막 성공 152h 전,
+Codex local fresh다. API/갱신·로그인·설정 변경 없이 기존 관측만 읽었다. 앞선 실제 메뉴바
+확인은 Mac 잠금 때문에 불가했고, 잠금 해제/재로그인 완료 답변이 없다. 실제 수집·신규 설치·
+전체 디자인·호스팅·스토어·실사용 피드백 게이트는 여전히 미완료다.
