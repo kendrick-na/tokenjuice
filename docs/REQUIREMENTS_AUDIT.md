@@ -1276,4 +1276,4 @@ bded47b의 [Windows CI 38195587167](https://github.com/kendrick-na/tokenjuice/ac
 
 후속 연결 테스트는 합성 계정의 임시 HOME에서 Python `read_usage`가 실제 Bun 엔진을 호출하고, 반환한 실제 `TokenJuice` 이벤트를 mock 표시기에 넘긴다. 두 번째 호출은 빈 이벤트이며 표시기는 한 번만 호출된다. 정책 판단을 Python으로 복제하지 않고 title·본문·옵션·중복 억제의 연결을 함께 검증한다. Mac에서는 임시 venv를 명시해 실행했고, Windows CI에서는 기존 Python 의존성으로 실행된다. 일반 Mac/Linux 회귀에서는 선택적으로 건너뛰므로 그 결과만으로 연결 검증을 주장하지 않는다.
 
-로컬 연결 테스트 1 pass/8 assertions와 이를 포함한 전체 Bun 회귀 178 pass/2030 assertions를 확인했다. 후속 테스트의 Windows 원격 결과는 별도로 확인한다. 실행 Mac 설치본·설정·credential은 그대로이며 R11 native-toast/실기기, 실제 모델·모바일 연결·스토어·사용자 피드백 목표는 여전히 남는다.
+로컬 연결 테스트 1 pass/8 assertions와 이를 포함한 전체 Bun 회귀 178 pass/2030 assertions를 확인했다. 48a03ab의 [Windows CI 38195753786](https://github.com/kendrick-na/tokenjuice/actions/runs/38195753786)와 [Engine CI 38195753806](https://github.com/kendrick-na/tokenjuice/actions/runs/38195753806)도 success다. Windows 로그에서 새 연결 테스트 pass, selftest 통과, 빌드된 EXE exit 0을 확인했다. 태그 없는 후보 artifact이며 새 스토어/desktop release를 발행하지 않았다. 실행 Mac 설치본·설정·credential은 그대로이며 R11 native-toast/실기기, 실제 모델·모바일 연결·스토어·사용자 피드백 목표는 여전히 남는다.
