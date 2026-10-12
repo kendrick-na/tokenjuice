@@ -81,6 +81,18 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     page.locator("#work-file").set_input_files(str(session))
     page.wait_for_function("document.querySelector('#work-file').value === ''")
     assert page.locator("#work-next").input_value() == saved_cloud["next"]
+    local={**cloud,"method":"local_generative_user_reviewed","privacy":"reviewed_local_model_excerpt"}
+    session.write_text(json.dumps(local),encoding="utf-8")
+    page.locator("#work-file").set_input_files(str(session))
+    page.wait_for_function("document.querySelector('#work-file').value === ''")
+    assert "로컬 AI 요약 파일" in page.locator("#work-source").inner_text()
+    assert not page.locator("#work-review").is_checked()
+    page.locator("#work-review").check()
+    with page.expect_download() as result: page.locator("#work-download").click()
+    saved_local=json.loads(Path(result.value.path()).read_text(encoding="utf-8"))
+    assert saved_local["method"]=="local_generative_user_reviewed"
+    assert saved_local["privacy"]=="reviewed_local_model_excerpt"
+    assert "SECRET_" not in json.dumps(saved_local)
     page.emulate_media(reduced_motion="reduce")
     for width, height in [(375,812), (812,375), (1280,900)]:
         page.set_viewport_size({"width":width,"height":height})

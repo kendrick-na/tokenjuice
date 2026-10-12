@@ -40,3 +40,32 @@ test("summary browser assets have no third-party calls, persistent storage or pr
   expect(source).not.toMatch(/localStorage|sessionStorage|api\.anthropic|x-api-key/);
   expect(source).toContain('get("consent").checked');expect(source).toContain('get("reviewed").checked');
 });
+test("local model HTTP mode needs no key or dollar ledger and keeps the authenticated approval boundary",async()=>{
+  const localOptions={provider:"ollama_local",model:"test-model:local",modelDigest:"a".repeat(64)};
+  const calls=[];
+  const service=startSummaryService({options:localOptions,port:0,transport:async url=>{
+    calls.push(url);
+    if(url.endsWith("/api/status"))return Response.json({cloud:{disabled:true}});
+    if(url.endsWith("/api/tags"))return Response.json({models:[{name:localOptions.model,digest:localOptions.modelDigest,size:1000}]});
+    return Response.json({model:localOptions.model,done:true,done_reason:"stop",message:{role:"assistant",
+      content:JSON.stringify(Object.fromEntries(["goal","completed","blocked","next"].map(field=>[field,{text:"verify",evidenceIds:[1]}])))}});
+  }});
+  try{
+    const response=await fetch(`${service.origin}/api/session`,{method:"POST",headers:{origin:service.origin,
+      "x-tokenjuice-client":"local-summary","content-type":"application/json"},body:"{}"});
+    const session=await response.json();expect(session.provider).toBe("ollama_local");
+    expect(session).not.toHaveProperty("budget");expect(session).not.toHaveProperty("dailyMaxUSD");
+    const send=(route,body,token=session.accessToken)=>fetch(`${service.origin}/api/summary/${route}`,{method:"POST",
+      headers:{origin:service.origin,authorization:`Bearer ${token}`,"content-type":"application/json"},body:JSON.stringify(body)});
+    expect((await send("preview",{raw:"synthetic"},"bad")).status).toBe(401);
+    expect((await send("preview",{raw:"synthetic",provider:"anthropic"})).status).toBe(400);
+    const preview=await send("preview",{raw:"synthetic"}).then(r=>r.json());
+    expect(preview.provider).toBe("ollama_local");expect(calls).toEqual([]);
+    expect((await send("generate",{id:preview.id,digest:preview.digest,confirmed:false})).status).toBe(400);
+    expect(calls).toEqual([]);
+    const draft=await send("generate",{id:preview.id,digest:preview.digest,confirmed:true}).then(r=>r.json());
+    expect(draft.method).toBe("local_generative");expect(calls).toHaveLength(3);
+    expect((await send("generate",{id:preview.id,digest:preview.digest,confirmed:true})).status).toBe(409);
+  }finally{await service.stop();}
+  expect(()=>startSummaryService({options:{...localOptions,provider:"unknown"}})).toThrow("unsupported_summary_provider");
+});

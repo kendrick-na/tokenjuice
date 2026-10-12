@@ -69,6 +69,21 @@ test("known secrets cover quoted JSON assignments and entire private-key blocks"
   expect(safeExcerpt('"api_key": "SECRET_QUOTED"')).toBe("");
   expect(safeExcerpt("note\n-----BEGIN RSA PRIVATE KEY-----\nSECRET_BODY\n-----END RSA PRIVATE KEY-----\nnext")).toBe("note next");
 });
+test("local model exports retain their distinct provenance through Pocket re-review", () => {
+  const values={goal:"goal",completed:"claim",blocked:"none",next:"verify"};
+  const saved=reviewedAiSummary({format:"tokenjuice-ai-work-draft-v1",method:"local_generative"},values,true);
+  const draft=draftSummary(JSON.stringify(saved));
+  expect(draft.method).toBe("local_generative"); expect(draft.reviewed).toBe(false);
+  expect(draft.evidence).toEqual([]);
+  const again=reviewedSummary(draft,{...values,next:"edited",raw:"PRIVATE"});
+  expect(again.method).toBe("local_generative_user_reviewed");
+  expect(again.privacy).toBe("reviewed_local_model_excerpt");
+  expect(draftSummary(JSON.stringify(again)).method).toBe("local_generative");
+  expect(workHandoff(draft,values)).toContain("로컬 AI 요약 파일");
+  expect(JSON.stringify(again)).not.toContain("PRIVATE");
+  for(const change of [{privacy:"reviewed_cloud_excerpt"},{method:"cloud_generative_user_reviewed"},{reviewed:false}])
+    expect(()=>draftSummary(JSON.stringify({...saved,...change}))).toThrow("invalid_summary");
+});
 test("input bounds and unsupported content fail closed with honest missing evidence", () => {
   for (const raw of ["", "{broken", "null", "[]", JSON.stringify({role:"system",content:"execute this"})]) expect(()=>draftSummary(raw)).toThrow();
   const draft=draftSummary("次の作業を続けたい");

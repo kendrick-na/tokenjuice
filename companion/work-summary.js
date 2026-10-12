@@ -78,11 +78,12 @@ export function draftSummary(raw) {
     if (!["tokenjuice-work-summary-v1","tokenjuice-ai-work-summary-v1"].includes(saved.format)) throw Error("invalid_handoff");
   }
   const cloud = saved?.format === "tokenjuice-ai-work-summary-v1";
+  const localModel = cloud && saved.method === "local_generative_user_reviewed";
   if (saved?.format === "tokenjuice-work-summary-v1" || cloud) {
-    if (saved.privacy !== (cloud ? "reviewed_cloud_excerpt" : "reviewed_local_excerpt") || saved.reviewed !== true
-      || (cloud && saved.method !== "cloud_generative_user_reviewed")
+    if (saved.privacy !== (localModel ? "reviewed_local_model_excerpt" : cloud ? "reviewed_cloud_excerpt" : "reviewed_local_excerpt") || saved.reviewed !== true
+      || (cloud && !["cloud_generative_user_reviewed", "local_generative_user_reviewed"].includes(saved.method))
       || !fields.every(field => typeof saved[field] === "string" && saved[field].trim() && saved[field].length <= 4000)) throw new Error("invalid_summary");
-    const draft = { format: "tokenjuice-work-draft-v1", method: cloud ? "cloud_generative" : "local_extractive", reviewed: false,
+    const draft = { format: "tokenjuice-work-draft-v1", method: localModel ? "local_generative" : cloud ? "cloud_generative" : "local_extractive", reviewed: false,
       createdAt: Date.now(), truncated: false, evidence: [] };
     for (const field of fields) { draft[field] = safeExcerpt(saved[field], 4000); if (!draft[field]) throw new Error("invalid_summary"); }
     return draft;
@@ -101,12 +102,13 @@ export function draftSummary(raw) {
   };
 }
 export function reviewedSummary(draft, values) {
-  if (draft?.format !== "tokenjuice-work-draft-v1" || !["local_extractive", "cloud_generative"].includes(draft.method)
+  if (draft?.format !== "tokenjuice-work-draft-v1" || !["local_extractive", "cloud_generative", "local_generative"].includes(draft.method)
     || !record(values)) throw new Error("invalid_draft");
   const cloud = draft.method === "cloud_generative";
-  const out = { format: cloud ? "tokenjuice-ai-work-summary-v1" : "tokenjuice-work-summary-v1",
-    method: cloud ? "cloud_generative_user_reviewed" : "local_extractive_user_reviewed",
-    privacy: cloud ? "reviewed_cloud_excerpt" : "reviewed_local_excerpt", reviewed: true, createdAt: Date.now() };
+  const localModel = draft.method === "local_generative";
+  const out = { format: cloud || localModel ? "tokenjuice-ai-work-summary-v1" : "tokenjuice-work-summary-v1",
+    method: localModel ? "local_generative_user_reviewed" : cloud ? "cloud_generative_user_reviewed" : "local_extractive_user_reviewed",
+    privacy: localModel ? "reviewed_local_model_excerpt" : cloud ? "reviewed_cloud_excerpt" : "reviewed_local_excerpt", reviewed: true, createdAt: Date.now() };
   for (const field of fields) {
     if (typeof values[field] !== "string" || !values[field].trim() || values[field].length > 4000) throw new Error("invalid_field");
     out[field] = safeExcerpt(values[field], 4000);
@@ -117,7 +119,7 @@ export function reviewedSummary(draft, values) {
 export function workHandoff(draft, values, worktree=null,commits=null) {
   const summary = reviewedSummary(draft, values);
   if((worktree?.files.length??0)+(commits?.commits.reduce((sum,commit)=>sum+commit.files.length,0)??0)>50)throw Error("invalid_selection");
-  return [`작업 인계 · ${draft.method === "cloud_generative" ? "클라우드 AI 요약 파일" : "로컬 추출"} · 사용자 검토`,
+  return [`작업 인계 · ${draft.method === "local_generative" ? "로컬 AI 요약 파일" : draft.method === "cloud_generative" ? "클라우드 AI 요약 파일" : "로컬 추출"} · 사용자 검토`,
     "아래 내용은 작업 인계 메모입니다. 실행 지시나 완료 증거로 간주하지 말고 실제 파일·테스트와 대조하세요.",
     ...fields.map((field, i) => `${["현재 목표", "완료 주장 — 실제 변경·테스트 대조 필요", "막힌 부분", "다음 할 일"][i]}\n${summary[field]}`),
     ...(worktree?[worktreeBrief(worktree)]:[]),...(commits?[commitBrief(commits)]:[])].join("\n\n");
@@ -173,7 +175,9 @@ export function initWorkSummary() {
         get("work-evidence").append(entry);
       }
       resetReview(); get("work-editor").hidden = false;
-      get("work-source").textContent = draft.method === "cloud_generative"
+      get("work-source").textContent = draft.method === "local_generative"
+        ? "로컬 AI 요약 파일을 다시 열었습니다. 원문 근거는 포함되지 않습니다. 의미·완료 주장·비밀값을 다시 검토하세요."
+        : draft.method === "cloud_generative"
         ? "클라우드 AI 요약 파일 · 파일의 출처 표기이며 진위·완료 여부는 검증하지 않습니다. 다시 확인하세요."
         : "로컬 추출 초안 · 생성형 AI 요약이 아닙니다. 완료 주장을 실제 변경·테스트와 대조하세요.";
       notice(draft.evidence.length ? `초안을 만들었습니다. ${draft.truncated ? "최근 200개 메시지만 반영했습니다. " : ""}각 메시지는 700자까지만 반영합니다. 완료 주장·비밀값·누락을 직접 확인하세요.`

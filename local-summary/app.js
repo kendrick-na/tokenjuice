@@ -8,6 +8,11 @@ function controls(){
   get("save").disabled=busy||!draft||!get("reviewed").checked;
 }
 const errors={approval_unavailable:"미리보기가 만료됐습니다. 파일을 다시 선택해 새로 확인하세요.",
+  local_summary_busy:"이 서버에서 로컬 요약이 이미 실행 중입니다. 완료 후 다시 승인하세요.",
+  local_cloud_disabled_required:"Ollama 클라우드 꺼짐을 확인하지 못했습니다. 대화는 보내지 않았습니다. 로컬 설정과 지원 버전을 확인하세요.",
+  local_model_unavailable:"설정한 로컬 모델이 설치 목록에 없습니다. 자동 다운로드하지 않았습니다.",
+  local_model_verification_failed:"로컬 모델 digest·크기·원격 여부가 설정과 다릅니다. 대화는 보내지 않았습니다.",
+  incomplete_local_summary:"로컬 응답이 불완전하거나 근거 형식이 맞지 않습니다. 자동 재시도하지 않습니다.",
   approval_already_used:"이미 사용한 승인입니다. 파일을 다시 선택해 새로 확인하세요.",
   daily_summary_budget_exceeded:"오늘 예약 예산을 모두 사용했습니다. 자동 재시도하지 않습니다.",
   summary_http_429:"제공자가 요청을 제한했습니다. 자동 재시도하지 않습니다. 잠시 뒤 새 미리보기로 확인하세요.",
@@ -29,23 +34,34 @@ get("file").addEventListener("change",()=>run(async()=>{
     if(preview)await api("discard",{id:preview.id}).catch(()=>{});
     clearInterval(expiryTimer);preview=nextPreview;draft=null;consumed=false;get("review-panel").hidden=true;
     get("consent").checked=false;get("reviewed").checked=false;
-    get("payload").textContent=JSON.stringify({provider:preview.provider,endpoint:preview.endpoint,countEndpoint:preview.countEndpoint,payload:preview.payload},null,2);
+    get("payload").textContent=JSON.stringify({provider:preview.provider,endpoint:preview.endpoint,countEndpoint:preview.countEndpoint,modelDigest:preview.modelDigest,checks:preview.checks,payload:preview.payload},null,2);
     get("excerpt").textContent=preview.evidence.map(item=>`[${item.id}] ${item.role==="user"?"사용자":"AI 발언 — 사실 검증 아님"}\n${item.text}`).join("\n\n");
     const b=preview.budget;
-    get("policy").textContent=`Anthropic · ${preview.payload.model} · 요청 예약 최대 USD ${b.maxUSD} · 입력/출력 100만 토큰당 USD ${b.inputUSDPerMillion}/${b.outputUSDPerMillion} · 가격 확인 ${new Date(b.verifiedAt).toLocaleString()} · ${preview.truncated?"일부 발언 누락":"선택된 발언 범위"}. 사전 토큰 수는 추정치이며 실제 청구는 다를 수 있습니다.`;
+    const local=preview.provider==="ollama_local";
+    get("policy").textContent=local
+      ? `이 컴퓨터의 Ollama · ${preview.payload.model} · 선택 발언 최대 4096 bytes · 출력 최대 ${preview.payload.options.num_predict} 토큰 · ${preview.truncated?"일부 발언 누락":"선택된 발언 범위"}. 메모리·전력·시간을 사용합니다. 서버는 클라우드 꺼짐과 설치 모델을 확인한 뒤 실행하며 요금이나 의미 품질을 보증하지 않습니다.`
+      : `Anthropic · ${preview.payload.model} · 요청 예약 최대 USD ${b.maxUSD} · 입력/출력 100만 토큰당 USD ${b.inputUSDPerMillion}/${b.outputUSDPerMillion} · 가격 확인 ${new Date(b.verifiedAt).toLocaleString()} · ${preview.truncated?"일부 발언 누락":"선택된 발언 범위"}. 사전 토큰 수는 추정치이며 실제 청구는 다를 수 있습니다.`;
+    document.querySelector("#preview-panel .warning").textContent=local
+      ? "알려진 비밀값만 제거합니다. 민감정보를 직접 확인하세요. 승인한 발언은 이 컴퓨터의 Ollama에 전달합니다. 로컬 daemon의 설정·동작은 별도로 신뢰해야 하며 TokenJuice는 모델을 설치하거나 클라우드로 우회하지 않습니다."
+      : "알려진 비밀값만 제거합니다. 민감정보가 남을 수 있으므로 아래 내용을 직접 확인하세요. 승인하면 토큰 계산과 요약 요청이 Anthropic으로 전송됩니다. 제공자 보존 정책은 별도이며 절대 청구액 상한을 보장하지 않습니다.";
+    get("consent").nextSibling.textContent=local
+      ? " 처리 위치·모델·전송 내용·기기 자원 사용을 확인했고 이번 로컬 요약 요청에 동의합니다"
+      : " 전송 내용·제공자·모델·비용 조건을 확인했고 이번 요청 전송에 동의합니다";
     get("preview-panel").hidden=false;
     clearInterval(expiryTimer);expiryTimer=setInterval(()=>{get("expiry").textContent=`승인 미리보기 남은 시간 ${Math.max(0,Math.ceil((preview?.expiresAt-Date.now())/1000))}초`;controls();},1000);
-    notice("아직 외부 전송 전입니다. 전송 내용과 비용 조건을 읽고 이번 요청에만 동의하세요.");get("consent").focus();
+    notice(local?"아직 모델 요청 전입니다. 처리 위치·전송 내용·자원 조건을 읽고 이번 요청에만 동의하세요.":"아직 외부 전송 전입니다. 전송 내용과 비용 조건을 읽고 이번 요청에만 동의하세요.");get("consent").focus();
   }finally{get("file").value="";}
 }));
 get("consent").addEventListener("change",controls);
 get("generate").addEventListener("click",()=>run(async()=>{
   if(!preview||consumed||!get("consent").checked||Date.now()>=preview.expiresAt)return;
-  consumed=true;notice("동의한 발언으로 토큰 계산·요약을 요청 중입니다. 이 동안 지우기/새 파일 선택은 잠깁니다. 중복 실행하지 않습니다.");
+  consumed=true;notice(preview.provider==="ollama_local"?"로컬 상태·모델을 확인하고 동의한 발언으로 요약 중입니다. 새 선택과 지우기는 잠기며 중복 실행하지 않습니다.":"동의한 발언으로 토큰 계산·요약을 요청 중입니다. 이 동안 지우기/새 파일 선택은 잠깁니다. 중복 실행하지 않습니다.");
   draft=await api("generate",{id:preview.id,digest:preview.digest,confirmed:true});
   for(const field of fields)get(field).value=draft.summary[field].text;
   get("evidence").textContent=JSON.stringify({summary:draft.summary,evidence:draft.evidence},null,2);
-  get("cost").textContent=`이번 요청의 일일 예약 USD ${preview.budget.maxUSD} · 생성 사전 계산 USD ${draft.cost.estimatedReservedUSD.toFixed(6)} · 토큰 기준 계산 ${draft.cost.actualTokenCostUSD===null?"확인 불가":`USD ${draft.cost.actualTokenCostUSD.toFixed(6)}`} · 청구서가 아닙니다. 실패에도 일일 예약액은 유지합니다.`;
+  get("cost").textContent=draft.method==="local_generative"
+    ? `이 컴퓨터에서 생성 · 입력/출력 토큰 ${draft.usage.input_tokens??"확인 불가"}/${draft.usage.output_tokens??"확인 불가"} · 메모리·전력·시간 사용. 모델에 unload를 요청하지만 즉시 자원 해제를 보증하지 않습니다. 클라우드 청구액을 계산하지 않습니다.`
+    : `이번 요청의 일일 예약 USD ${preview.budget.maxUSD} · 생성 사전 계산 USD ${draft.cost.estimatedReservedUSD.toFixed(6)} · 토큰 기준 계산 ${draft.cost.actualTokenCostUSD===null?"확인 불가":`USD ${draft.cost.actualTokenCostUSD.toFixed(6)}`} · 청구서가 아닙니다. 실패에도 일일 예약액은 유지합니다.`;
   get("reviewed").checked=false;get("review-panel").hidden=false;notice("AI 초안이 도착했습니다. 실제 작업·근거·비밀값을 확인하고 수정한 뒤 저장하세요.");get("goal").focus();
 }));
 for(const field of fields)get(field).addEventListener("input",()=>{get("reviewed").checked=false;controls();});
@@ -56,7 +72,7 @@ get("save").addEventListener("click",()=>run(async()=>{
   // Local re-review/export remains available after the server's memory session
   // expires. Edited handoff notes are not transmitted back to the server.
   let result;
-  try{result=reviewedSummary({format:"tokenjuice-work-draft-v1",method:"cloud_generative"},values);}
+  try{result=reviewedSummary({format:"tokenjuice-work-draft-v1",method:draft.method},values);}
   catch{throw new Error("네 항목을 모두 1~4,000자로 작성하고 비밀값을 제거하세요. 저장하지 않았습니다.");}
   const url=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:"application/json"}));
   const link=document.createElement("a");link.href=url;link.download="tokenjuice-ai-work-summary.json";link.click();setTimeout(()=>URL.revokeObjectURL(url),0);
@@ -76,5 +92,8 @@ run(async()=>{
   const response=await fetch("/api/session",{method:"POST",headers:{"content-type":"application/json","x-tokenjuice-client":"local-summary"},body:"{}"});
   if(!response.ok)throw new Error("이 서버의 화면에서만 연결할 수 있습니다. 로컬 실행 주소를 확인하세요.");
   const session=await response.json();token=session.accessToken;
-  notice(`로컬 서버 연결됨 · ${session.model} · 오늘 예약 예산 USD ${session.dailyMaxUSD}. 파일을 선택해도 승인 전에는 제공자에게 보내지 않습니다.`);
+  const local=session.provider==="ollama_local";
+  document.querySelector(".badge").textContent=local?"이 컴퓨터의 모델 · 선택 승인":"로컬 서버 · 클라우드 선택 전송";
+  if(local)document.querySelector("footer").textContent="메모리 전용 대화 처리 · 다운로드는 직접 관리 · 실행 중이 아닌 서버 세션은 최대 5분 후 만료 · 생성 취소/즉시 자원 해제 보장 아님";
+  notice(local?`로컬 Ollama 모드 · ${session.model}. 모델 설치·전송은 자동 실행하지 않습니다. 파일 선택 후 내용을 확인하고 승인하세요.`:`로컬 서버 연결됨 · ${session.model} · 오늘 예약 예산 USD ${session.dailyMaxUSD}. 파일을 선택해도 승인 전에는 제공자에게 보내지 않습니다.`);
 });

@@ -1,17 +1,22 @@
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { isAbsolute } from "node:path";
 import { createSummarySessions } from "./ai-summary-sessions.mjs";
 import { createDailySummaryBudget } from "./ai-summary-budget.mjs";
 import { createLocalSummaryApi } from "./ai-summary-api.mjs";
 import { prepareAiSummary } from "./ai-work-summary.mjs";
+import { prepareOllamaSummary } from "./ollama-work-summary.mjs";
 
 export function startSummaryService({ apiKey, options, budgetDirectory, dailyMaxUSD, port = 4179, transport } = {}) {
-  if (typeof apiKey !== "string" || !apiKey.trim() || /[\r\n]/.test(apiKey)
-    || !Number.isInteger(port) || port < 0 || port > 65535) throw new Error("invalid_service_config");
   const frozen = JSON.parse(JSON.stringify(options || {}));
-  if (!prepareAiSummary("configuration check", frozen).budget) throw new Error("budget_required");
-  const ledger = createDailySummaryBudget({ directory: budgetDirectory, dailyMaxUSD });
-  const sessions = createSummarySessions({ apiKey, options: frozen, transport, budgetLedger: ledger });
+  if (![undefined, "anthropic", "ollama_local"].includes(frozen.provider)) throw new Error("unsupported_summary_provider");
+  const local = frozen.provider === "ollama_local";
+  if ((!local && (typeof apiKey !== "string" || !apiKey.trim() || /[\r\n]/.test(apiKey)))
+    || !Number.isInteger(port) || port < 0 || port > 65535) throw new Error("invalid_service_config");
+  if (local) prepareOllamaSummary("configuration check", frozen);
+  else if (!prepareAiSummary("configuration check", frozen).budget) throw new Error("budget_required");
+  const ledger = local ? null : createDailySummaryBudget({ directory: budgetDirectory, dailyMaxUSD });
+  const sessions = createSummarySessions({ ...(local ? {} : { apiKey }), options: frozen, transport, budgetLedger: ledger });
   const assets = new Map([
     ["/", [new URL("../local-summary/index.html", import.meta.url), "text/html; charset=utf-8"]],
     ["/app.js", [new URL("../local-summary/app.js", import.meta.url), "text/javascript; charset=utf-8"]],
@@ -36,7 +41,8 @@ export function startSummaryService({ apiKey, options, budgetDirectory, dailyMax
           || request.headers.get("content-type") !== "application/json"
           || ![null,"same-origin","none"].includes(request.headers.get("sec-fetch-site")))
           return reply({error:"same_origin_required"},403);
-        return reply({ accessToken:token, model:frozen.model, budget:frozen.budget, dailyMaxUSD },200);
+        return reply({ accessToken:token, provider: local ? "ollama_local" : "anthropic", model:frozen.model,
+          ...(local ? {} : { budget:frozen.budget, dailyMaxUSD }) },200);
       }
       const asset = assets.get(url.pathname);
       if (request.method !== "GET" || url.search || !asset) return reply({error:"not_found"},404);
@@ -51,21 +57,21 @@ export function startSummaryService({ apiKey, options, budgetDirectory, dailyMax
 
 if (import.meta.main) {
   if (process.argv[2] === "--help") {
-    console.log("bun scripts/ai-summary-service.mjs /absolute/config.json\nAPI key: TOKENJUICE_SUMMARY_API_KEY environment only. Local single-user candidate; no automatic browser launch.");
+    console.log("bun scripts/ai-summary-service.mjs /absolute/config.json\nprovider: anthropic (default) or ollama_local. Anthropic key: TOKENJUICE_SUMMARY_API_KEY environment only; local requires model:tag and modelDigest. No downloads or automatic browser launch.");
   } else {
     try {
       const path = process.argv[2];
-      if (!path?.startsWith("/")) throw new Error("absolute_config_required");
+      if (!path || !isAbsolute(path)) throw new Error("absolute_config_required");
       const config = JSON.parse(readFileSync(path,"utf8"));
       const service = startSummaryService({apiKey:process.env.TOKENJUICE_SUMMARY_API_KEY,
-        options:{model:config.model,maxOutputTokens:config.maxOutputTokens,budget:config.budget},
+        options:{provider:config.provider,model:config.model,modelDigest:config.modelDigest,maxOutputTokens:config.maxOutputTokens,budget:config.budget},
         budgetDirectory:config.budgetDirectory,dailyMaxUSD:config.dailyMaxUSD,port:config.port ?? 4179});
       console.log(`TokenJuice local summary candidate: ${service.origin}\nNo provider call until you review the excerpt and approve in the browser. Ctrl+C stops the service.`);
       let stopping = false;
       const stop = async () => { if (stopping) return; stopping = true; await service.stop(); };
       process.on("SIGINT",stop); process.on("SIGTERM",stop);
     } catch {
-      console.error("Summary service did not start. Check explicit config, API key, model/pricing freshness, private POSIX budget directory and port. No credential values are printed.");
+      console.error("Summary service did not start. Check explicit provider/model config and port; local needs modelDigest, Anthropic needs API key/current pricing/private POSIX budget directory. No credential values are printed.");
       process.exitCode = 1;
     }
   }

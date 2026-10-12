@@ -293,7 +293,7 @@ test(`Claude API cache rejects future or invalid ${field} instead of fake fresh 
   expect(notifications()).toEqual([]);
   expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
   expect(calls()).toBe(8);
-});
+}, 20000); // 25 isolated engine launches; Windows cold starts can exceed 5s.
 }
 
 test("Claude API cache rejects overflow observations and recovers on a real refresh", () => {

@@ -9,7 +9,9 @@ const PUBLIC_ERRORS = new Set(["approval_unavailable", "consent_required", "appr
   "no_supported_messages", "no_evidence", "invalid_budget_policy", "budget_required", "budget_ledger_required",
   "daily_summary_budget_exceeded", "budget_lock_unavailable", "invalid_budget_file", "budget_clock_rollback",
   "summary_budget_exceeded", "invalid_token_count", "summary_request_failed", "invalid_provider_response",
-  "incomplete_summary", "invalid_summary_json", "invalid_evidence", "unsupported_claim", "redacted_summary"]);
+  "incomplete_summary", "invalid_summary_json", "invalid_evidence", "unsupported_claim", "redacted_summary",
+  "local_summary_busy", "local_cloud_disabled_required", "local_model_unavailable", "local_model_verification_failed",
+  "invalid_local_model_list", "local_summary_request_failed", "invalid_local_provider_response", "incomplete_local_summary"]);
 const json = (value, status = 200) => Response.json(value, { status, headers: {
   "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer",
   "x-frame-options": "DENY", "content-security-policy": "default-src 'none'; frame-ancestors 'none'",
@@ -97,9 +99,9 @@ export function createLocalSummaryApi({ origin, accessToken, sessions } = {}) {
       if (error.message === "invalid_body_size") return json({ error: error.message }, 413);
       if (error.message === "request_body_timeout") return json({ error: error.message }, 408);
       if (error.message === "invalid_request_body") return json({ error: error.message }, 400);
-      const code = PUBLIC_ERRORS.has(error.message) || /^summary_http_[45]\d\d$/.test(error.message)
+      const code = PUBLIC_ERRORS.has(error.message) || /^(?:local_)?summary_http_[45]\d\d$/.test(error.message)
         ? error.message : "summary_unavailable";
-      const status = ["approval_unavailable", "draft_unavailable", "approval_already_used", "summary_running"].includes(code) ? 409
+      const status = ["approval_unavailable", "draft_unavailable", "approval_already_used", "summary_running", "local_summary_busy"].includes(code) ? 409
         : ["preview_capacity", "daily_summary_budget_exceeded"].includes(code) ? 429
         : ["consent_required", "review_required", "invalid_field", "redacted_field", "multiple_sessions",
           "empty_session", "no_supported_messages", "no_evidence", "too_large", "too_many_records"].includes(code) ? 400 : 503;
