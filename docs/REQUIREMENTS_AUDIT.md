@@ -1788,3 +1788,14 @@ frontend-design에 따라 기존 serif/dark teal 디자인을 유지하면서 �
 모델 다운로드·자격증명/설정 갱신·운영 배포는 하지 않았다. 기획서 P1-04/P1-05 전체는
 미완료다. Claude 인증 fresh 관측/실기기, 실서비스 로그인/hosting, 실제 요약 품질,
 신규 설치·경쟁 화면 비교·스토어·인터뷰는 별도 남은 gate다.
+
+bb6caf9의 Engine 38285622639·Windows 38285622644는 모두 success다. browser job
+114933168643에서 직접 파일·malformed bootstrap·redirect/invalid JSON 신규 PASS를
+로그로 확인했다. Windows는 EXE 생성·실행·artifact 업로드까지 success이고 tag release는
+skipped다. 공개 Pocket 배포나 새 desktop release 발행이 아니다.
+
+2026-10-13 02:40 KST installed --diagnostics는 existing observations만 읽었다.
+Claude는 http 429/rate-limit·trust blocked·마지막 성공 5h 전·retry 18m로, 이전 401 기록과
+다르게 현재 요청 제한이며 복구/최신 quota가 아니다. autoRenew=false는 그대로다.
+Codex는 fresh/live 로컬 JSONL 관측이다. 직접 API·renewal·설정 변경·사용자 프로세스 종료는
+없었다. 네이티브 메뉴바 화면 확인과 제한 해제 후 실제 최신 수집은 여전히 남았다.
