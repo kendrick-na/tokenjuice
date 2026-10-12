@@ -853,6 +853,29 @@ test("--renew-login runs on demand but not twice within a minute", async () => {
 });
 
 // ── R6 · opt-in notifications ────────────────────────────────────────────
+test("JSON notification transport is explicit, opt-in and transition-safe", () => {
+  usage(200, okUsage(85, 10));
+  config({ api: true, notify: { enabled: true, threshold: 20 } });
+  expect(json().notificationEvents).toBeUndefined();
+  expect(existsSync(path.join(home, ".cache/claude-codex-battery/notify-state.json"))).toBe(false);
+  const first = JSON.parse(run("--json", "--notification-events"));
+  expect(first.notificationEvents).toHaveLength(1);
+  expect(first.notificationEvents[0].title).toBe("TokenJuice");
+  expect(first.notificationEvents[0].body).toContain("threshold alert");
+  expect(JSON.stringify(first.notificationEvents)).not.toContain(SECRET_PROMPT);
+  expect(notifications()).toEqual([]); // transport must not also invoke OS sender
+  expect(JSON.parse(run("--json", "--notification-events")).notificationEvents).toEqual([]);
+});
+
+test("JSON notification transport does not enable alerts or trust failed observations", () => {
+  usage(200, okUsage(99, 99));
+  expect(JSON.parse(run("--json", "--notification-events")).notificationEvents).toEqual([]);
+  config({ api: true, notify: { enabled: true } });
+  cache("claude-0.json", {}); // force a new failed observation, not fresh cached quota
+  usage(500);
+  expect(JSON.parse(run("--json", "--notification-events")).notificationEvents).toEqual([]);
+});
+
 test("notifications are off by default", () => {
   usage(200, okUsage(95, 95));
   run();

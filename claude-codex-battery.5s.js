@@ -2088,7 +2088,12 @@ function notificationPolicyForAccount(accountIndex) {
 }
 const NOTIFY_STATE_FILE = path.join(CACHE_DIR, "notify-state.json");
 const NOTIFY_HYSTERESIS = 5; // percent points above the threshold before "back"
+// A ready desktop consumer can request delivery instead of OS presentation.
+// Plain JSON/widget consumers remain side-effect-free with respect to alerts.
+const JSON_NOTIFICATION_DELIVERY = argvHas("--json") && argvHas("--notification-events");
+const notificationEvents = [];
 function sendNotification(title, body) {
+  if (JSON_NOTIFICATION_DELIVERY) { notificationEvents.push({ title, body }); return; }
   const log = process.env.CCB_TEST_NOTIFY_LOG; // tests only
   if (log) { appendFileSync(log, `${title}\t${body}\n`); return; }
   if (!IS_MAC) return;
@@ -2374,6 +2379,7 @@ if (argv.includes("--project-report")) {
 }
 
 if (asJson) {
+  if (JSON_NOTIFICATION_DELIVERY) runNotifications(notificationEntries());
   // 기본은 topic(프롬프트 원문) 제거. 트레이 앱·외부 위젯이 이 출력을 그대로 렌더하므로
   // 여기서 빼는 게 유일하게 확실한 차단 지점이다.
   const safeSessions = SHOW_TOPICS ? sessions : sessions.map(({ topic, ...rest }) => rest);
@@ -2419,6 +2425,7 @@ if (asJson) {
     letsur,
     copilot,
     topicsIncluded: SHOW_TOPICS,
+    ...(JSON_NOTIFICATION_DELIVERY ? { notificationEvents } : {}),
   }, null, 2));
   process.exit(0);
 }

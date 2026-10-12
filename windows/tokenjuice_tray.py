@@ -29,6 +29,7 @@ import pystray
 from pystray import Menu, MenuItem
 
 APP_NAME = "tokenjuice"
+NOTIFICATION_TITLE = "TokenJuice"  # exact engine event title, not tray internal ID
 REFRESH_SECONDS = 5
 ENGINE_TIMEOUT = 25
 
@@ -95,7 +96,7 @@ class EngineError(RuntimeError):
     pass
 
 
-def read_usage(show_topics: bool) -> dict:
+def read_usage(show_topics: bool, notification_events: bool = False) -> dict:
     bun = find_bun()
     if not bun:
         raise EngineError(
@@ -107,6 +108,8 @@ def read_usage(show_topics: bool) -> dict:
 
     cmd = [bun, str(engine), "--json"]
     cmd.append("--topics" if show_topics else "--no-topics")
+    if notification_events:
+        cmd.append("--notification-events")
 
     # CREATE_NO_WINDOW: without it every 5s poll flashes a console window.
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -404,6 +407,7 @@ class TrayApp:
         self.data: dict = {}
         self.groups: list[dict] = []
         self.error: str | None = None
+        self.notification_error: str | None = None
         self.show_topics = os.environ.get("CCB_TOPICS") == "1"
         self.stop = threading.Event()
         self.icon = pystray.Icon(
@@ -415,6 +419,8 @@ class TrayApp:
 
     # pystray calls this each time the menu opens, so it is always fresh.
     def _menu_items(self):
+        if self.notification_error:
+            yield MenuItem(self.notification_error, None, enabled=False)
         if self.error:
             yield MenuItem("⚠ " + self.error.splitlines()[0][:60], None, enabled=False)
             yield Menu.SEPARATOR
@@ -631,9 +637,12 @@ class TrayApp:
 
     def _poll_once(self):
         try:
-            self.data = read_usage(self.show_topics)
+            ready = sys.platform == "win32" and self.icon.visible and self.icon.HAS_NOTIFICATION
+            self.data = read_usage(self.show_topics, notification_events=ready)
             self.groups = build_groups(self.data)
             self.error = None
+            if ready:
+                self._present_notifications(self.data.get("notificationEvents", []))
         except EngineError as exc:
             self.error = str(exc)
         except Exception as exc:  # keep the tray alive on anything unexpected
@@ -642,14 +651,40 @@ class TrayApp:
         self.icon.icon = render_icon(self.groups, error=self.error is not None)
         self.icon.title = build_tooltip(self.groups, self.error)
 
+    def _present_notifications(self, events):
+        """Present engine decisions; never recalculate quota or enable policy.
+
+        This is the existing Win32 tray notification, not an AUMID/WinRT toast.
+        Batch simultaneous events because a tray has only one active balloon.
+        OS suppression/delivery failures are not retried as a notification storm.
+        """
+        if not isinstance(events, list):
+            return
+        bodies = [event["body"] for event in events[:20]
+                  if isinstance(event, dict) and event.get("title") == NOTIFICATION_TITLE
+                  and isinstance(event.get("body"), str) and 0 < len(event["body"]) <= 1024]
+        if not bodies:
+            return
+        message = "\n".join(bodies).replace("\x00", " ")
+        if len(message) > 240:
+            message = message[:237] + "…"
+        try:
+            self.icon.notify(message, NOTIFICATION_TITLE)
+            self.notification_error = None
+        except Exception:
+            # Do not expose backend exception text or hide otherwise valid quota.
+            self.notification_error = "System notification failed — check Windows notification settings."
+
     def _loop(self):
         while not self.stop.is_set():
             self._poll_once()
             self.stop.wait(REFRESH_SECONDS)
 
     def run(self):
-        threading.Thread(target=self._loop, daemon=True).start()
-        self.icon.run()
+        def setup(icon):
+            icon.visible = True
+            self._loop()
+        self.icon.run(setup=setup)
 
 
 def main() -> int:

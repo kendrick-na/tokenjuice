@@ -15,7 +15,7 @@ Exits non-zero with the failing assertion on the first problem.
 from __future__ import annotations
 
 import sys
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import tokenjuice_tray as t
 
@@ -222,9 +222,49 @@ def check_codex_profiles() -> None:
     print("  Codex profiles and isolated selection OK")
 
 
+def check_notification_delivery() -> None:
+    app = t.TrayApp()
+    app.icon = Mock(visible=True, HAS_NOTIFICATION=True)
+    events = [{"title": "TokenJuice", "body": "threshold alert"},
+              {"title": "TokenJuice", "body": "reset alert"}]
+    with patch.object(t.sys, "platform", "win32"), patch.object(t, "read_usage", return_value={"notificationEvents": events}) as read:
+        app._poll_once()
+        read.assert_called_once_with(False, notification_events=True)
+        app.icon.notify.assert_called_once_with("threshold alert\nreset alert", "TokenJuice")
+    app.icon.notify.reset_mock()
+    for ready, supported in ((False, True), (True, False)):
+        app.icon.visible, app.icon.HAS_NOTIFICATION = ready, supported
+        with patch.object(t.sys, "platform", "win32"), patch.object(t, "read_usage", return_value={}) as read:
+            app._poll_once()
+            read.assert_called_once_with(False, notification_events=False)
+    app.icon.notify.assert_not_called()
+    app._present_notifications([None, {}, {"title": "Other", "body": "private"}, {"title": "TokenJuice", "body": []}])
+    app.icon.notify.assert_not_called()
+    app._present_notifications([{"title": "TokenJuice", "body": "x" * 1024}])
+    assert len(app.icon.notify.call_args.args[0]) <= 240
+    app.icon.notify.side_effect = RuntimeError("secret backend detail")
+    app._present_notifications(events)
+    assert app.notification_error and "secret" not in app.notification_error
+    assert app.error is None
+    with patch.object(t, "find_bun", return_value="bun-fixture"), patch.object(t, "find_engine", return_value="engine-fixture.js"), patch.object(t.subprocess, "run", return_value=Mock(returncode=0, stdout="{}")) as invoke:
+        t.read_usage(False)
+        assert "--notification-events" not in invoke.call_args.args[0]
+        t.read_usage(False, notification_events=True)
+        assert "--notification-events" in invoke.call_args.args[0]
+        assert not invoke.call_args.kwargs.get("shell", False)
+    with patch.object(app, "_loop") as loop:
+        app.run()
+        setup = app.icon.run.call_args.kwargs["setup"]
+        app.icon.visible = False
+        setup(app.icon)
+        assert app.icon.visible is True
+        loop.assert_called_once()
+    print("  opt-in engine delivery, readiness, batched presentation and failure isolation OK")
+
+
 def main() -> int:
     print(f"tokenjuice self-test on {sys.platform}")
-    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_manual_auth_recovery, check_failed_observation_menu, check_cost_menu, check_local_provider_menu, check_codex_profiles):
+    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_manual_auth_recovery, check_failed_observation_menu, check_cost_menu, check_local_provider_menu, check_codex_profiles, check_notification_delivery):
         print(f"- {fn.__name__}")
         fn()
     print("all checks passed")

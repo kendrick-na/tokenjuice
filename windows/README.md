@@ -71,6 +71,20 @@ why the engine caches responses for 60s and prefers the local cache.
 
 ## Debugging
 
+### System notifications
+
+The ready Windows tray requests opt-in notification events from the shared engine
+and presents them through the existing `pystray.Icon.notify` API. No extra package,
+registry entry, Start Menu identity or automatic login is added. Notifications stay
+off unless the user enables the existing engine policy. Plain JSON and `--once`
+do not consume alerts. Simultaneous events are batched into one bounded message.
+
+This is a Win32 tray notification, not an AUMID/WinRT toast with an activation
+action or guaranteed notification-centre history. Windows may suppress it, and a
+failed or suppressed presentation is not automatically replayed. A sender error
+appears in the tray menu without hiding quota. Actual Windows presentation and
+the full native-toast release gate remain pending. See the [pystray documentation](https://pystray.readthedocs.io/en/latest/usage.html#displaying-notifications).
+
 ### Login recovery
 
 If the tray reports an expired Claude login, sign in again in Claude Code yourself.

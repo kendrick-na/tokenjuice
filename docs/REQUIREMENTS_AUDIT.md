@@ -1257,3 +1257,15 @@ da125f2의 Engine 38191643356·Windows 38191643480·Pages 38191643487 success를
 합성 파일의 이전 정상/잘못된 JSON과 최신 정상/잘못된 JSON·예시 선택을 교차 검증했다. 실제 엔진이 만든 합성 암호화 번들을 브라우저 WebCrypto로 복호화하되 완료를 지연시켜 최신 평문 선택이 유지되는지도 확인했다. 작업 자체를 취소하거나 WebCrypto 계산을 강제 중단하는 기능은 아니며 탭 간/기기 간 동기화까지 증명하지 않는다.
 
 전체 strict release-verify exit 0: 175 tests·2012 assertions·확장된 companion을 포함한 여섯 browser suite·번들·문법·격리 알림·설치본 일치. cache v25는 로컬 후보이며 원격 검증·공개 반영은 별도다. 실수집·실제 요약·모바일/스토어·사용자 검증 목표는 미완료로 유지한다.
+
+### 9.56 Windows 트레이 알림 전달 후보
+
+6618d98의 Engine 38194728864·Windows 38194728892·Pages 38194728812는 success다. Windows는 기존 `--json` 소비 경로가 알림 결정을 실행하지 않아 엔진의 옵트인 알림을 전달받지 못했다. JSON 전달 계약을 추가하는 테스트 2개가 수정 전 실패하고 수정 후 통과했다.
+
+`--json --notification-events`는 기존 엔진의 정책과 전이 상태를 사용해 이번 실행의 `{title, body}` 배열을 반환한다. 일반 JSON/텍스트/스냅샷 export는 이 상태를 소비하지 않는다. 준비된 Windows 트레이만 요청하고 기존 pystray 시스템 알림으로 표시한다. 여러 메시지는 한 알림으로 합치고 240자로 제한한다. 표시 실패는 비밀값 없는 메뉴 안내로 분리해 quota 표시를 유지한다. `--once`는 발화를 요청하지 않는다. 새 의존성·앱 ID/shortcut·registry·인증 갱신·사용자 설정 변경은 없다.
+
+이는 [pystray의 기존 시스템 알림](https://pystray.readthedocs.io/en/latest/usage.html#displaying-notifications)이며 정식 AUMID/WinRT toast, 활성화 action이나 notification-centre 이력을 대신하지 않는다. 전달은 receipt/영속 queue가 없는 일회성이며 OS 억제·실패 뒤 자동 재전송하지 않는다. R11 전체 완료와 실제 Windows presentation은 여전히 미검증이다.
+
+검증: Bun 177 pass/2022 assertions, 여섯 browser suite, bundle·문법·격리 macOS 알림 계약 통과. 임시 venv의 pystray 0.19.5로 Windows selftest의 readiness·지원 여부·합치기·잘못된 이벤트·길이·오류 격리·subprocess flag·아이콘 준비 이후 poll을 확인했다. 이 selftest는 Mac에서 mock으로 수행했으며 Windows GUI 관찰이 아니다. 실제 엔진 title `TokenJuice`와 내부 tray ID `tokenjuice`의 차이도 반영했다.
+
+전체 strict release-verify는 마지막 설치본 일치 단계에서 exit 1이다. 실행 중인 Mac 엔진은 그대로이며 새 source와 달라졌다. 이번 후보를 설치/스토어 출시 완료로 보고하지 않고, 승인된 설치본 갱신과 Windows CI/실기기 관찰을 남긴다. 모바일 연결·실제 모델·실수집·사용자 피드백의 원래 목표도 유지한다.

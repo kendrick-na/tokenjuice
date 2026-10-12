@@ -476,6 +476,20 @@ preview/generate/review/discard는 POST와 JSON만 허용하고 정확한 URL or
 
 ## 회귀 검증
 
+### 데스크톱 알림 전달
+
+준비된 데스크톱 표시기는 `--json --notification-events`로 이번 실행에서 발생한
+`notificationEvents: [{title: "TokenJuice", body: string}]`를 받을 수 있다. 기존
+엔진의 옵트인·임계치·리셋·예측·재연결 정책과 중복 억제 상태를 그대로 사용한다.
+일반 `--json`·`--text`·widget export는 알림을 발생시키거나 이 전달 상태를 소비하지 않는다.
+전달 요청은 알림 설정을 켜지 않으며, JSON 전달과 macOS OS 발화를 동시에 실행하지 않는다.
+
+이 배열은 현재 실행의 일회성 전달이다. OS가 사용자에게 표시한 사실을 확인하는
+receipt는 없다. 전달 뒤 소비자가 종료되거나 OS가 억제하면 자동 재전송하지 않는다.
+영속 queue·AUMID toast·기기 간 알림 동기화는 별도 범위다. Windows 트레이는 아이콘 준비와
+기능 지원 확인 뒤에만 요청하고 동시 알림을 한 메시지로 합쳐 240자 이내로 표시한다.
+백엔드 예외는 quota 표시를 중단하거나 원문 예외를 노출하지 않는다.
+
 `bun test tests/engine.test.js`는 격리된 임시 HOME과 API fixture로 다음을 검증한다.
 
 - 신선/대체/오래됨/인증 만료/429 상태와 캐시
