@@ -5,3 +5,4 @@
 /* Policy links are explicit touch targets, never provider auto-navigation. */
 #privacy{display:block;min-height:48px;padding:.75rem 0;color:var(--teal);overflow-wrap:anywhere}
 #logout{margin-inline-start:.75rem}@media(max-width:480px){#logout{margin-inline-start:0}}
+.recovery{border-color:var(--amber)}.recovery-link{display:inline-flex;align-items:center;min-height:48px;padding:.8rem 1rem;border:1px solid var(--teal);border-radius:3px;color:var(--teal);text-decoration:none;font-weight:700}.recovery a{overflow-wrap:anywhere}.recovery details>a{display:block;min-height:48px;padding:.75rem 0;color:var(--teal)}.recovery code{overflow-wrap:anywhere}

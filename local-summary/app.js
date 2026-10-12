@@ -89,9 +89,11 @@ get("clear").addEventListener("click",()=>run(async()=>{
     :"화면 초안은 지웠습니다. 서버 삭제는 확인하지 못했습니다. 실행 중이 아닌 서버 세션은 최대 5분 뒤 만료됩니다. 다운로드 파일과 비용 예약액은 유지합니다.");get("file").focus();
 }));
 run(async()=>{
+  notice("로컬 서버 연결을 확인 중입니다. 아직 파일이나 발췌를 전송하지 않았습니다.");
   const response=await fetch("/api/session",{method:"POST",headers:{"content-type":"application/json","x-tokenjuice-client":"local-summary"},body:"{}"});
   if(!response.ok)throw new Error("이 서버의 화면에서만 연결할 수 있습니다. 로컬 실행 주소를 확인하세요.");
   const session=await response.json();token=session.accessToken;
+  get("connection-help").hidden=true;
   const local=session.provider==="ollama_local";
   get("active-mode").textContent=local
     ? "현재 실행: 고급 로컬 Ollama 후보. 모델 설치가 필요한 선택 경로이며 기본 추적과 무관합니다."

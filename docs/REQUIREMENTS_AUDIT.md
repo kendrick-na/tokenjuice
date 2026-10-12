@@ -1548,3 +1548,26 @@ Mac 잠금 해제/Claude 재로그인·실기기·스토어·인터뷰와 P1-04 
 0b5c389의 Engine 38224960087와 Windows 38224960065 모두 success다. Engine의 browser job
 114730090568에서 managed 3개 시나리오 PASS를 확인했다. Windows EXE 생성·실행·artifact
 업로드도 통과했으며 tag release는 skipped다. 이번 후보 UI 변경의 CI 증거만 완료 처리한다.
+
+### 9.74 파일 직접 열기의 잘못된 연결 중 안내와 스타일 경로 복구
+
+사용자가 열어 둔 local-summary/index.html은 file:// 경로다. 기존 /app.css·/app.js는
+파일 루트로 해석되고, module/API 기반 화면이 실행되지 않아 정적인 연결 중 안내와 잠긴
+입력만 남았다. 직접 파일 복구 테스트를 먼저 추가해 안내 element 부재 실패를 확인했다.
+상대 asset 경로·서버 연결 전 기본 문구·정적 복구 panel을 추가했고 실제 /api/session
+연결 성공 뒤에만 panel을 숨긴다. file module 실패에도 안내와 스타일은 존재한다.
+
+Pocket 수동 링크는 파일 확인/편집 경로이지 서비스 운영형 AI 생성이나 자동 sync라고 부르지
+않는다. 고급 서버 실행은 별도이며 모델 설치·키 입력·네트워크·사용자 파일 전송은 자동
+실행하지 않는다. 기존 색/서체·명시적 amber 상태·48px 링크를 UI 스킬 기준으로 재사용했다.
+
+직접 파일의 375px 화면·CSS 배경·복구 안내·입력/생성 비활성·자동 HTTP/API 요청 없음 및
+기존 클라우드/로컬 합성 흐름을 검증했다. /tmp/tokenjuice-file-recovery-mobile.png도 시각
+확인했다. strict release-verify --require-browser exit 0, Bun 233 pass·1 platform skip·
+2605 assertions이며 원격 CI는 별도 확인이 필요하다. 사용자 파일 탭 재연결은 CUA의 file://
+보안 정책으로 거절되어 우회하지 않았고 실제 열린 탭을 새로고침했다고 주장하지 않는다.
+
+2026-10-13 01:19 KST 읽기 전용 진단은 Claude HTTP401/auth expired·trust blocked·기존
+마지막 성공 4h 전·retry 01:27, Codex local fresh다. 과거 성공 관측의 변경만으로 현재 인증
+복구를 추정하지 않는다. 사용자 잠금 해제 답변은 받았으나 Claude Code 재로그인 확인은 없다.
+실기기 전체·실모델 품질·운영 호스팅·스토어·사용자 인터뷰 및 전체 목표는 계속 미완료다.

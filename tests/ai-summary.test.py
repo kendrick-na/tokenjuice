@@ -4,6 +4,26 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from playwright.sync_api import sync_playwright, expect
 
+with sync_playwright() as p:
+    browser=p.chromium.launch(headless=True)
+    page=browser.new_page(viewport={"width":375,"height":812})
+    requests=[]
+    page.on("request",lambda request:requests.append(request))
+    page.goto((Path(__file__).resolve().parents[1]/"local-summary/index.html").as_uri(),wait_until="networkidle")
+    expect(page.locator("#connection-help")).to_be_visible()
+    expect(page.locator("#status")).to_contain_text("서버 연결 전")
+    expect(page.locator("#file")).to_be_disabled()
+    expect(page.locator("#generate")).to_be_disabled()
+    assert page.locator("#pocket-link").get_attribute("href")=="https://kendrick-na.github.io/tokenjuice/"
+    assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(16, 24, 27)"
+    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
+    assert page.locator("#pocket-link").bounding_box()["height"]>=44
+    assert not [r for r in requests if r.url.startswith(("http:","https:"))]
+    assert not [r for r in requests if "/api/" in r.url]
+    page.screenshot(path="/tmp/tokenjuice-file-recovery-mobile.png",full_page=True)
+    browser.close()
+print("PASS: direct-file recovery, relative styling, disabled AI actions and no automatic network requests")
+
 with TemporaryDirectory() as directory, sync_playwright() as p:
     browser=p.chromium.launch(headless=True)
     page=browser.new_page(viewport={"width":1280,"height":900})
@@ -12,6 +32,7 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     page.on("request",lambda request:requests.append(request))
     page.goto("http://127.0.0.1:4181",wait_until="networkidle")
     expect(page.locator("#file")).to_be_enabled()
+    expect(page.locator("#connection-help")).to_be_hidden()
     expect(page.get_by_text("기본 기능 · 모델 설치 불필요",exact=True)).to_be_visible()
     expect(page.get_by_text("서비스 운영형 · 준비 중",exact=True)).to_be_visible()
     page.get_by_text("03 / 고급 옵션 · 개인 키와 로컬 모델",exact=True).click()
