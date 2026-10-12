@@ -1677,3 +1677,23 @@ abort 없음·기존 응답 완료·사용자 시도 used 1/remaining 1 보존�
 전체 Bun 244 pass·1 platform skip·2757 assertions·24 파일, strict release-verify
 --require-browser exit 0다. source/기획서의 후보 경계를 업데이트했다. 실제 SIGTERM·운영
 종료/재시작·TLS·auth/권한·호스팅/비용 승인·Claude 수집·스토어·인터뷰는 계속 미완료다.
+
+### 9.79 Windows 예측 알림 회귀의 batch deadline 분리
+
+27aedfa의 Engine 38280175637는 success지만 Windows 38280175523은 기존 예측 알림
+테스트에서 5034.88ms로 default 5000ms deadline을 넘겼다. 새 lifecycle 일반 6개는
+Windows에서도 PASS였고 POSIX 원장 통합 1개만 예정대로 skip했다. 테스트 로그와 source의
+9회 cold engine spawn을 대조했다. 기존 1개 테스트는 로컬 430.72ms로 통과해 Windows
+현상 자체의 로컬 재현/제품 오류를 주장하지 않는다.
+
+systematic-debugging으로 assertion 실패가 아닌 deadline 초과임을 확인하고, 기존 history
+off/표본 부족 2개·reset missing/invalid/past/before-depletion 4개·HTTP500/401/429 3개의
+입력을 독립 test.each로 분리했다. 모든 case는 fresh isolated home와 default deadline을
+유지하며 기능 입력/조건을 제거하거나 제품 엔진을 바꾸거나 skip/timeout 상향하지 않았다.
+각 case에서 no alert·비밀 prompt 비출력·fixture 호출 1회를 확인하고 실패 관측에서는 기존
+cache 그대로 보존도 확인한다. targeted 9 pass/30 assertions다. 8개 증가한 테스트 수는
+기능 8개 추가가 아니라 기존 batch의 분리이며 full/Windows 원격 재검증은 후속이다.
+
+분리 후 전체 Bun은 252 pass·1 platform skip·2786 assertions·24 파일이고 strict
+release-verify --require-browser exit 0다. 엔진 기능/설치본/설정·실제 대화·API 호출은
+변경하지 않았다. 원격 실패를 단순 재실행으로 성공 처리하지 않고 수정 커밋의 CI로 검증한다.

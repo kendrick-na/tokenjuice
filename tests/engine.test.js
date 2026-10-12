@@ -1098,26 +1098,49 @@ test("forecast alert is separately opted in, labelled as an estimate, and once p
   expect(notifications().filter((n) => n.includes("forecast alert"))).toHaveLength(2);
 });
 
-test("forecast alert requires history opt-in, enough samples, fresh data and a known future reset", () => {
-  const now = Date.now();
-  const history = { version: 1, observations: [
+const forecastAlertHistory = now => ({ version: 1, observations: [
     { key: "0:Weekly", at: now - 2 * 3600e3, used: 45 },
     { key: "0:Weekly", at: now - 3600e3, used: 65 },
-  ] };
-  config({ api: true, notify: { enabled: true, threshold: 1, forecast: true } });
-  cache("quota-history.json", history); usage(200, okUsage(10, 85)); run();
-  config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 1, forecast: true } });
-  cache("quota-history.json", { version: 1, observations: [] }); run();
-  for (const resets of [null, "not a date", new Date(now - 60000).toISOString(), new Date(now + 60000).toISOString()]) {
-    cache("claude-0.json", {}); cache("quota-history.json", history);
-    usage(200, { ...okUsage(10, 85), seven_day: { utilization: 85, resets_at: resets } }); run();
-  }
-  for (const status of [500, 401, 429]) {
-    cache("quota-history.json", history);
-    cache("claude-0.json", { ok: true, source: "api", at: now - 30 * 60000, items: [{ name: "Weekly", used: 85, resets: new Date(now + 3 * 86400e3).toISOString() }] });
-    usage(status); run();
-  }
+  ] });
+// Nine cold engine processes previously shared a single 5000ms deadline.
+// Keep every input and its default deadline, with an isolated home per case.
+test.each(["history-disabled", "insufficient-history"])("forecast alert requires sufficient opted-in history: %s", scenario => {
+  const now = Date.now();
+  config({ api: true, ...(scenario === "history-disabled" ? {} : { forecast: { enabled: true } }),
+    notify: { enabled: true, threshold: 1, forecast: true } });
+  cache("quota-history.json", scenario === "history-disabled" ? forecastAlertHistory(now) : { version: 1, observations: [] });
+  usage(200, okUsage(10, 85));
+  expect(run()).not.toContain(SECRET_PROMPT);
+  expect(calls()).toBe(1);
   expect(notifications()).toEqual([]);
+});
+
+test.each([
+  ["missing", () => null], ["invalid", () => "not a date"],
+  ["past", now => new Date(now - 60000).toISOString()],
+  ["before-depletion", now => new Date(now + 60000).toISOString()],
+])("forecast alert requires a known reset after predicted depletion: %s", (scenario, reset) => {
+  const now = Date.now();
+  config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 1, forecast: true } });
+  cache("claude-0.json", {}); cache("quota-history.json", forecastAlertHistory(now));
+  usage(200, { ...okUsage(10, 85), seven_day: { utilization: 85, resets_at: reset(now) } });
+  expect(run()).not.toContain(SECRET_PROMPT);
+  expect(calls()).toBe(1);
+  expect(notifications()).toEqual([]);
+});
+
+test.each([500, 401, 429])("forecast alert rejects failed or stale provider observation: HTTP %i", status => {
+  const now = Date.now();
+  config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 1, forecast: true } });
+  cache("quota-history.json", forecastAlertHistory(now));
+  const previous = { ok: true, source: "api", at: now - 30 * 60000,
+    items: [{ name: "Weekly", used: 85, resets: new Date(now + 3 * 86400e3).toISOString() }] };
+  cache("claude-0.json", previous);
+  usage(status);
+  expect(run()).not.toContain(SECRET_PROMPT);
+  expect(calls()).toBe(1);
+  expect(notifications()).toEqual([]);
+  expect(JSON.parse(readFileSync(path.join(home, ".cache/claude-codex-battery/claude-0.json"), "utf8"))).toEqual(previous);
 });
 
 test("forecast target override and read-only exports cannot accidentally alert", () => {
