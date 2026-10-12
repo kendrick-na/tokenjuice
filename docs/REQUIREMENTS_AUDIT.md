@@ -1466,3 +1466,17 @@ systematic-debugging 절차로 로그·호출 경로·정상 timestamp 테스트
 deadline을 늘리거나 테스트를 skip하거나 엔진의 실패 판정을 완화하지 않았다. 각 입력에서 cache
 보존·history/알림 부재·비밀값 비출력을 더 직접 확인한다. targeted 20 pass/139 assertions다.
 전체 자동/Windows 재검증이 필요하며 분리만으로 원격 CI 복구를 완료 처리하지 않는다.
+
+### 9.70 세션 후보 및 Windows 회귀 재검증
+
+25788bf의 Windows 38217823738 및 Engine 38217823673는 success다. Windows는 입력별
+회귀·tray selftest·EXE 생성/실행·artifact 업로드를 통과했고 tag release는 skipped다. Engine도
+macOS/Ubuntu·확장 browser job을 통과했다. 전체 로컬 회귀는 231 pass·1 platform skip·2578
+assertions·21 Bun 파일이며 최종 strict verifier exit 0이다. 테스트 수 증가는 기존 1개 batch를
+20개 독립 case로 분리한 결과이며 19개 제품 기능을 새로 완성했다는 뜻이 아니다.
+
+앱 세션 후보 구현과 test harness deadline 문제를 각각 해결했지만 실제 신원 검증 제공자·
+로그인/logout 사용자 흐름·권한 저장소·호스팅·정책·운영 가격·실모델 품질/작업 재개·스토어·
+인터뷰는 미완료다. Claude도 마지막 13:29 진단은 auth expired이고 재로그인 완료 확인이 없다.
+코드·CI 수정은 실제 계정 수집이나 전체 목표의 완료 증거가 아니다. 실제 대화/유료 API·
+로그인/키·Mac 설정·공개 클라우드 배포·스토어 제출은 이번 작업에서 변경하지 않았다.
