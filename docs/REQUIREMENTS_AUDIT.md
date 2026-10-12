@@ -1418,3 +1418,17 @@ platform skip·2468 assertions·20 파일이다. strict release-verify도 7 brow
 횟수 소진→fresh 0회 새 생성 차단→오래된 관측 표시도 별도 브라우저 재검증을 통과했다.
 실제 대화/유료 모델/API·계정 로그인·설정·스토어 제출은 변경하지 않았다. 후보 코드와
 합성 검증을 운영 배포·실제 모델 품질 또는 전체 투두 완료로 기록하지 않는다.
+
+### 9.67 횟수 원장 CI 및 최신 인증 상태
+
+c6117ae를 origin/main에 반영했다. Engine 38202817657과 Windows 38202817623는 success다.
+로컬 최종 strict 검증은 확장된 실제 합성 시도 소진·fresh 0회 생성 차단·오래된 관측 browser
+검증까지 exit 0이다. Windows도 회귀·tray selftest·EXE 생성/실행·artifact 업로드를 통과했고
+tag release는 skipped다. 새 Pocket 공개 기능·클라우드 호스팅·스토어 제출은 없다.
+
+13:12 KST 읽기 전용 진단은 Claude HTTP401/auth expired·trust blocked·마지막 성공 148h 전·
+retry 13:20, Codex local fresh를 반환했다. 이전 429 뒤 인증 실패로 바뀌었지만 추가 API/갱신은
+호출하지 않았다. autoRenew=false·알림/예측/topics off를 유지하고 사용자에게 Claude Code
+재로그인 여부를 요청했다. 설치된 CLI의 `auth --help`와 `auth login --help`로 login 명령과
+기본 subscription 경로를 확인했으며 로그인 자체는 실행하지 않았다. 실제 재로그인·공식 계정
+수치 대조·장기 갱신·실수집은 여전히 미완료이며 시도 횟수 기능과 분리한다.
