@@ -1647,3 +1647,9 @@ transport 객체/실제 loopback 서버 3개는 실행한다. 실제 Windows CI 
 Render 실제 peer/Host/TLS 설정·직접 HTTP 차단·운영 health/drain·실제 auth/권한·보존/비용·
 실모델·사용자 검증은 미완료다. 배포 준비 코드 연결을 전체 출시나 실제 TLS 검증으로 부르지
 않으며 현재 Mac 설정·Claude 자격증명·공개 Pocket·스토어·외부 서버는 변경하지 않았다.
+
+6830f61의 Engine 38279241466와 Windows 38279241459는 모두 success다. Ubuntu job
+114912179382의 ingress 4개 PASS, Windows job 114912178569의 transport/loopback 3개
+PASS 및 POSIX gateway 통합 1개 skip을 로그로 확인했다. browser job·Windows EXE 생성/
+실행·artifact 업로드도 통과했고 tag release는 skipped다. 실제 호스팅/TLS/로그인·사용자
+수집을 확인한 결과가 아니며 전체 목표는 미완료로 유지한다.
