@@ -1704,3 +1704,25 @@ release-verify --require-browser exit 0다. 엔진 기능/설치본/설정·실�
 실행·artifact 업로드와 browser job도 통과했고 tag release는 skipped다. lifecycle 후보 및
 test harness 회귀는 이 범위에서 완료했지만 실제 운영 종료·배포·로그인·수집·스토어·인터뷰를
 완료 처리하지 않는다.
+
+### 9.80 명시적 host runtime과 bounded stop 연결 후보
+
+managed-summary-host.mjs는 gateway/site/lifecycle/ingress를 연결하는 명시적 factory다.
+import 시 listener·signal·키/환경/계정 발견을 실행하지 않는다. default는 127.0.0.1의 임시
+포트이고 0.0.0.0은 privateIngressPort true가 있어야 한다. 그 플래그가 실제 TLS/방화벽을
+설정하거나 승인하는 것은 아니다. host/isReady/verifyPeer/소유자 cleanup이 필요하며 테스트는
+loopback만 실행했다. verifyPeer에는 server.requestIP의 frozen socket metadata만 전달한다.
+
+stop은 먼저 drain하고 성공 뒤에만 server.stop(false)와 소유자 onStopped를 한 번 실행한다.
+drain/close/cleanup 대기는 monotonic 잔여 deadline으로 제한하고 완료 불명/정리 실패는
+stopped false다. 강제 취소·refund·예산/키 초기화나 반복 cleanup을 하지 않는다. 늦은 cleanup은
+완료 뒤 재확인 가능하지만 throw한 cleanup을 자동 재실행하지 않는다. 실제 SIGTERM/운영
+감독자·로그인 callback·real TLS/volume/auth/비용/보존 계약은 미완료다.
+
+새 5 pass/51 assertions에서 실제 로컬 서버의 UI/health·미인증·private file/임의 login/test
+발급 route 부재·위조 Host/forwarded IP 차단·pending 작업 보존·deadline 이후 새 요청 503·
+동시/반복 stop의 단일 cleanup·느린/실패 cleanup을 검증했다. 느린 cleanup은 시작 event를
+기다리며 처리 시작 시점을 시간 경과로 가정하지 않는다. fake gateway만 사용했고 실제
+사용자/대화·키·제공자 API나 공개 bind는 없다. 전체 Bun 257 pass·1 platform skip·2837
+assertions·25 파일 및 최종 strict release-verify --require-browser exit 0를 확인했다.
+원격 CI는 수정 커밋으로 후속 확인하며 기존 Mac/Pocket/스토어·전체 목표 완료가 아니다.

@@ -103,6 +103,37 @@ await 중 logout/철회/만료가 발생하면 과거 권한 응답으로 접근
 
 ## 출시 TODO
 
+### 명시적 서버 실행부 후보
+
+`scripts/managed-summary-host.mjs`의 `startManagedSummaryHost`는 기존 gateway/site/
+readiness/ingress를 연결한다. import만으로 실행되지 않고 CLI·키/계정/환경 설정 발견·
+로그인/모델 설치·signal handler 설치는 없다. 호스트가 검증한 `origin`, `gateway`, 선택적
+동일 `appSessions`, 동기 `isReady`, `verifyPeer`, 소유자 `onStopped`를 명시해야 한다.
+일반 사용자에게 이 factory의 API 키/운영 설정을 입력시키는 기본 설치 흐름이 아니다.
+
+기본 bind는 127.0.0.1의 임시 port 0이다. port는 0~65535 정수이며 hostname은 127.0.0.1
+또는 0.0.0.0만 허용한다. 0.0.0.0은 `privateIngressPort:true`를 명시한 경우만 가능하지만
+그 값이 방화벽/TLS 격리를 만들어 주지는 않는다. 실제 네트워크/비공개 ingress 승인·검증
+없이 실행하지 않는다. 회귀 테스트에서는 항상 loopback만 사용했다. gateway의 private POSIX
+volume, auth/권한·비용·보존 정책 선택은 factory를 호출하기 전에 별도로 검증해야 한다.
+
+`verifyPeer`에는 server.requestIP에서 읽은 frozen socket `{address,port,family}`만 넘긴다.
+request/forwarded 헤더나 클라이언트가 주장한 IP를 peer 검증 값으로 넘기지 않는다. 읽기/동시
+제약은 하위 site/gateway에서 유지하고 listener 본문 상한은 128,000 bytes·idleTimeout 120초다.
+신원/키 등록 route나 `/test/session`은 제공하지 않는다. 실제 login callback은 미구현이다.
+
+`stop(timeoutMs)`은 먼저 drain하고, 성공한 뒤에만 server.stop(false)와 onStopped를 한 번
+실행한다. onStopped에서 소유한 gateway/appSessions를 안전하게 dispose한다. 기다리던 요청의
+drain이 끝나지 않으면 `{stopped:false}`이고 새 요청만 거부하며 강제 중단/환불하지 않는다.
+닫기/정리 역시 monotonic 잔여 deadline으로 기다린다. 느린 정리는 계속 완료될 수 있으나
+당시 stop은 false이고, 이후 재확인 가능하다. 정리 예외는 false이며 재시도로 소유자 cleanup을
+중복 실행하지 않는다. 공유 resource를 onStopped로 dispose하지 않는다. signal/listener 감독자
+연결·실제 SIGTERM·호스팅 종료 제한·재시작/실제 cookie/TLS·로그/지속 저장소 검증은 별도다.
+
+실제 임시 loopback의 시작·UI/health·미인증·private file/위조 Host·peer·pending 요청·deadline/
+동시 stop·slow/failed cleanup을 검증했다. fake gateway 응답을 쓰며 실제 로그인·제공자/운영
+배포 검증이 아니다. 실모델 기능·모바일·스토어·인터뷰 목표는 유지한다.
+
 ### Readiness 및 종료 대기 후보
 
 `scripts/managed-summary-lifecycle.mjs`는 listener/signal 처리 없이 `handle`과 `drain`을
