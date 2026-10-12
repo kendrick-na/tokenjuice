@@ -247,15 +247,53 @@ function priority(snapshot) {
     next: "Mac에서 로컬 스냅샷을 내보낸 뒤 다시 가져오세요.",
   };
 }
+let currentSnapshot = null, currentSnapshotIsDemo = false, snapshotExpired = false, snapshotExpiryApplied = false;
+function refreshSnapshotAge() {
+  if (!currentSnapshot || currentSnapshotIsDemo || document.visibilityState === "hidden") return;
+  snapshotExpired ||= snapshotNeedsRefresh(currentSnapshot);
+  const ageText = snapshotExpired && !snapshotNeedsRefresh(currentSnapshot) ? "시각 변경 · 이전 스냅샷" : relativeTime(currentSnapshot.generatedAt);
+  $("#snapshot-time").textContent = ageText;
+  if (!snapshotExpired) return;
+  $("#status-dot").className = "caution";
+  const warning = $("#snapshot-age-warning");
+  warning.hidden = false;
+  warning.innerHTML = `<b>스냅샷 업데이트 필요</b><span>${escapeHtml(ageText)}. 현재 잔여량이 아니라 스냅샷 당시 기록입니다. Mac에서 새 스냅샷을 내보낸 뒤 다시 가져오세요.</span>`;
+  if (snapshotExpiryApplied) return;
+  snapshotExpiryApplied = true;
+  const priority = $("#priority-card");
+  priority.className = "priority-card caution";
+  $("#priority-label").textContent = "기존 파일 기록";
+  priority.querySelector("h1").textContent = "스냅샷 업데이트 필요";
+  const copy = { NOW:"기존 파일의 기록입니다. 현재 잔여량으로 가정하지 마세요.", WHY:"추가 provider 관측 없이 파일의 나이만 확인했습니다.", NEXT:"Mac에서 새 스냅샷을 내보낸 뒤 다시 가져오세요." };
+  for (const block of priority.querySelectorAll(".decision-block")) block.querySelector("span").textContent = copy[block.querySelector("b").textContent];
+  const detail = priority.querySelector(".priority-detail");
+  if (detail) detail.open = true;
+  const action = $("#priority-action");
+  action.dataset.target = "snapshot-file";
+  action.firstChild.textContent = "새 스냅샷 가져오기 ";
+  for (const payload of allPayloads(currentSnapshot)) {
+    if (!["fresh", "fallback"].includes(payload.state)) continue;
+    const card = document.getElementById(payload.target);
+    if (payload.state === "fresh") {
+      card.querySelector(".state").textContent = "스냅샷 당시 확인";
+      card.querySelector(".state").className = "state caution";
+    }
+    card.querySelector(".recovery").innerHTML = "<b>다음 행동</b>현재 값을 확인하려면 Mac에서 새 스냅샷을 가져오세요.";
+  }
+  // Update only quota annotations. Never rebuild editors, move focus, persist
+  // an observation, call a provider, or restore trust after a clock rollback.
+}
 function renderPriority(snapshot) {
   const item = priority(snapshot);
   const routine = routineSnapshot(snapshot);
   $("#priority-card").className = `priority-card ${item.tone}`;
   $("#priority-card").innerHTML = `<p id="priority-label">${item.eyebrow}</p><h1>${escapeHtml(item.title)}</h1>${routine ? `<div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><details class="priority-detail"><summary>데이터 출처·다음 행동</summary><div class="decision-grid"><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div></details>` : `<div class="decision-grid"><div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div>`}<button id="priority-action" type="button">${item.cta} <b aria-hidden="true">→</b></button>`;
-  $("#priority-action").addEventListener("click", () => {
-    if (item.cta.includes("가져오기")) fileInput.click();
+  const action = $("#priority-action");
+  action.dataset.target = item.cta.includes("가져오기") ? "snapshot-file" : item.target || "";
+  action.addEventListener("click", () => {
+    if (action.dataset.target === "snapshot-file") fileInput.click();
     else {
-      const target = document.getElementById(item.target);
+      const target = document.getElementById(action.dataset.target);
       if (!target) return;
       target.focus({ preventScroll: true });
       target.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
@@ -280,6 +318,11 @@ function render(snapshot, { demo = false } = {}) {
   const routine = routineSnapshot(snapshot);
   const providers = (snapshot.providers || []).map((provider, index) => card(provider.label || "Local provider", provider, "provider", index, routine));
   $("#accounts").innerHTML = [...snapshot.claude.map((account, index) => card(account.account || "Claude", account, "claude", index, routine)), card("Codex", snapshot.codex, "codex", 0, routine), ...providers].join("");
+  currentSnapshot = snapshot;
+  currentSnapshotIsDemo = demo;
+  snapshotExpired = false;
+  snapshotExpiryApplied = false;
+  refreshSnapshotAge();
 }
 function updateTransport(demo = false) {
   $("#transport").textContent = demo
@@ -325,8 +368,11 @@ try {
     else localStorage.removeItem(KEY);
   }
 } catch { localStorage.removeItem(KEY); }
-window.addEventListener("online", () => updateTransport());
-window.addEventListener("offline", () => updateTransport());
+window.addEventListener("online", () => { updateTransport(currentSnapshotIsDemo); refreshSnapshotAge(); });
+window.addEventListener("offline", () => { updateTransport(currentSnapshotIsDemo); refreshSnapshotAge(); });
+window.addEventListener("focus", refreshSnapshotAge);
+document.addEventListener("visibilitychange", refreshSnapshotAge);
+window.setInterval(refreshSnapshotAge, 60000);
 updateTransport();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
 // The document can expose the picker before module imports finish. Only accept

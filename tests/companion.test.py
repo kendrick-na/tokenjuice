@@ -61,6 +61,86 @@ def assert_theme_contrast(page) -> None:
         assert contrast_ratio(theme[foreground], theme["--panel-2"]) >= 4.5, (foreground, theme)
 
 
+def check_snapshot_expiry(browser, directory: str) -> None:
+    page = browser.new_page(viewport={"width": 375, "height": 812})
+    page.add_init_script("""
+      window.__clockOffset = 0;
+      const now = Date.now.bind(Date);
+      Date.now = () => now() + window.__clockOffset;
+      const interval = window.setInterval.bind(window);
+      window.setInterval = (callback, delay, ...args) => {
+        if (delay === 60000) window.__expiryTick = callback;
+        return interval(callback, delay, ...args);
+      };
+    """)
+    errors = []
+    requests = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on("request", lambda request: requests.append(request.url))
+    page.goto("http://127.0.0.1:4173", wait_until="networkidle")
+    now = int(time.time() * 1000)
+    payload = {"state": "fresh", "source": "synthetic", "lastSuccessAt": now,
+        "items": [{"name": "5-hour", "used": 20, "resets": now + 3600000}]}
+    snapshot = {"contractVersion": 1, "transport": "local_export_only", "generatedAt": now,
+        "claude": [{**payload, "account": "Synthetic"}], "codex": payload}
+    file = Path(directory) / "expiry-snapshot.json"
+    file.write_text(json.dumps(snapshot), encoding="utf-8")
+    page.locator("#snapshot-file").set_input_files(str(file))
+    page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+    stored = page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')")
+    session = Path(directory) / "expiry-session.jsonl"
+    session.write_text(json.dumps({"sessionId": "synthetic-expiry", "message": {"role": "user", "content": "테스트 초안을 준비해줘"}}), encoding="utf-8")
+    page.locator("#work-panel>summary").click()
+    page.locator("#work-file").set_input_files(str(session))
+    page.locator("#work-editor").wait_for(state="visible")
+    page.locator("#work-goal").fill("저장하지 않은 검토 중 초안")
+    page.locator("#work-review").check()
+    page.locator(".account.claude .account-detail>summary").click()
+    page.locator("#work-goal").focus()
+    assert page.evaluate("typeof window.__expiryTick") == "function", "age refresh timer missing"
+    page.evaluate("window.__clockOffset = 31 * 60000; window.__expiryTick()")
+    assert page.locator("#snapshot-age-warning").is_visible()
+    assert page.locator("#priority-card h1").inner_text() == "스냅샷 업데이트 필요"
+    assert page.locator("#status-dot").get_attribute("class") == "caution"
+    assert page.locator(".account.claude .state").inner_text() == "스냅샷 당시 확인"
+    assert page.locator("#work-goal").input_value() == "저장하지 않은 검토 중 초안"
+    assert page.locator("#work-review").is_checked()
+    assert page.evaluate("document.activeElement.id") == "work-goal"
+    assert page.locator(".account.claude .account-detail").get_attribute("open") is not None
+    assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == stored
+    with page.expect_file_chooser():
+        page.locator("#priority-action").click()
+    page.locator(".priority-detail").evaluate("el => el.open = false")
+    page.evaluate("window.__expiryTick()")
+    assert page.locator(".priority-detail").get_attribute("open") is None
+    # A clock rollback is not a new observation and must not restore live trust.
+    page.evaluate("window.__clockOffset = 0; window.dispatchEvent(new Event('focus'))")
+    assert page.locator("#snapshot-age-warning").is_visible()
+    assert "방금" not in page.locator("#snapshot-time").inner_text()
+    assert "방금" not in page.locator("#snapshot-time").inner_text()
+    page.locator("#snapshot-file").set_input_files(str(file))
+    page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+    assert page.locator("#snapshot-age-warning").is_hidden()
+    # Hidden tabs defer work; returning checks immediately without waiting a minute.
+    page.evaluate("Object.defineProperty(document, 'visibilityState', {configurable:true, value:'hidden'}); window.__clockOffset = 31 * 60000; window.__expiryTick()")
+    assert page.locator("#snapshot-age-warning").is_hidden()
+    page.evaluate("Object.defineProperty(document, 'visibilityState', {configurable:true, value:'visible'}); document.dispatchEvent(new Event('visibilitychange'))")
+    assert page.locator("#snapshot-age-warning").is_visible()
+    assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == stored
+    assert page.locator("#work-goal").input_value() == "저장하지 않은 검토 중 초안"
+    page.locator("#clear").click()
+    page.locator("#empty-state").wait_for(state="visible")
+    page.locator("#preview-demo").click()
+    page.evaluate("window.__clockOffset = 31 * 60000; window.__expiryTick(); window.dispatchEvent(new Event('offline')); window.dispatchEvent(new Event('online')); window.dispatchEvent(new Event('focus'))")
+    assert page.locator("#transport").inner_text() == "예시 데이터"
+    assert page.locator("#snapshot-age-warning").is_hidden()
+    assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") is None
+    assert all(url.startswith('http://127.0.0.1:4173/') for url in requests), requests
+    assert not errors, errors
+    page.close()
+    print("PASS: open snapshot expiry, foreground catch-up, rollback latch, draft/review/focus preservation and no network collection")
+
+
 def check_resume(browser, directory: str) -> None:
     page = browser.new_page(viewport={"width": 375, "height": 812})
     errors: list[str] = []
@@ -364,7 +444,7 @@ def main() -> None:
             assert page.get_by_text("작업 컨텍스트").is_visible()
             assert page.get_by_text("checkpoint 권장").count() >= 1
             assert page.get_by_text("84% 사용").is_visible()
-            assert page.get_by_text("스냅샷 업데이트 필요", exact=True).is_visible()
+            assert page.locator("#snapshot-age-warning").get_by_text("스냅샷 업데이트 필요", exact=True).is_visible()
             assert "Mac에서 새 스냅샷을 내보낸 뒤 다시 가져오세요." in page.locator("#snapshot-age-warning").inner_text()
             assert page.locator("#status-dot").get_attribute("class") == "caution"
             targets = visible_target_heights(page)
@@ -673,6 +753,7 @@ def main() -> None:
             assert page.get_by_text("내 스냅샷 가져오기").is_visible()
             assert not errors, errors
             check_resume(browser, directory)
+            check_snapshot_expiry(browser, directory)
             browser.close()
 
 
