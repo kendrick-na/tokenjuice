@@ -876,6 +876,44 @@ test("JSON notification transport does not enable alerts or trust failed observa
   expect(JSON.parse(run("--json", "--notification-events")).notificationEvents).toEqual([]);
 });
 
+test.skipIf(process.platform !== "win32" && !process.env.CCB_TRAY_PYTHON)("Python tray consumes actual engine notification events without OS presentation", () => {
+  config({ api: true, notify: { enabled: true, threshold: 20 } });
+  usage(200, okUsage(85, 10));
+  const script = `
+import json, sys
+from unittest.mock import Mock
+sys.path.insert(0, sys.argv[1])
+import tokenjuice_tray as tray
+tray.find_bun = lambda: sys.argv[2]
+app = tray.TrayApp.__new__(tray.TrayApp)
+app.icon = Mock()
+app.notification_error = None
+first = tray.read_usage(False, notification_events=True)
+app._present_notifications(first["notificationEvents"])
+second = tray.read_usage(False, notification_events=True)
+app._present_notifications(second["notificationEvents"])
+print(json.dumps({"first": first["notificationEvents"], "second": second["notificationEvents"],
+                  "calls": app.icon.notify.call_count, "args": app.icon.notify.call_args.args,
+                  "error": app.notification_error}))
+`;
+  const result = spawnSync(process.env.CCB_TRAY_PYTHON || "python", ["-c", script, path.join(ROOT, "windows"), process.execPath], {
+    encoding: "utf8", timeout: 30000,
+    env: engineEnv({ CCB_COMPACT: "0", CCB_API: "", CCB_TOPICS: "",
+      CCB_TEST_USAGE_FIXTURE: fx, CCB_TEST_COPILOT_FIXTURE: copilotFx,
+      CCB_CLAUDE_BIN: path.join(home, "fake-claude"), CCB_TEST_NOTIFY_LOG: path.join(home, "notify.log") }),
+  });
+  expect(result.status).toBe(0);
+  if (result.status !== 0) throw new Error(result.stderr);
+  const delivery = JSON.parse(result.stdout);
+  expect(delivery.first).toHaveLength(1);
+  expect(delivery.first[0].title).toBe("TokenJuice");
+  expect(delivery.second).toEqual([]);
+  expect(delivery.calls).toBe(1);
+  expect(delivery.args).toEqual([delivery.first[0].body, "TokenJuice"]);
+  expect(delivery.error).toBeNull();
+  expect(notifications()).toEqual([]);
+});
+
 test("notifications are off by default", () => {
   usage(200, okUsage(95, 95));
   run();
