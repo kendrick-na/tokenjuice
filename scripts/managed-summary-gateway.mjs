@@ -15,7 +15,7 @@ const reply = (value, status = 200) => Response.json(value, { status, headers: {
 
 export function createManagedSummaryGateway({ origin, authenticate, apiKey, options,
   budgetDirectory, dailyRequests, globalDailyMaxUSD, privacyPolicyURL, policyVersion,
-  transport, now = Date.now, maxAccounts = 64 } = {}) {
+  transport, now = Date.now, maxAccounts = 64, authenticationTimeoutMs = 5000 } = {}) {
   let url, policyURL;
   try { url = new URL(origin); policyURL = new URL(privacyPolicyURL); } catch { throw new Error("invalid_gateway_config"); }
   if (url.protocol !== "https:" || url.origin !== origin || url.username || url.password
@@ -24,6 +24,7 @@ export function createManagedSummaryGateway({ origin, authenticate, apiKey, opti
     || typeof policyVersion !== "string" || !/^[a-zA-Z0-9._-]{1,64}$/.test(policyVersion)
     || !Number.isInteger(dailyRequests) || dailyRequests < 1 || dailyRequests > 100
     || !Number.isInteger(maxAccounts) || maxAccounts < 1 || maxAccounts > 256
+    || !Number.isInteger(authenticationTimeoutMs) || authenticationTimeoutMs < 10 || authenticationTimeoutMs > 10000
     || ![undefined, "anthropic"].includes(options?.provider)) throw new Error("invalid_gateway_config");
   // Freeze operator-controlled model, pricing and limits. Client overrides are
   // rejected. Never reuse subscription credentials as model API credentials.
@@ -75,7 +76,14 @@ export function createManagedSummaryGateway({ origin, authenticate, apiKey, opti
       if (request.method !== "POST") return reply({ error: "method_not_allowed" }, 405);
       if (request.headers.get("content-type") !== "application/json") return reply({ error: "json_required" }, 415);
       let identity;
-      try { identity = await authenticate(request); } catch { return reply({ error: "authentication_required" }, 401); }
+      let authTimer;
+      try {
+        identity = await Promise.race([
+          Promise.resolve().then(() => authenticate(request)),
+          new Promise((_, reject) => { authTimer = setTimeout(() => reject(Error("authentication_timeout")), authenticationTimeoutMs); }),
+        ]);
+      } catch { return reply({ error: "authentication_required" }, 401); }
+      finally { clearTimeout(authTimer); }
       // authenticate MUST validate a real application session server-side, and
       // resolve entitlement from trusted storage, never request JSON/headers.
       if (typeof identity?.subject !== "string" || !identity.subject || identity.subject.length > 128)

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createManagedSummaryGateway } from "../scripts/managed-summary-gateway.mjs";
 import { createLocalSummaryApi } from "../scripts/ai-summary-api.mjs";
+import { createManagedAppSessions } from "../scripts/managed-summary-sessions.mjs";
 
 const hostTest = process.platform === "win32" ? test.skip : test;
 const origin = "https://summary.example.test";
@@ -159,5 +160,36 @@ hostTest("completed draft survives unavailable quota observation without a fabri
     const draft = await response.json(); expect(draft.method).toBe("cloud_generative"); expect(draft.quota).toBeNull();
     const policyResponse = await gateway.handle(request("policy"));
     expect(policyResponse.status).toBe(503); expect((await policyResponse.json()).error).toBe("attempt_ledger_unavailable");
+  } finally { gateway.dispose(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+hostTest("real opaque session adapter gates quota and preview after logout or access revocation", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "tokenjuice-managed-session-test-"));
+  let enabled = true;
+  const app = createManagedAppSessions({ origin, hasSummaryAccess: () => enabled });
+  const { gateway, calls } = fixture(directory, { authenticate: app.authenticate });
+  const cookie = app.issue("verified-provider:alice").setCookie.split(";", 1)[0];
+  const send = (route, body = {}) => gateway.handle(request(route, body, "anonymous", { cookie }));
+  try {
+    expect((await gateway.handle(request("policy", {}, "alice"))).status).toBe(401);
+    expect((await send("policy")).status).toBe(200);
+    enabled = false; expect((await send("policy")).status).toBe(403);
+    enabled = true;
+    const p = await send("preview", { raw: "synthetic only", confirmed: true, policyVersion: "v1" }).then(r => r.json());
+    app.logout(request("policy", {}, "anonymous", { cookie }));
+    expect((await send("generate", { id: p.id, digest: p.digest, confirmed: true })).status).toBe(401);
+    expect(calls).toHaveLength(0);
+  } finally { gateway.dispose(); app.dispose(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+hostTest("stalled host authentication releases gateway capacity without provider calls", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "tokenjuice-managed-session-test-"));
+  const { gateway, calls } = fixture(directory, { authenticationTimeoutMs: 10, authenticate: () => new Promise(() => {}) });
+  try {
+    const pending = Array.from({ length: 8 }, () => gateway.handle(request("policy")));
+    expect((await gateway.handle(request("policy"))).status).toBe(429);
+    for (const response of await Promise.all(pending)) expect(response.status).toBe(401);
+    expect((await gateway.handle(request("policy"))).status).toBe(401);
+    expect(calls).toHaveLength(0);
   } finally { gateway.dispose(); rmSync(directory, { recursive: true, force: true }); }
 });

@@ -1432,3 +1432,23 @@ retry 13:20, Codex local fresh를 반환했다. 이전 429 뒤 인증 실패로 
 재로그인 여부를 요청했다. 설치된 CLI의 `auth --help`와 `auth login --help`로 login 명령과
 기본 subscription 경로를 확인했으며 로그인 자체는 실행하지 않았다. 실제 재로그인·공식 계정
 수치 대조·장기 갱신·실수집은 여전히 미완료이며 시도 횟수 기능과 분리한다.
+
+### 9.68 로그인 뒤 앱 세션과 권한 철회 후보
+
+managed-summary-sessions 후보는 호스트 로그인 제공자가 검증한 subject 뒤에만 앱 세션을
+발급한다. 비밀번호/OAuth/JWT 검증이나 공개 subject 발급 route는 없다. 256-bit opaque
+cookie·서버 hash lookup·cookie-only/중복 거부·HTTPS origin/Host·absolute/idle 만료·512개
+기본 상한을 적용했다. 동적 권한은 요청마다 strict boolean으로 확인하며 실패/timeout은 거부한다.
+await 중 logout/subject 철회/만료가 발생하면 뒤늦은 권한 응답으로 접근을 복구하지 않는다.
+gateway의 인증 deadline도 기본 5초로 제한한다. 비협조 외부 promise 강제 종료는 보장하지 않는다.
+
+신규/기존 targeted 14 pass/108 assertions, 전체 212 pass·1 platform skip·2512 assertions·
+21 Bun 파일이다. strict release-verify --require-browser exit 0이며 기존 7 browser suite·
+번들·문법·격리 알림·Mac 설치본 일치를 통과했다. 실제 opaque 세션을 gateway에 연결해 미인증
+cookie·권한 철회·logout 뒤 생성 차단과 제공자 호출 0을 합성 검증했다. 실제 로그인 제공자·
+OAuth callback·회원/결제 저장소·logout route/UI·호스팅·다중 instance·실사용 검증은 남는다.
+보안 참고는 MANAGED_CLOUD_SUMMARY의 OWASP 링크이며 전체 규격 준수/보안 인증을 주장하지 않는다.
+
+13:29 KST 기존 관측 진단은 Claude HTTP401/auth expired·trust blocked·retry 13:30,
+마지막 성공 148h 전·Codex local fresh다. API/갱신·실로그인·모델 설치·유료 호출·설정 변경은
+하지 않았다. 사용자의 재로그인 완료 답변이 없으므로 실수집을 완료로 기록하지 않는다.
