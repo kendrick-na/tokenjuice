@@ -111,7 +111,16 @@ function metric(item) {
   const forecast = item.forecast?.beforeReset ? `<span class="forecast danger">리셋 전 소진 예상</span>` : item.forecast ? `<span class="forecast">로컬 추정</span>` : "";
   return `<div class="metric"><div class="metric-line"><span>${escapeHtml(item.name)}</span><strong>${Math.round(left)}<small>% 남음</small></strong></div><div class="bar ${tone}" role="progressbar" aria-label="${escapeHtml(item.name)} ${Math.round(left)}% 남음" aria-valuenow="${Math.round(left)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${left}%"></i></div><div class="metric-meta"><span>${timeText(item.resets)}</span>${forecast}</div></div>`;
 }
-function card(name, payload, kind, index = 0) {
+function routinePayload(payload) {
+  const age = Date.now() - Number(payload.lastSuccessAt);
+  return payload.state === "fresh" && Number(payload.lastSuccessAt) > 0 && age >= 0 && age < SNAPSHOT_REEXPORT_AFTER_MS
+    && payload.items?.length > 0 && payload.items.every(item => remaining(item) >= 50 && !item.forecast?.beforeReset);
+}
+function routineSnapshot(snapshot) {
+  const age = Date.now() - snapshot.generatedAt;
+  return age >= 0 && age < SNAPSHOT_REEXPORT_AFTER_MS && allPayloads(snapshot).every(routinePayload) && !(contextRisk(snapshot)?.pct >= 80);
+}
+function card(name, payload, kind, index = 0, routine = false) {
   const status = copyFor(payload);
   const displayable = ["fresh", "fallback"].includes(payload.state);
   const itemMarkup = displayable && payload.items?.length ? payload.items.map(metric).join("")
@@ -122,7 +131,8 @@ function card(name, payload, kind, index = 0) {
   const observedAt = payload.lastSuccessAt;
   const failureEvidence = displayable ? "" : `<div class="failure-evidence"><p><b>원인</b> ${escapeHtml(status.meaning)}</p><p>${observedAt ? timeText(observedAt, "마지막 성공") : "마지막 성공 시각 없음"}</p>${payload.state === "auth_expired" ? `<p>이 웹 화면은 재로그인하지 않습니다. Mac에서 ${kind === "claude" ? "Claude Code" : "해당 제공자"} 로그인을 갱신한 뒤 새 스냅샷을 가져오세요.</p>` : ""}</div>`;
   const detailEvidence = displayable ? `<p class="state-explainer"><b>데이터 상태</b>${status.meaning}</p><p class="last-success">${observedAt ? timeText(observedAt, "마지막 성공") : "마지막 성공 시각 없음"}</p>` : "";
-  return `<article id="quota-${kind}-${index}" tabindex="-1" class="account ${kind}"><header class="account-head"><div><span class="account-name">${escapeHtml(name)}</span></div><span class="state ${status.tone}">${status.label}</span></header>${itemMarkup}${failureEvidence}<p class="recovery"><b>다음 행동</b>${status.action}${payload.retryAt ? ` ${timeText(payload.retryAt, "다음 확인")}.` : ""}</p><details class="account-detail"><summary>${displayable ? "데이터 신뢰·마지막 성공 보기" : "데이터 출처 보기"}</summary><div><p class="source">${escapeHtml(source)}</p>${detailEvidence}</div></details></article>`;
+  const recovery = `<p class="recovery"><b>다음 행동</b>${status.action}${payload.retryAt ? ` ${timeText(payload.retryAt, "다음 확인")}.` : ""}</p>`;
+  return `<article id="quota-${kind}-${index}" tabindex="-1" class="account ${kind}"><header class="account-head"><div><span class="account-name">${escapeHtml(name)}</span></div><span class="state ${status.tone}">${status.label}</span></header>${itemMarkup}${failureEvidence}${routine ? "" : recovery}<details class="account-detail"><summary>${displayable ? "데이터 신뢰·마지막 성공 보기" : "데이터 출처 보기"}</summary><div><p class="source">${escapeHtml(source)}</p>${detailEvidence}${routine ? recovery : ""}</div></details></article>`;
 }
 function allPayloads(snapshot) {
   // Derive view targets instead of using imported IDs. Keep them out of exports.
@@ -239,8 +249,9 @@ function priority(snapshot) {
 }
 function renderPriority(snapshot) {
   const item = priority(snapshot);
+  const routine = routineSnapshot(snapshot);
   $("#priority-card").className = `priority-card ${item.tone}`;
-  $("#priority-card").innerHTML = `<p id="priority-label">${item.eyebrow}</p><h1>${escapeHtml(item.title)}</h1><div class="decision-grid"><div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div><button id="priority-action" type="button">${item.cta} <b aria-hidden="true">→</b></button>`;
+  $("#priority-card").innerHTML = `<p id="priority-label">${item.eyebrow}</p><h1>${escapeHtml(item.title)}</h1>${routine ? `<div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><details class="priority-detail"><summary>데이터 출처·다음 행동</summary><div class="decision-grid"><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div></details>` : `<div class="decision-grid"><div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div>`}<button id="priority-action" type="button">${item.cta} <b aria-hidden="true">→</b></button>`;
   $("#priority-action").addEventListener("click", () => {
     if (item.cta.includes("가져오기")) fileInput.click();
     else {
@@ -266,8 +277,9 @@ function render(snapshot, { demo = false } = {}) {
     : "";
   renderPriority(snapshot);
   renderContext(snapshot);
-  const providers = (snapshot.providers || []).map((provider, index) => card(provider.label || "Local provider", provider, "provider", index));
-  $("#accounts").innerHTML = [...snapshot.claude.map((account, index) => card(account.account || "Claude", account, "claude", index)), card("Codex", snapshot.codex, "codex"), ...providers].join("");
+  const routine = routineSnapshot(snapshot);
+  const providers = (snapshot.providers || []).map((provider, index) => card(provider.label || "Local provider", provider, "provider", index, routine));
+  $("#accounts").innerHTML = [...snapshot.claude.map((account, index) => card(account.account || "Claude", account, "claude", index, routine)), card("Codex", snapshot.codex, "codex", 0, routine), ...providers].join("");
 }
 function updateTransport(demo = false) {
   $("#transport").textContent = demo

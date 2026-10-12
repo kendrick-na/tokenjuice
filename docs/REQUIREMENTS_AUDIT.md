@@ -1213,3 +1213,15 @@ Gradle 실행기·기본 wrapper 배포 캐시와 저장소의 Android 앱 구�
 기존 browser suite에 제공자 식별·각 provider 인증 실패 목적지·Claude 두 번째 계정·컨텍스트 목적지·모션 감소 검증을 추가했다. 수정 후 단독 suite와 strict release-verify 모두 exit 0이며 테스트 171개/2000 assertions·여섯 browser suite·설치본 일치가 통과했다. 모바일 예시 캡처에서도 Codex 식별을 확인했다. 이번 변경은 동선 수정이며 화면 밀도·경쟁사 대비 전체 디자인 품질·실제 수집/사용자 재개 가치 완료가 아니다.
 
 로컬 Pocket cache는 v21 후보다. 원격 CI와 Pages 배포·공개 파일 대조는 후속 검증으로 구분하며 desktop 엔진/릴리스는 바꾸지 않는다.
+
+### 9.52 정상 상태 화면의 점진적 공개
+
+da125f2의 Engine 38191643356·Windows 38191643480·Pages 38191643487 success를 확인했다. 공개 app.js·app.css·sw.js의 SHA-256은 da125f2와 일치하며 v21이 공개 반영됐다.
+
+모든 provider가 fresh이고 확인된 성공 관측·export가 30분 이내이며 잔여량 50% 이상일 때만 부가 안내를 접는다. 빈 한도·소진 예측·fallback·컨텍스트 80% 이상에서는 접지 않는다. 정상 화면의 quota 숫자·reset·상태·우선 행동은 유지하고, 출처/마지막 성공과 다음 행동은 native details로 키보드에서 펼칠 수 있다. 날짜나 수치를 새 관측으로 변경하지 않는다.
+
+합성 정상 snapshot의 375px 화면에서 같은 상단 카드 높이는 접힘 316px·펼침 468px였다. 이는 같은 구성요소의 공개 상태 비교이며 이전 버전 전체 화면이나 사용자 작업 시간 개선 측정이 아니다. 모바일 캡처에서 숫자·reset·펼치기 동선을 확인했다. 테스트는 fallback·낮은 quota·소진 예측·오래된/미래 export·오래된/알 수 없는 성공 관측·빈 quota·컨텍스트 경고에서 부가 안내가 계속 보이는지 검사한다.
+
+이번 strict release-verify exit 0: 테스트 171개/2000 assertions·여섯 browser suite·번들·문법·격리 알림·설치본 일치. quota 계산·desktop·인증·외부 전송은 바꾸지 않았다. 2026-10-12 10:28 KST 설치본 진단은 여전히 Claude HTTP 401이며 사용자 로그인 확인 요청이 남아 있다.
+
+로컬 cache v22는 새 후보이며 원격 CI/Pages/공개 파일 검증은 별도다. 전체 경쟁 디자인·실기기·실대화 요약 가치·모바일 연결·사용자 인터뷰·스토어 목표는 미완료로 유지한다.

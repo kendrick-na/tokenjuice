@@ -469,6 +469,57 @@ def main() -> None:
             page.locator("#snapshot-file").set_input_files(str(fresh_path))
             page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
 
+            # Routine data is number-first; critical evidence never collapses.
+            routine_snapshot = json.loads(json.dumps(fresh_snapshot))
+            routine_snapshot["sessions"] = []
+            for payload in [*routine_snapshot["claude"], routine_snapshot["codex"], *routine_snapshot["providers"]]:
+                payload.update(state="fresh", lastSuccessAt=int(time.time() * 1000), retryAt=None,
+                    items=[{"name": "5-hour", "used": 25, "resets": int(time.time() * 1000) + 3600000}])
+            state_path.write_text(json.dumps(routine_snapshot), encoding="utf-8")
+            page.locator("#snapshot-file").set_input_files(str(state_path))
+            page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+            assert page.locator(".priority-detail").count() == 1
+            assert not page.locator(".decision-block.next").is_visible()
+            assert not page.locator(".account.claude .recovery").is_visible()
+            assert page.locator(".account.claude .metric-meta").is_visible()
+            page.set_viewport_size({"width": 375, "height": 812})
+            collapsed_height = page.locator("#priority-card").bounding_box()["height"]
+            summary = page.locator(".priority-detail>summary")
+            summary.focus()
+            page.keyboard.press("Enter")
+            assert page.locator(".decision-block.next").is_visible()
+            expanded_height = page.locator("#priority-card").bounding_box()["height"]
+            assert collapsed_height < expanded_height
+            print(f"PASS: routine priority height {collapsed_height:.0f}px collapsed / {expanded_height:.0f}px expanded at 375px")
+            page.locator(".account.claude .account-detail>summary").focus()
+            page.keyboard.press("Enter")
+            assert page.locator(".account.claude .recovery").is_visible()
+            assert summary.bounding_box()["height"] >= 44
+            if screenshot_dir:
+                page.locator(".priority-detail>summary").click()
+                page.locator(".account.claude .account-detail>summary").click()
+                page.set_viewport_size({"width": 375, "height": 812})
+                page.screenshot(path=str(Path(screenshot_dir) / "routine-mobile.png"), full_page=True)
+                page.set_viewport_size({"width": 1280, "height": 900})
+            page.set_viewport_size({"width": 1280, "height": 900})
+            for reason in ("fallback", "quota-low", "forecast", "old-export", "future-export", "old-observation", "unknown-observation", "empty-quota", "context"):
+                warning = json.loads(json.dumps(routine_snapshot))
+                if reason == "fallback": warning["codex"]["state"] = "fallback"
+                elif reason == "quota-low": warning["codex"]["items"][0]["used"] = 75
+                elif reason == "forecast": warning["codex"]["items"][0]["forecast"] = SNAPSHOT["claude"][0]["items"][0]["forecast"]
+                elif reason == "old-export": warning["generatedAt"] = int(time.time() * 1000) - 31 * 60000
+                elif reason == "future-export": warning["generatedAt"] = int(time.time() * 1000) + 31 * 60000
+                elif reason == "old-observation": warning["codex"]["lastSuccessAt"] = int(time.time() * 1000) - 31 * 60000
+                elif reason == "unknown-observation": warning["codex"]["lastSuccessAt"] = None
+                elif reason == "empty-quota": warning["codex"]["items"] = []
+                else: warning["sessions"] = SNAPSHOT["sessions"]
+                state_path.write_text(json.dumps(warning), encoding="utf-8")
+                page.locator("#snapshot-file").set_input_files(str(state_path))
+                page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+                assert page.locator(".priority-detail").count() == 0, reason
+                assert page.locator(".decision-block.next").is_visible(), reason
+                assert page.locator(".account.codex .recovery").is_visible(), reason
+
             # Context CTA must focus its own instrument, not the quota list.
             context_snapshot = json.loads(json.dumps(fresh_snapshot))
             context_snapshot["codex"]["state"] = "fresh"
