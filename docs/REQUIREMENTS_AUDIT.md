@@ -1544,3 +1544,7 @@ Codex local fresh다. API/갱신·로그인·설정 변경 없이 기존 관측�
 strict release-verify --require-browser exit 0, Bun 233 pass·1 platform skip·2605 assertions다.
 원격 CI는 후속 확인이 필요하다. 운영 배포·실계정 로그인·유료 호출·비밀값 접근은 없었으며
 Mac 잠금 해제/Claude 재로그인·실기기·스토어·인터뷰와 P1-04 전체 항목은 계속 pending이다.
+
+0b5c389의 Engine 38224960087와 Windows 38224960065 모두 success다. Engine의 browser job
+114730090568에서 managed 3개 시나리오 PASS를 확인했다. Windows EXE 생성·실행·artifact
+업로드도 통과했으며 tag release는 skipped다. 이번 후보 UI 변경의 CI 증거만 완료 처리한다.
