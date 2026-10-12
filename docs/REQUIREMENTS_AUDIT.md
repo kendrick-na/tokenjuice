@@ -51,12 +51,12 @@ Mac 아이콘/클릭 패널 존재는 사용자 보고로 확인했다. 실제 �
 | R3 | 인증 만료를 명시 상태·사용자 실행 안내로 전환 | macOS `autoRenew:false` 기본값; 명시적 `autoRenew:true`일 때만 401/403 이후 10분 제한 갱신; 메뉴 정책 표시와 `--renew-login`; `tests/engine.test.js` opt-in/opt-out/수동 실행 테스트 | macOS 코드·자동 검증 및 Windows 수동 설명 selftest 완료(§9.15). Windows 자동 갱신은 미지원. 0 model-call은 2026-10-05 Claude CLI 2.1.238 실측에 한정(버전 변경 시 재검증); 실제 계정 재로그인·Keychain 및 Claude Team/조직 정책 확인은 pending |
 | R4 | 429 Retry-After·backoff | `fetchClaudeUsage()`, 429 tests | 자동 검증 완료 |
 | R5 | wake refresh single debounce | `scripts/ensure-swiftbar-visible.sh`, 손상 tick/refresh 회복·debounce fixture, `scripts/check-installed-sources.sh`, §9.20 CI·§9.21 설치 | 코드·fixture·한 파일 백업/갱신 완료. 실제 sleep/wake 관찰 필요 |
-| R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect·reset-soon·forecast tests | 지원 범위 구현: threshold·잔여량 회복·reconnect·별도 opt-in reset-soon/Claude 및 Codex local forecast 발화. Codex는 별도 수집/알림 동의와 유효 미래 reset 필요. macOS presentation pending; Windows sender 미구현 |
+| R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect·reset-soon·forecast tests, §9.56~9.61 | 지원 범위 구현: threshold·잔여량 회복·reconnect·별도 opt-in reset-soon/Claude 및 Codex local forecast 발화. Codex는 별도 수집/알림 동의와 유효 미래 reset 필요. Windows Win32 tray sender·실제 엔진 연결은 CI 통과; macOS/Windows 사용자 기기 presentation은 pending |
 | R7 | official quota와 local context/cost 분리 | `kind` contract, session/context/cost tests, Pocket cards | 코드·자동 검증 완료 |
 | R8 | secret-free copyable diagnostics | `--diagnostics`, `--copy-diagnostics`, diagnostics privacy test | 자동 검증 완료; 실제 support workflow는 pending |
 | R9 | first-run onboarding/permission/keychain choice | `--init-config`, `guide.html`, starter config test | artifact·자동 검증 완료; 신규 사용자 comprehension pending |
 | R10 | multi-account aliases/status | `loadAccounts()`, `loadCodexProfiles()`, selected legacy/additive JSON, macOS/Windows menu, 5 profile tests, Windows `37950833358` | Claude 및 수동 Codex root/alias/ID/표시 선택·계정별 상태/알림/history 계약 구현. Windows 메뉴 selftest/exe CI 통과. 실제 인증 계정 자동 식별·로그인 전환은 하지 않음. 실제 Team/personal mapping/사용성은 별도 검증 |
-| R11 | Windows/macOS meaning/alarm parity | shared JS engine, Windows build `37885325588`, Engine CI `37885325573` | tray/build/contract 완료; macOS·Windows tray 실제 presentation pending. Windows native toast는 앱 identity/shortcut 또는 새 WinRT 의존성이 필요해 현재 범위에서 blocked |
+| R11 | Windows/macOS meaning/alarm parity | shared JS engine, Win32 sender/연결·EXE 검증 §9.56~9.61 | Win32 tray 알림·엔진 연결·EXE CI 통과. macOS/Windows 실제 presentation은 pending. AUMID/WinRT toast와 activation/history는 별도 미구현이며 tray 알림으로 전체 parity를 완료 처리하지 않음 |
 | R12 | mobile companion/widget | Pocket import/export/offline/encrypted bundle browser test, Pages `37885325558` | PWA local export 완료; native widget/retention pending |
 | R13 | provider adapters | Copilot official-cost and local quota-file tests | 안전한 범위의 adapter 완료; extra provider policy/format validation pending |
 | R14 | optional sync | passphrase-only AES-GCM manual bundle test | manual local transfer 완료; CloudKit/automatic sync intentionally pending |
@@ -1321,3 +1321,11 @@ strict 회귀는 191 pass/2336 assertions·확장된 여섯 browser suite·번�
 plugin 본문과 wake helper는 소스와 일치하고 config 파일 SHA-256도 변경 전후 동일하다. 전체 strict release-verify exit 0: 191 tests/2336 assertions, 확장된 여섯 browser suite, 번들·문법·격리 알림·설치본 검증을 통과했다. SwiftBar PID 존재는 확인했지만 직접 메뉴 화면 확인은 UI 도구 timeout 두 번으로 실패해 실제 표시를 검증한 결과로 쓰지 않는다.
 
 11:53 KST 읽기 전용 diagnostics는 Claude HTTP401/auth expired·trust blocked, 마지막 성공 146h 전·다음 retry 12:00, Codex local fresh를 표시했다. API/갱신을 추가 호출하지 않았고 autoRenew=false·알림/예측/topics off를 유지했다. 소스 일치는 Claude 인증·지속 수집 복구를 대신하지 않는다. 공식 Claude Code 재로그인 확인과 실제 계정 수치 대조, 모델 설치 동의/의미 품질·작업 재개 효과·모바일·스토어·실사용자 피드백은 남는다.
+
+### 9.62 현재 완료 상태와 외부 검증 조건 재점검
+
+12:01 KST 읽기 전용 diagnostics는 Claude HTTP401/auth expired·마지막 성공 147h 전·retry 12:10을 확인했다. API/갱신은 추가 호출하지 않았다. 실행 원장의 P0-01 현재 수치 대조는 미완료로 되돌리고 §9.47의 실제 성공은 과거 이력으로 보존했다. R6/R11도 Win32 sender/CI 통과와 실제 presentation·AUMID toast 미완료를 분리해 현재 코드 상태에 맞췄다.
+
+같은 시각 metadata-only feedback triage는 열린 이슈 0건·truncated=false·분류 대기 0건을 반환했다. 이슈가 없다는 사실은 제품 만족·유료 수요·피드백 운영 검증이 아니다. 실제 접수→분류→수정→검증→응답 사례나 인터뷰를 합성하지 않았다.
+
+현재 수집/품질/출시의 다음 증거는 공식 Claude Code 재로그인 후 현재 계정 대조, 동의된 로컬 runtime/model 설치 및 합성 실행→선택한 실과제 평가, 모바일 수집 허용 경로와 전달 서버/보관/비용/동의·실기기, 별도 승인된 스토어 계정/서명/제출이다. 코드·자동 검증 항목은 유지하되 이 외부 조건을 문서 수정이나 반복 회귀로 해결했다고 하지 않는다.
