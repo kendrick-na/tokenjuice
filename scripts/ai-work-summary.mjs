@@ -84,8 +84,11 @@ export function validateAiSummary(value, evidence) {
 
 export function reviewedAiSummary(draft, values, confirmed = false) {
   if (draft?.format !== "tokenjuice-ai-work-draft-v1" || confirmed !== true) throw new Error("review_required");
-  const result = { format: "tokenjuice-ai-work-summary-v1", method: "cloud_generative_user_reviewed",
-    privacy: "reviewed_cloud_excerpt", reviewed: true, createdAt: Date.now() };
+  if (![undefined, "cloud_generative", "local_generative"].includes(draft.method)) throw new Error("unsupported_summary_method");
+  const local = draft.method === "local_generative";
+  const result = { format: "tokenjuice-ai-work-summary-v1",
+    method: local ? "local_generative_user_reviewed" : "cloud_generative_user_reviewed",
+    privacy: local ? "reviewed_local_model_excerpt" : "reviewed_cloud_excerpt", reviewed: true, createdAt: Date.now() };
   for (const field of FIELDS) {
     if (typeof values?.[field] !== "string" || !values[field].trim() || values[field].length > 4000) throw new Error("invalid_field");
     result[field] = safeExcerpt(values[field], 4000);
