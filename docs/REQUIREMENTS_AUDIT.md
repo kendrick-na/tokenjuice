@@ -1731,3 +1731,25 @@ assertions·25 파일 및 최종 strict release-verify --require-browser exit 0�
 114922629878의 runtime 5개 PASS를 로그로 확인했고 EXE 생성·실행·artifact 업로드도
 통과했다. Engine은 macOS/Ubuntu·browser job까지 success다. tag release는 skipped이며
 실제 host/auth/키 등록·운영 배포·종료 신호·실사용 테스트 완료로 확대하지 않는다.
+
+### 9.81 명시적 종료 신호 및 소유한 자식 프로세스 검증
+
+managed-summary-signals.mjs는 명시적 attach 때 SIGINT/SIGTERM을 host.stop에 연결한다.
+import/global 기본 등록·exit/kill/exitCode 변경·provider 재시도·원장 초기화·기본 로그는 없다.
+pending 신호를 합치고 stop 오류/deadline 불명은 false, 이후 명시적 신호로 재확인한다.
+관찰 값은 frozen signal/stopped뿐이며 설치 rollback/dispose는 소유한 listener만 제거한다.
+기존 handler를 삭제하거나 detach로 이미 진행한 stop을 취소하지 않는다.
+
+신규 5 pass/32 assertions 중 3개는 EventEmitter wiring·오류·중복/rollback/observer 경계다.
+POSIX 2개는 이 테스트가 생성한 loopback/fake gateway child에 실제 SIGTERM을 보낸다.
+idle은 cleanup 1회 뒤 exit 0, hold는 deadline false·process 생존·health 503·기존 synthetic
+응답 완료 뒤 추가 명시적 SIGTERM으로 cleanup 1회/exit 0을 확인했다. fixture는 직접 실행
+때만 시작하며 production route가 아니다. 기존 사용자/SwiftBar/Claude process에는 신호가 없다.
+
+최초 두 child case는 ready timeout이었다. systematic-debugging으로 URL.pathname의 percent-
+encoded 한글 경로가 실제 파일이 아니고 module-not-found exit 1임을 확인했다. 기존 코드의
+fileURLToPath 패턴으로 바로잡아 child가 실제 실행된 뒤 신호 경계를 검증했다. 대기 시간을
+늘리거나 종료 logic을 바꾸어 실패를 숨기지 않았다. 최종 strict release-verify
+--require-browser exit 0다. 공식 process 문서의 Windows 신호 제약에 따라 실제 SIGTERM
+2개는 Windows에서 skip하고 wiring 3개만 실행한다. 실제 호스팅 supervisor/grace period·
+production auth/키/TLS/volume·실모델·Claude 수집·모바일/스토어·인터뷰는 미완료다.

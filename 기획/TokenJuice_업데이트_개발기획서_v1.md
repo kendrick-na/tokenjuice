@@ -1765,6 +1765,7 @@ BYOK/Ollama 옵션**으로 개발한다. 자동 요약 목표를 삭제하거나
   - [x] 금액과 분리한 일일 시도 원장·가격 변경/재시작/동시 프로세스 한도 보존·UTC 전환,
     실제 서버 관측 기반 남은 시도/시각·확인 불가/오래된 값 UI 후보. 무료 한도/요금제·실운영 검증은 남는다.
 - [ ] 지속 볼륨 단일 호스트/auth 연결, 보존 정책·로그 확인, 무료 한도/운영 비용 결정.
+  - [x] 명시적 SIGINT/SIGTERM 연결 후보 및 소유한 POSIX 자식 프로세스 검증: 기본 강제 exit 없음·중복 신호 합치기·deadline 이후 생존/health 503·기존 응답 보존·추가 명시적 신호 뒤 cleanup 1회/exit 0. Windows는 wiring만 검증하며 실제 host supervisor/grace period·auth/키/volume은 미완료다.
   - [x] 명시적 runtime factory 후보: gateway/site/readiness/ingress 연결·socket peer만 검증·기본 loopback·공개 bind 명시적 경계·drain 후 close/소유자 cleanup 1회·deadline/실패는 미확인. 실제 임시 서버 테스트이며 login callback·SIGTERM·운영 host/TLS/volume·비용 승인은 미완료다.
   - [x] readiness/drain controller 후보: metadata 없는 GET health·준비/종료 상태·bounded active·기존 buffered 작업 대기·deadline 후 미완료/중복 차단·시도 원장 보존 합성/loopback 검증. signal/listener·운영 종료/재시작·실제 의존성 검증은 별도다.
   - [x] 명시적 private HTTP/TLS ingress 후보: server-side peer 확인·정확한 Host·고정 HTTPS origin·전달 헤더 제거·기존 인증/Origin/본문/동의/logout 유지. 실제 loopback/합성 세션·gateway 검증이며 네트워크/TLS·실제 auth·health/drain·운영 배포는 미완료다.

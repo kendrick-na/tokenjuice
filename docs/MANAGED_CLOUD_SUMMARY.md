@@ -103,6 +103,29 @@ await 중 logout/철회/만료가 발생하면 과거 권한 응답으로 접근
 
 ## 출시 TODO
 
+### 명시적 종료 신호 연결 후보
+
+`scripts/managed-summary-signals.mjs`의 `attachManagedSummarySignals({host,timeoutMs,onOutcome})`
+를 소유한 서버 process에서 직접 호출하면 SIGINT/SIGTERM을 host.stop에 연결한다. import 시
+등록하지 않으며 process.exit/kill·exitCode 변경·provider 재시도·예산 초기화·기본 로그 출력은
+없다. 진행 중 중복 신호는 합치고 timeout/stop 오류는 stopped false다. 별도 명시적 신호로
+완료를 다시 확인할 수 있으나 자동으로 생성 요청을 반복하지 않는다. onOutcome은
+frozen `{signal,stopped}`만 받는다. 관찰 callback의 부작용은 소유자 책임이며 observer 실패
+상세를 모듈이 출력하지 않는다.
+
+target process에 중복 등록을 막고 설치 실패 시 해당 모듈이 추가한 listener만 제거한다.
+dispose도 자신의 두 listener만 제거하며 기존 handler를 지우거나 진행 중 stop을 취소하지
+않는다. 기존 process shutdown handler와의 소유권/순서는 운영자가 조정해야 한다.
+[공식 process signal 설명](https://nodejs.org/api/process.html#signal-events)에 따르면 등록은
+기본 종료 동작을 바꾸며 Windows SIGTERM은 POSIX와 같지 않다. 따라서 실제 신호 테스트는
+macOS/Linux에 한정하고 Windows는 EventEmitter wiring만 검증한다. 외부 supervisor의 강제
+종료·호스팅 grace period·startup/키/auth/volume·실제 모델 요청 중 종료는 별도 검증한다.
+
+검증 자식은 test fixture의 임시 loopback/fake gateway이고 정상 SIGTERM 뒤 cleanup 1회·
+exit 0, pending 요청 중 deadline 뒤 process 생존/health 503·기존 응답 완료·다음 명시적
+SIGTERM 뒤 cleanup 1회/exit 0을 확인한다. 운영 부모/SwiftBar/Claude 프로세스에 신호를
+보내지 않는다. fixture는 직접 실행 때만 동작하며 production route로 제공하지 않는다.
+
 ### 명시적 서버 실행부 후보
 
 `scripts/managed-summary-host.mjs`의 `startManagedSummaryHost`는 기존 gateway/site/
