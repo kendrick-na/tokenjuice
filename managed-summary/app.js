@@ -61,6 +61,7 @@ async function run(action) {
 async function connect() {
   connectionEpoch++;
   policy = null;
+  notice("계정 연결과 요약 권한을 다시 확인 중입니다. 선택·편집 내용은 유지하며 발췌는 자동 전송하지 않습니다.");
   renderQuota();
   controls();
   get("upload-consent").checked = false; get("generate-consent").checked = false;

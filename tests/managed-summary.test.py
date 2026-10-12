@@ -91,15 +91,17 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     with page.expect_request("**/api/summary/policy"):
         page.locator("#connect").click()
     expect(page.locator("#connect")).to_be_disabled()
-    # The previous identical error and unknown quota are still visible while
-    # this new request is pending. Neither proves that its finally ran.
-    expect(page.locator("#status")).to_contain_text("계정 로그인 확인")
+    # A held response proves the in-progress state independently of timing.
+    expect(page.locator("#status")).to_contain_text("계정 연결과 요약 권한을 다시 확인 중입니다")
+    expect(page.locator("#status")).not_to_contain_text("계정 로그인 확인이 필요")
+    assert page.locator("#next").input_value()==saved["next"]
     expect(page.locator("#quota")).to_contain_text("남은 요청 횟수 확인 불가")
     assert page.locator("#save").is_disabled()
     assert len(pending_policy)==1
     pending_policy[0].fulfill(status=401,content_type="application/json",body='{"error":"authentication_required"}')
     expect(page.locator("#connect")).to_be_enabled()
     expect(page.locator("#save")).to_be_enabled()
+    expect(page.locator("#status")).to_contain_text("계정 로그인 확인")
     assert page.locator("#file").is_disabled()
     assert page.locator("#next").input_value()==saved["next"]
     assert page.locator("#save").is_enabled()
