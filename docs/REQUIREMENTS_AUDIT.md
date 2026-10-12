@@ -1941,3 +1941,13 @@ textContent 대신 value를 읽어야 했고 기존 legacy 표시 exact assertio
 optional 출처 시각만 보강했다. Pocket v29 후보 및 Pages/Engine의 새 browser gate를
 연결했으며 모델 설치/대화 수집/AI 호출·CLI 갱신·설정/설치본 변경은 없다. 실제 사용자
 행동/토큰 절감·전체 Coach/resume·Claude 복구·스토어/인터뷰 및 전체 목표는 미완료다.
+
+8565152의 Engine 38295030988·Windows 38295030881·Pages 38295030933는 모두 success다.
+Pages verify job 114963940252에서 checkpoint 신규 3 pass/17 assertions 및 historical context
+browser PASS를 로그로 확인했다. Windows EXE 생성·실행·artifact 업로드까지 success이며
+tag release는 skipped다. 공개 index.html/app.js/app.css/sw.js/resume.js/guide.html/guide.js/
+feedback.js/privacy.html/history.js/work-summary.js/work-files.js/manifest.webmanifest 13개
+HTTP200·SHA-256 소스 일치다. 신규 비로그인 browser에서 실제 공개 v29에 합성 오래된
+snapshot만 가져와 역사적 컨텍스트 표시·checkpoint 생성/원본 시각 구분·POST/외부 전송
+없음을 확인했다. 실제 계정/대화나 native 메뉴바 복구로 확대하지 않는다.
+현재 공개 Pocket은 8565152/v29이며 desktop 고정 release는 v1.2.2다.

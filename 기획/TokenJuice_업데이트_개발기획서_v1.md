@@ -2,6 +2,8 @@
 
 ## 출시 비교 및 실행 원장 — 최신 확인 2026년 10월 13일
 
+**최신 컨텍스트 공개 반영:** Pocket `8565152`/cache v29는 오래된 컨텍스트와 현재 작업 조언을 분리하고 checkpoint 저장 시각/원본 snapshot 파일 시각을 구분한다. Engine/Windows/Pages 모두 success·주요 공개 파일 13개 일치·실제 공개 browser의 합성 파일 동선을 확인했다(audit §9.86). Coach는 입력/분모·행동 근거 gate를 유지하며 이 수정은 실제 절감이나 모델 품질 향상·전체 resume 완료가 아니다. 아래 v28 기록은 해당 시점의 검증이다.
+
 **최신 UI 공개 반영:** Pocket `ae52a35`/cache v28에 설치 진입·desktop 명시적 예시·기기 선택·iPhone 오분기 복구를 반영했다. Pages/Engine/Windows 모두 success, 공개 파일 12개 HTTP200/SHA-256 일치와 실제 공개 browser 이동을 확인했다(audit §9.85). [경쟁 첫 화면 비교와 개선 체크리스트](../docs/UI_BENCHMARK_2026-10-13.md)에 원자료/같은 viewport/미검증 영역을 보존한다. 아래 v27 기록은 그 당시 결과이며 실제 Claude 인증·native 비교·신규 설치·스토어/인터뷰와 전체 목표는 여전히 미완료다.
 
 **현재 공개 후속:** Pocket `3c0951b`/cache v27에 앱 내 검토형 피드백 초안을 반영했다. Pages/Engine/Windows CI 모두 success이고 주요 공개 파일 10개 HTTP 200·SHA-256 일치를 확인했다(audit §9.83). 미리보기·선택 진단·재검토·복사/저장·고정 GitHub 양식 이동이며 자동 제출/업로드는 없다. 실제 제보 접수·인터뷰·전체 투두 완료가 아니다. desktop 고정 공개 release는 여전히 v1.2.2다.
