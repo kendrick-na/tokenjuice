@@ -1378,3 +1378,18 @@ cloud 생성 출처를 유지한다. 서버 삭제 실패와 화면 삭제를 �
 키보드·외부 브라우저 요청/원문 영구 저장 부재를 검증했고 모바일 screenshot을 시각 확인했다.
 이 브라우저 회귀는 Engine CI에도 추가했다. 사용자 로그인/남은 한도 표시·공개 배포·실모델 품질·
 실계정 장기 수집·모바일·스토어·인터뷰는 미완료다. 이번 증거는 전체 목표 완료를 증명하지 않는다.
+
+### 9.65 클라우드 후보 원격 CI와 현재 수집 재확인
+
+303838d와 b9095d9를 origin/main에 반영했다. b9095d9의 Engine 38201615071은 macOS/Ubuntu
+엔진 및 Companion browser 모두 success이고, browser job 로그에서 managed-summary.test.py의
+정확한 발췌 전송·별도 승인·재검토/저장·401 보존 PASS를 확인했다. Windows 38201615069도
+회귀·tray selftest·EXE 생성/실행·artifact 업로드 success다. tag release job은 skipped이며 새
+데스크톱 릴리스/스토어 제출은 아니다. Pocket 공개 페이지 변경이나 클라우드 호스팅 배포도 없다.
+
+12:54 KST 진단은 기존 관측만 읽었으며 Claude HTTP429/rate-limit·trust blocked·마지막 성공
+147h 전·retry 13:10, Codex local JSONL fresh를 표시했다. autoRenew=false·알림/예측/topics off는
+유지했다. 이번 작업에서 추가 API/로그인 갱신은 호출하지 않았으며 제한 원인을 추측하지 않는다.
+기획 원장의 P0-01에 최신 상태를 반영했다. 제한 종료 후 인증·현재 계정 공식 수치 재대조와
+장기 작동 검증은 여전히 미완료다. CI success를 실제 수집/모델 품질/사용자/스토어 성공으로
+대체하지 않는다.
