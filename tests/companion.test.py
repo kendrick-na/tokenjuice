@@ -61,6 +61,39 @@ def assert_theme_contrast(page) -> None:
         assert contrast_ratio(theme[foreground], theme["--panel-2"]) >= 4.5, (foreground, theme)
 
 
+def check_snapshot_projection(browser, directory: str) -> None:
+    page = browser.new_page(viewport={"width": 375, "height": 812})
+    page.goto("http://127.0.0.1:4173", wait_until="networkidle")
+    value = json.loads(json.dumps(SNAPSHOT))
+    marker = "SYNTHETIC_UNKNOWN_PRIVATE_FIELD"
+    value["credentials"] = {"token": marker}
+    value["claude"][0]["raw_prompt"] = marker
+    value["claude"][0]["items"][0]["messages"] = [marker]
+    value["claude"][0]["items"][0]["forecast"]["transcript"] = marker
+    value["codex"]["oauth"] = {"accessToken": marker}
+    value["providers"][0]["config"] = {"key": marker}
+    value["sessions"][0]["topic"] = marker
+    file = Path(directory) / "extra-fields-snapshot.json"
+    file.write_text(json.dumps(value), encoding="utf-8")
+    page.locator("#snapshot-file").set_input_files(str(file))
+    page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+    stored = page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')")
+    assert marker not in stored, "unknown fields persisted in the snapshot cache"
+    assert json.loads(stored) == SNAPSHOT, "known metadata must remain unchanged"
+    # Previous valid caches are projected too, without changing observation times.
+    page.evaluate("value => localStorage.setItem('tokenjuice.widget-snapshot.v1', JSON.stringify(value))", value)
+    page.reload(wait_until="networkidle")
+    assert json.loads(page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')")) == SNAPSHOT
+    invalid = {**value, "codex": {**value["codex"], "items": [{"name": "5-hour", "used": 101}]}}
+    file.write_text(json.dumps(invalid), encoding="utf-8")
+    page.locator("#snapshot-file").set_input_files(str(file))
+    page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+    assert json.loads(page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')")) == SNAPSHOT
+    assert marker not in page.locator("body").inner_text()
+    page.close()
+    print("PASS: unknown snapshot fields excluded on import/restore, exact metadata preserved, invalid replacement refused")
+
+
 def check_snapshot_expiry(browser, directory: str) -> None:
     page = browser.new_page(viewport={"width": 375, "height": 812})
     page.add_init_script("""
@@ -754,6 +787,7 @@ def main() -> None:
             assert not errors, errors
             check_resume(browser, directory)
             check_snapshot_expiry(browser, directory)
+            check_snapshot_projection(browser, directory)
             browser.close()
 
 

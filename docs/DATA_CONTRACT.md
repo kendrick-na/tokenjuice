@@ -260,6 +260,13 @@ Unix milliseconds 숫자다. `providers`·`sessions`가 없는 이전 v1 export�
 화면을 바꾸지 않는다. 시작 시 이미 손상된 저장본이 있으면 그 저장본만 제거하고 빈 상태로
 복구한다. 이 검사는 파일 형식 검사이지 실제 provider 데이터의 진위를 보장하는 인증은 아니다.
 
+형식 검사 후 `snapshot.js`의 명시적 필드 목록으로 저장·렌더링할 객체를 복사한다.
+envelope·계정/provider·quota·forecast·context 각 단계의 계약 밖 필드는 저장하지 않고,
+scalar 메타데이터 위치의 객체/배열도 복사하지 않는다. quota 계산이나 관측 시각은 변경하지
+않는다. 기존 유효한 캐시도 시작 시 같은 필드 목록으로 정리하며, 원본 가져오기 파일은
+수정하지 않는다. 평문과 복호화한 번들 모두 같은 저장 경로를 사용한다. 계정 별칭·프로젝트명
+같은 허용된 문자열까지 비밀값을 찾아내는 기능은 아니므로 파일 공유 전 사용자 검토는 필요하다.
+
 Pocket quota 카드의 잔여량·progressbar·forecast는 `fresh` 또는 명시적으로 라벨링한
 `fallback`에서만 표시한다. export에 과거 `items[]`가 남아 있더라도 `stale`,
 `auth_expired`, `rate_limited`, `unavailable`에서는 숫자를 숨기고 상태·복구 안내와

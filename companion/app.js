@@ -1,6 +1,7 @@
 import { initResume, normalizeCheckpoint } from "./resume.js";
 import { initWorkSummary } from "./work-summary.js";
 import { initHistory } from "./history.js";
+import { projectWidgetSnapshot } from "./snapshot.js";
 initHistory();
 initWorkSummary();
 const showResume = initResume();
@@ -331,8 +332,9 @@ function updateTransport(demo = false) {
 }
 function load(snapshot) {
   if (!valid(snapshot)) throw new Error("invalid");
-  localStorage.setItem(KEY, JSON.stringify(snapshot));
-  render(snapshot);
+  const safe = projectWidgetSnapshot(snapshot);
+  localStorage.setItem(KEY, JSON.stringify(safe));
+  render(safe);
 }
 function demoSnapshot() {
   const now = Date.now();
@@ -364,7 +366,12 @@ try {
   const stored = localStorage.getItem(KEY);
   if (stored !== null) {
     const snapshot = JSON.parse(stored);
-    if (valid(snapshot)) render(snapshot);
+    if (valid(snapshot)) {
+      const safe = projectWidgetSnapshot(snapshot);
+      const serialized = JSON.stringify(safe);
+      if (serialized !== stored) localStorage.setItem(KEY, serialized);
+      render(safe);
+    }
     else localStorage.removeItem(KEY);
   }
 } catch { localStorage.removeItem(KEY); }

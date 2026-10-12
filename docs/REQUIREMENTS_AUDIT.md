@@ -1237,3 +1237,13 @@ da125f2의 Engine 38191643356·Windows 38191643480·Pages 38191643487 success를
 나이 표시와 quota 안내만 갱신하며 편집기·검토 체크·포커스·펼친 account 상세를 다시 만들지 않는다. 새 만료 경고를 펼친 뒤 사용자가 닫으면 다음 tick마다 다시 열지 않는다. 가짜 시계로 실제 timer callback·창 복귀를 실행해 초안/검토/focus·저장 bytes 보존·rollback·숨김 탭 복귀·새 import 초기화·파일 picker 동선을 검증했다. 사용한 파일은 합성 데이터뿐이다. demo는 실제 수집처럼 바꾸거나 저장하지 않는다.
 
 전체 strict release-verify exit 0: 테스트 171개/2000 assertions·확장된 companion을 포함한 여섯 browser suite·번들·문법·격리 알림·설치본 일치. 전체 테스트의 중복 경고 문구 선택자 오류는 배너를 특정해 수정했다. 이후 demo 상태 보호와 rollback 시각 문구까지 단독 재검증 exit 0을 확인했다. cache v23은 로컬 후보이며 원격 CI·Pages 공개 파일 검증은 별도다. 실수집·자동 sync·모바일/스토어·사용자 검증 목표는 완료 처리하지 않는다.
+
+### 9.54 Pocket 스냅샷 저장 필드 제한
+
+6c71351의 Engine 38193392579·Windows 38193392570·Pages 38193392556 success를 확인했다. 이후 합성 스냅샷에 root credentials·계정 prompt·quota messages·forecast transcript·provider config·session topic을 추가했다. 수정 전 형식 검사는 통과했지만 원본 전체가 Local Storage에 기록되는 실패를 재현했다. 실제 사용자 파일/토큰은 사용하지 않았다.
+
+기존 형식 검사는 유지하고 그 뒤 `snapshot.js`로 저장·렌더링 필드를 복사한다. 계약 밖 필드와 scalar 위치의 객체/배열은 제외하며 quota·reset·generatedAt·lastSuccessAt은 그대로 보존한다. 기존 유효한 저장본도 같은 처리로 정리하고 원본 파일은 수정하지 않는다. 잘못된 새 파일은 기존 정상 캐시를 대체하지 않는다. 이전 선택적 providers/sessions 없는 v1과 실제 엔진의 암호화 번들 가져오기 흐름도 유지한다.
+
+신규 단위 테스트 4개/12 assertions가 metadata 동일성·원본 객체 불변·각 단계의 추가 필드 제외·scalar object 제외·legacy 옵션을 검증했다. 단독 브라우저 검증과 전체 strict release-verify exit 0이며 확장된 companion과 기존 여섯 browser suite·번들·문법·설치본 일치가 통과했다. 저장 복원·잘못된 파일 이후 정상 캐시 보존도 확인했다.
+
+허용된 metadata 문자열 속 비밀값을 자동 탐지하는 scanner는 아니다. 데이터 진위·실제 계정·실대화 요약 품질을 증명하지 않는다. cache v24 후보와 새 module precache를 추가했으며 원격 검증/공개 파일 대조는 별도다. 인증 갱신·실제 모델 호출·모바일/스토어 제출은 실행하지 않았다.
