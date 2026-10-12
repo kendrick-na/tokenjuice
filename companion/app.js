@@ -340,11 +340,16 @@ function demoSnapshot() {
   const now = Date.now();
   return { contractVersion: 1, generatedAt: now, transport: "local_export_only", claude: [{ account: "Claude", state: "fresh", source: "local example", lastSuccessAt: now, items: [{ name: "5-hour", used: 38, resets: new Date(now + 2 * 3600e3).toISOString() }, { name: "Weekly", used: 61, resets: new Date(now + 3 * 86400e3).toISOString() }] }], codex: { state: "rate_limited", source: "local example", retryAt: now + 38 * 60e3, items: [] }, providers: [] };
 }
+let importRevision = 0;
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files?.[0]; if (!file) return;
+  const revision = ++importRevision;
+  const current = () => revision === importRevision;
   announce("스냅샷을 확인하는 중입니다.");
   try {
-    let snapshot = JSON.parse(await file.text());
+    const text = await file.text();
+    if (!current()) return;
+    let snapshot = JSON.parse(text);
     if (validBundle(snapshot)) {
       const passphrase = window.prompt("이 암호화 번들을 만들 때 사용한 암호를 입력하세요.");
       if (!passphrase) {
@@ -352,16 +357,17 @@ fileInput.addEventListener("change", async () => {
         return;
       }
       snapshot = await decryptBundle(snapshot, passphrase);
+      if (!current()) return;
     }
     if (!valid(snapshot)) throw new Error("invalid");
     load(snapshot);
     announce(`스냅샷을 가져왔습니다. ${relativeTime(snapshot.generatedAt)} · 가장 먼저 확인할 상태를 표시합니다.`, "good");
-  } catch { announce("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.", "danger"); }
-  finally { fileInput.value = ""; }
+  } catch { if (current()) announce("가져올 수 없는 파일입니다. TokenJuice 스냅샷 v1인지 확인한 뒤 다시 시도하세요.", "danger"); }
+  finally { if (current()) fileInput.value = ""; }
 });
 $("#replace").addEventListener("click", () => fileInput.click());
-$("#preview-demo").addEventListener("click", () => render(demoSnapshot(), { demo: true }));
-$("#clear").addEventListener("click", () => { localStorage.removeItem(KEY); location.reload(); });
+$("#preview-demo").addEventListener("click", () => { ++importRevision; fileInput.value = ""; announce(""); render(demoSnapshot(), { demo: true }); });
+$("#clear").addEventListener("click", () => { ++importRevision; localStorage.removeItem(KEY); location.reload(); });
 try {
   const stored = localStorage.getItem(KEY);
   if (stored !== null) {

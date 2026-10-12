@@ -61,6 +61,71 @@ def assert_theme_contrast(page) -> None:
         assert contrast_ratio(theme[foreground], theme["--panel-2"]) >= 4.5, (foreground, theme)
 
 
+def check_import_order(browser, directory: str, encrypted=None) -> None:
+    latest = json.loads(json.dumps(SNAPSHOT))
+    latest["claude"][0]["account"] = "Latest selection"
+    latest_file = Path(directory) / "latest-selection.json"
+    latest_file.write_text(json.dumps(latest), encoding="utf-8")
+    invalid_file = Path(directory) / "latest-invalid.json"
+    invalid_file.write_text("{invalid",encoding="utf-8")
+    for old_content, selection in ((content,selection) for content in (json.dumps(SNAPSHOT),"{invalid") for selection in ("latest","demo","invalid")):
+        page = browser.new_page(viewport={"width":375,"height":812})
+        page.goto("http://127.0.0.1:4173", wait_until="networkidle")
+        page.evaluate("""() => {
+          const read = File.prototype.text;
+          File.prototype.text = function() {
+            if (!this.name.startsWith('slow-')) return read.call(this);
+            return new Promise((resolve,reject) => {
+              window.releaseOlder = () => read.call(this).then(resolve,reject).finally(() => {window.olderSettled = true;});
+            });
+          };
+        }""")
+        old_file = Path(directory) / "slow-selection.json"
+        old_file.write_text(old_content, encoding="utf-8")
+        page.locator("#snapshot-file").set_input_files(str(old_file))
+        page.wait_for_function("typeof window.releaseOlder === 'function'")
+        if selection == "demo": page.locator("#preview-demo").click()
+        else: page.locator("#snapshot-file").set_input_files(str(invalid_file if selection == "invalid" else latest_file))
+        page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+        stored = page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')")
+        feedback = page.locator("#import-feedback").inner_text()
+        page.evaluate("window.releaseOlder()")
+        page.wait_for_function("window.olderSettled === true")
+        assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == stored, "older import replaced the latest selection"
+        assert page.locator("#import-feedback").inner_text() == feedback, "obsolete error changed current feedback"
+        if selection == "latest": assert page.locator(".account.claude .account-name").inner_text() == "Latest selection"
+        elif selection == "demo":
+            assert stored is None
+            assert page.locator("#transport").inner_text() == "예시 데이터"
+            assert page.locator("#import-feedback").is_hidden()
+        else:
+            assert stored is None
+            assert page.locator("#empty-state").is_visible()
+        page.close()
+    if encrypted:
+        page = browser.new_page(viewport={"width":375,"height":812})
+        page.on("dialog",lambda dialog:dialog.accept("pocket test passphrase"))
+        page.goto("http://127.0.0.1:4173",wait_until="networkidle")
+        page.evaluate("""() => {
+          const decrypt = crypto.subtle.decrypt.bind(crypto.subtle);
+          crypto.subtle.decrypt = async (...args) => {
+            const plaintext = await decrypt(...args);
+            return await new Promise(resolve => {window.releaseDecryption = () => {resolve(plaintext); window.decryptSettled = true;};});
+          };
+        }""")
+        page.locator("#snapshot-file").set_input_files(str(encrypted))
+        page.wait_for_function("typeof window.releaseDecryption === 'function'")
+        page.locator("#snapshot-file").set_input_files(str(latest_file))
+        page.wait_for_function("document.querySelector('#snapshot-file').value === ''")
+        stored = page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')")
+        page.evaluate("window.releaseDecryption()")
+        page.wait_for_function("window.decryptSettled === true")
+        assert page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')") == stored
+        assert page.locator(".account.claude .account-name").inner_text() == "Latest selection"
+        page.close()
+    print("PASS: latest selection/demo/error wins delayed reads" + (" and native encrypted decryption" if encrypted else " (plain-file subset)"))
+
+
 def check_snapshot_projection(browser, directory: str) -> None:
     page = browser.new_page(viewport={"width": 375, "height": 812})
     page.goto("http://127.0.0.1:4173", wait_until="networkidle")
@@ -788,6 +853,7 @@ def main() -> None:
             check_resume(browser, directory)
             check_snapshot_expiry(browser, directory)
             check_snapshot_projection(browser, directory)
+            check_import_order(browser, directory, encrypted)
             browser.close()
 
 
