@@ -1765,6 +1765,7 @@ BYOK/Ollama 옵션**으로 개발한다. 자동 요약 목표를 삭제하거나
   - [x] 금액과 분리한 일일 시도 원장·가격 변경/재시작/동시 프로세스 한도 보존·UTC 전환,
     실제 서버 관측 기반 남은 시도/시각·확인 불가/오래된 값 UI 후보. 무료 한도/요금제·실운영 검증은 남는다.
 - [ ] 지속 볼륨 단일 호스트/auth 연결, 보존 정책·로그 확인, 무료 한도/운영 비용 결정.
+  - [x] 명시적 private HTTP/TLS ingress 후보: server-side peer 확인·정확한 Host·고정 HTTPS origin·전달 헤더 제거·기존 인증/Origin/본문/동의/logout 유지. 실제 loopback/합성 세션·gateway 검증이며 네트워크/TLS·실제 auth·health/drain·운영 배포는 미완료다.
   - 2026-10-13 공식 가격/제약을 대조한 개통 추천은 Render 유료 단일 Bun 서버+지속 disk 및 Clerk 로그인이다. 서버+1GB disk 약 $7.25/월 추정은 총비용/승인이 아니며 실제 부하·TLS/Host·auth/권한·로그 정책·운영 예산 검증이 필요하다. Railway/Fly와 비교, 무료 서버의 원장 휘발 위험, 구현 순서는 docs/MANAGED_CLOUD_SUMMARY.md의 개통 구성 추천을 따른다. 계정·키·가입·결제·배포는 실행하지 않았다.
   - [x] 검증된 신원 뒤 앱 세션 후보: cookie·동적 권한·absolute/idle 만료·logout/철회·인증
     deadline·gateway 합성 연결. 로그인 제공자/계정 등록·OAuth/회원 DB·배포는 미완료다.

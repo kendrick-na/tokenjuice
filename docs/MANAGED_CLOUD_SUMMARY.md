@@ -103,6 +103,32 @@ await 중 logout/철회/만료가 발생하면 과거 권한 응답으로 접근
 
 ## 출시 TODO
 
+### HTTPS ingress adapter 후보
+
+`scripts/managed-summary-ingress.mjs`의 `createManagedSummaryIngress`는 site 앞의 선택적
+HTTP→고정 HTTPS 주소 adapter다. 서버/listener·TLS/proxy·배포·로그인·키 발견을 자동 실행하지
+않는다. `origin`, `site`, `transport: "private_http_behind_tls"`, 동기 `isTrustedPeer(request)`가
+모두 명시적으로 필요하다. predicate는 실제 서버 socket IP/네트워크 격리로 요청별 출처를
+검증해야 하며 헤더·Origin·cookie·URL·클라이언트 TLS 주장으로 true를 반환하면 안 된다.
+Promise·truthy 값·누락은 허용하지 않는다. 앱 callback 자체가 네트워크를 안전하게 만드는 것은
+아니므로 외부 공개 HTTP 포트에 이 adapter를 붙여서는 안 된다.
+
+수신 request가 HTTP이고 Host가 설정 HTTPS origin의 host와 정확히 일치할 때만 경로/query를
+고정 origin에 붙인다. Forwarded·X-Forwarded-*·X-Real-IP·X-Original-URL·X-Rewrite-URL은
+제거한다. 클라이언트 Origin·Fetch Metadata·cookie·method·body·abort signal은 site/gateway에
+유지하므로 인증/CSRF/본문 크기/전송 동의/승인 재사용 검사를 우회하지 않는다. site 응답의
+Secure-cookie/CSP를 유지하고 private 실패 내용은 `ingress_unavailable`로 치환한다.
+
+[Render 공식 web service 설명](https://render.com/docs/web-services)에 따르면 공개 HTTPS는
+load balancer에서 종료된 뒤 앱으로 HTTP 전달되고, 앱 포트는 외부 인터넷에서 직접 접근할
+수 없다. 하지만 실제 계정의 네트워크·socket·Host·TLS·private 경로/출처 설정은 검증 전이다.
+이 adapter를 Render 전용 자동 신뢰로 취급하지 않는다. 직접 TLS 서버는 기존 site를 사용하고,
+이 adapter는 HTTPS 입력도 거부한다. health/readiness·종료 중 drain·actual TLS·권한 저장소·
+로그/보존·운영 host launch 구성은 별도 작업이다.
+
+회귀는 127.0.0.1 임시 서버와 합성 canonical 신원만 사용한다. 실제 opaque 앱 세션·gateway를
+연결한 cookie/Origin/동의/로그아웃 검증은 실제 IdP 로그인이나 Render TLS 동작 증거가 아니다.
+
 ### 2026-10-13 개통 구성 추천 — 선택/가입/배포 전
 
 **권장 후보는 Render 유료 단일 Bun 서버 + 지속 디스크 + Clerk 로그인이다.** 현재 코드의

@@ -1623,3 +1623,27 @@ assertions를 재확인했다. 최초 대상에 없는 managed-cloud-summary.tes
 실제 managed-summary-gateway.test.js의 9개를 별도로 실행했다. 마지막 코드 fdd5ca6의 Engine
 38277023788·Windows 38277023775 success는 재확인했지만 이번 문서의 새 CI/배포는 아니다.
 전체 투두·실제 인증/실기기·모바일·스토어·인터뷰 게이트는 유지한다.
+
+### 9.77 실제 호스팅 연결을 위한 명시적 HTTPS ingress 경계 후보
+
+Render 공식 web service 설명에서 TLS 종료 뒤 HTTP 전달·앱 포트의 직접 외부 접근 불가를
+확인했다. 기존 site/gateway는 HTTPS origin을 요구하므로 배포에는 명시적 transport adapter가
+필요하다. managed-summary-ingress.mjs는 공개 HTTPS origin·site·private_http_behind_tls·
+요청별 동기 server-side isTrustedPeer 확인을 요구한다. 누락/false/truthy/Promise는 거부한다.
+predicate는 실제 socket/네트워크 격리로 검증해야 하며 이 함수가 TLS/네트워크를 보장하지 않는다.
+
+정확한 Host와 HTTP 입력을 검사한 뒤 origin을 운영 설정에서만 구성한다. 전달 주소/proto/IP/
+원래 경로 헤더는 제거하되 Origin/Fetch Metadata/cookie/method/body/signal을 유지해 기존
+인증·CSRF·본문·승인 검사를 통과하도록 우회하지 않는다. site의 CSP/Set-Cookie를 유지하고
+실패의 키/peer 상세는 반사하지 않는다. 모듈 import로 listener·계정·키·TLS·배포를 실행하지 않는다.
+
+실제 127.0.0.1 임시 서버의 socket peer 확인·정적 CSP/비공개 파일 차단, 합성 canonical
+subject로 발급한 opaque 세션과 실제 gateway/site의 401·403·query/body·동의 누락·logout 후
+401을 확인했다. provider 호출은 0이다. 새 4 pass/62 assertions, 전체 Bun 237 pass·1
+platform skip·2667 assertions·23 파일이며 strict release-verify --require-browser exit 0다.
+Windows에서는 POSIX 원장을 필요로 하는 새 통합 1개만 기존 gateway hostTest 규칙으로 skip하며
+transport 객체/실제 loopback 서버 3개는 실행한다. 실제 Windows CI 결과는 후속 확인한다.
+
+Render 실제 peer/Host/TLS 설정·직접 HTTP 차단·운영 health/drain·실제 auth/권한·보존/비용·
+실모델·사용자 검증은 미완료다. 배포 준비 코드 연결을 전체 출시나 실제 TLS 검증으로 부르지
+않으며 현재 Mac 설정·Claude 자격증명·공개 Pocket·스토어·외부 서버는 변경하지 않았다.
