@@ -1452,3 +1452,17 @@ OAuth callback·회원/결제 저장소·logout route/UI·호스팅·다중 inst
 13:29 KST 기존 관측 진단은 Claude HTTP401/auth expired·trust blocked·retry 13:30,
 마지막 성공 148h 전·Codex local fresh다. API/갱신·실로그인·모델 설치·유료 호출·설정 변경은
 하지 않았다. 사용자의 재로그인 완료 답변이 없으므로 실수집을 완료로 기록하지 않는다.
+
+### 9.69 Windows 회귀 timeout 원인과 입력별 분리
+
+7c7fe28의 Engine 38204072804는 success지만 Windows 38204072468은 기존 malformed API
+utilization 테스트의 기본 5000ms deadline으로 실패했다(5018.74ms). 새 앱 세션 테스트들은
+통과했고, 실패 테스트는 10개 utilization·9개 body·overflow·출력 검사를 한 케이스로 묶어
+42개 cold engine 프로세스를 실행했다. assertion 실패를 timeout으로 오인한 것이 아니라 로그에
+timeout이 명시되어 있다. 실제 Windows 사용자 화면이나 프로덕션 실행을 확인한 결과는 아니다.
+
+systematic-debugging 절차로 로그·호출 경로·정상 timestamp 테스트 패턴을 확인하고, 기존 입력과
+검증을 보존한 채 10개 utilization·9개 body·overflow의 20개 독립 테스트로 분리했다. default
+deadline을 늘리거나 테스트를 skip하거나 엔진의 실패 판정을 완화하지 않았다. 각 입력에서 cache
+보존·history/알림 부재·비밀값 비출력을 더 직접 확인한다. targeted 20 pass/139 assertions다.
+전체 자동/Windows 재검증이 필요하며 분리만으로 원격 CI 복구를 완료 처리하지 않는다.

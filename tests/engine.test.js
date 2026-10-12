@@ -377,11 +377,13 @@ test("Claude bad API timestamps do not suppress valid fallback or promote failed
   expect(failed.items).toEqual([]);
 });
 
-test("Claude rejects malformed API utilization without promoting old quota or emitting alerts", () => {
+// Each case keeps a fresh isolated home and the default test deadline. The old
+// combined case launched 42 cold engine processes under one 5-second budget.
+test.each(["99", true, false, [], {}, -1, 101, "", SECRET_PROMPT, null].map((used, index) => [index, used]))(
+"Claude rejects malformed API utilization case %i without promoting old quota or emitting alerts", (index, used) => {
   config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 20, forecast: true } });
   const previous = { ok: true, source: "api", at: Date.now() - 120000, items: [{ name: "5-hour", used: 20 }] };
   cache("claude-0.json", previous);
-  for (const used of ["99", true, false, [], {}, -1, 101, "", SECRET_PROMPT, null]) {
     cache("claude-0.fail.json", {});
     usage(200, okUsage(used, 40));
     run();
@@ -392,12 +394,28 @@ test("Claude rejects malformed API utilization without promoting old quota or em
     expect(c.items).toEqual([]);
     expect(JSON.parse(run("--widget-snapshot")).claude[0].items).toEqual([]);
     expect(JSON.parse(readFileSync(path.join(home, ".cache/claude-codex-battery/claude-0.json"), "utf8"))).toEqual(previous);
-  }
-  for (const body of [null, true, [], "99", {}, { five_hour: [] }, { seven_day: 99 }, { five_hour: {} }, { five_hour: { utilization: 10 }, seven_day_opus: { utilization: "99" } }]) {
+  expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
+  expect(notifications()).toEqual([]);
+  expect(run("--diagnostics")).not.toContain(SECRET_PROMPT);
+});
+
+test.each([null, true, [], "99", {}, { five_hour: [] }, { seven_day: 99 }, { five_hour: {} },
+  { five_hour: { utilization: 10 }, seven_day_opus: { utilization: "99" } }].map((body, index) => [index, body]))(
+"Claude rejects malformed API body case %i without retaining fresh quota", (index, body) => {
+    config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 20, forecast: true } });
+    const previous = { ok: true, source: "api", at: Date.now() - 120000, items: [{ name: "5-hour", used: 20 }] };
+    cache("claude-0.json", previous);
     cache("claude-0.fail.json", {});
     usage(200, body);
     expect(json().claude[0].reason).toBe("invalid_quota");
-  }
+    expect(JSON.parse(readFileSync(path.join(home, ".cache/claude-codex-battery/claude-0.json"), "utf8"))).toEqual(previous);
+    expect(JSON.parse(run("--forecast-history")).observations).toEqual([]);
+    expect(notifications()).toEqual([]);
+    expect(run("--diagnostics")).not.toContain(SECRET_PROMPT);
+});
+
+test("Claude rejects overflow API utilization without history or alerts", () => {
+  config({ api: true, forecast: { enabled: true }, notify: { enabled: true, threshold: 20, forecast: true } });
   cache("claude-0.fail.json", {});
   writeFileSync(fx, '{"status":200,"body":{"five_hour":{"utilization":1e999}}}');
   expect(json().claude[0].reason).toBe("invalid_quota");
