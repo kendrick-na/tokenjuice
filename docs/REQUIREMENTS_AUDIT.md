@@ -1726,3 +1726,8 @@ stopped false다. 강제 취소·refund·예산/키 초기화나 반복 cleanup�
 사용자/대화·키·제공자 API나 공개 bind는 없다. 전체 Bun 257 pass·1 platform skip·2837
 assertions·25 파일 및 최종 strict release-verify --require-browser exit 0를 확인했다.
 원격 CI는 수정 커밋으로 후속 확인하며 기존 Mac/Pocket/스토어·전체 목표 완료가 아니다.
+
+90c24e3의 Engine 38282418772·Windows 38282418779는 모두 success다. Windows job
+114922629878의 runtime 5개 PASS를 로그로 확인했고 EXE 생성·실행·artifact 업로드도
+통과했다. Engine은 macOS/Ubuntu·browser job까지 success다. tag release는 skipped이며
+실제 host/auth/키 등록·운영 배포·종료 신호·실사용 테스트 완료로 확대하지 않는다.
