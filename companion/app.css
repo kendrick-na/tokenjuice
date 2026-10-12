@@ -69,6 +69,12 @@ footer { display:flex; flex-wrap:wrap; align-items:center; gap:1rem; margin-top:
 @media (min-width: 700px) { .guide-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } .guide-faq { max-width:42rem; } }
 .skip-link { position:absolute; left:1rem; top:.75rem; z-index:10; transform:translateY(-160%); padding:.65rem .8rem; border:1px solid var(--lime); border-radius:4px; background:var(--canvas); color:var(--lime); }
 .skip-link:focus-visible { transform:translateY(0); }
+.feedback-panel select, .feedback-panel textarea { display:block; width:100%; min-height:44px; margin:.5rem 0 1rem; padding:.75rem; border:1px solid var(--line); border-radius:4px; background:var(--canvas); color:var(--ink); font:inherit; }
+.feedback-panel textarea { resize:vertical; line-height:1.6; }
+.feedback-panel select:focus-visible, .feedback-panel textarea:focus-visible { outline:2px solid var(--lime); outline-offset:3px; }
+.feedback-panel pre { max-height:24rem; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; padding:1rem; border:1px solid var(--line); background:var(--canvas); color:var(--teal); font:.75rem/1.6 var(--mono); }
+.feedback-panel .text-link { min-height:44px; display:inline-flex; align-items:center; margin-top:1rem; }
+.feedback-panel [hidden] { display:none!important; }
 #content { scroll-margin-top:1rem; }
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 .priority-card button, .snapshot-toolbar button, footer button, footer a { min-height:44px; display:inline-flex; align-items:center; justify-content:center; }

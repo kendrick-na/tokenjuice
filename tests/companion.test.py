@@ -504,7 +504,7 @@ def main() -> None:
             page.get_by_text("설치하고 메뉴바 확인").wait_for()
             assert page.get_by_text("개인정보 원칙 보기").is_visible()
             page.go_back(wait_until="networkidle")
-            page.get_by_text("개인정보").click()
+            page.get_by_role("link",name="개인정보",exact=True).click()
             assert page.get_by_text("기기 밖으로", exact=False).is_visible()
             assert page.locator('link[rel="icon"]').get_attribute("href") == "./icons/tokenjuice-192.png"
             assert page.get_by_text("계기판으로").is_visible()

@@ -1799,3 +1799,34 @@ Claude는 http 429/rate-limit·trust blocked·마지막 성공 5h 전·retry 18m
 다르게 현재 요청 제한이며 복구/최신 quota가 아니다. autoRenew=false는 그대로다.
 Codex는 fresh/live 로컬 JSONL 관측이다. 직접 API·renewal·설정 변경·사용자 프로세스 종료는
 없었다. 네이티브 메뉴바 화면 확인과 제한 해제 후 실제 최신 수집은 여전히 남았다.
+
+### 9.83 Pocket 앱 내 검토형 제보 초안
+
+C04/P3-04의 앱 내 제보 준비 동선을 구현했다. 하단 피드백 버튼은 외부 접속 대신 접힌
+제보 상세를 열고 유형에 focus한다. 유형/재현 설명(최대 2,000자)/opt-in 상태 요약에서
+공유 JSON을 만들어 검토 뒤 복사·저장·고정 GitHub feedback.yml 링크를 제공한다.
+입력 변경은 초안/검토/공유 가능 상태를 해제하고 reset/reload는 메모리 초안을 비운다.
+복사 실패는 원문 예외 없이 미확인으로 안내하며 복사/저장을 접수라고 말하지 않는다.
+
+진단은 고정 source/age/provider/state와 bounded 목록만 투영한다. 계정명·프로젝트·quota·
+reset/시각·원문·기기 ID는 제외한다. demo·가져온 snapshot·실시간 진단을 구분한다.
+설명은 기존 safeExcerpt를 재사용하되 완전한 비밀값 탐지나 원문 보존을 보증하지 않고
+직접 검토를 요구한다. GitHub URL에는 초안/본문/스냅샷이 없으며 사용자 직접 붙여넣기와
+공개 제출이 필요하다. 실제 사용자·공개 issue·API 호출을 만들지 않았다.
+
+frontend-design에 따라 기존 dark teal/editorial 디자인과 DETAIL 점진 공개를 유지했다.
+모바일 상세 스크린샷을 시각 검수했고 375/1280px 가로 넘침 없음·44px 타깃을 확인했다.
+신규 Bun 3 pass/17 assertions 및 합성 browser에서 opt-in/whitelist/실제 파일 import·
+demo/검토 해제/다운로드 내용·복사 실패/고정 링크/자동 제출 및 초안 저장 0회를 확인했다.
+GitHub 이동은 intercept한 합성 popup으로만 검증하여 실제 제보 제출 증거로 쓰지 않는다.
+
+테스트 구현의 clipboard mock assignment가 evaluate에서 함수로 실행되던 문제와 잘못된
+demo ID를 기존 working selector/closure 패턴으로 수정했다. 기존 개인정보 부분일치
+selector는 새 안내와 3개 매치가 되어 실패했으므로 정확한 link role로 지정했다. 제품의
+개인정보 문구를 지우거나 대기/skip을 늘려 통과시킨 것이 아니다. 최종 strict release-verify
+--require-browser exit 0: 265 pass·1 skip·2886 assertions, 기존 browser 회귀 및 설치본
+engine/helper 일치다. Pages/Engine CI에 신규 browser 검증과 precache feedback.js를
+연결하고 cache를 v27로 올렸다. 강제 새로고침은 하지 않으며 기존 미저장 편집을 보존한다.
+
+실제 접수→응답→수정→배포 1건·신규 사용자/인터뷰·Claude 실수집·native/스토어·운영형
+로그인/요약은 미완료이며 P3-04 전체를 완료 처리하지 않는다.

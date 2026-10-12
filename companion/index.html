@@ -129,10 +129,31 @@
           </section>
         </div>
       </details>
+      <details id="feedback-panel" class="resume-panel feedback-panel">
+        <summary>문제 제보 준비 <span>REVIEW → REPORT</span></summary>
+        <div class="resume-body">
+          <p class="resume-limit">먼저 이 기기에서 초안을 확인합니다. 자동 업로드·저장·제출은 없습니다. GitHub는 공개 제보이며 로그인이 필요합니다. 계정·토큰·대화·코드·개인정보는 적지 마세요.</p>
+          <label for="feedback-topic">어떤 문제가 있나요?</label>
+          <select id="feedback-topic"><option value="data">사용량·리셋·연결</option><option value="display">화면·표시</option><option value="install">설치·업데이트</option><option value="usability">사용성</option><option value="feature">기능 제안</option><option value="other">기타</option></select>
+          <label for="feedback-description">재현 순서 · 기대한 결과 · 실제 결과</label>
+          <textarea id="feedback-description" rows="5" maxlength="2000" placeholder="예: 파일을 가져온 뒤 Claude 카드가 ?로 보였습니다. 새 수치를 기대했지만 연결 안내가 나타났습니다."></textarea>
+          <label class="work-review-label"><input id="feedback-diagnostics" type="checkbox"> 작성 당시 Pocket 상태 요약도 포함 (선택)</label>
+          <p class="resume-limit">포함 항목: 가져오기/예시 여부, 30분 기준 파일 나이, 제공자 종류와 상태만. 계정명·프로젝트·정확한 사용률·시각·원문·기기 식별자는 제외합니다. Mac의 실시간 진단이 아닙니다.</p>
+          <div class="resume-actions"><button id="feedback-prepare" type="button">공유할 내용 미리보기</button><button id="feedback-reset" type="button">제보 초안 지우기</button></div>
+          <p id="feedback-status" class="resume-feedback" role="status" aria-live="polite"></p>
+          <section id="feedback-preview-panel" hidden>
+            <h2>공개 전에 확인하세요</h2><pre id="feedback-preview" tabindex="-1" aria-label="공유할 제보 JSON 미리보기"></pre>
+            <label class="work-review-label"><input id="feedback-reviewed" type="checkbox"> 미리보기에 비밀값·개인정보가 없고 공개해도 됨을 확인했습니다</label>
+            <div class="resume-actions"><button id="feedback-copy" type="button" disabled>검토한 제보 복사</button><button id="feedback-download" type="button" disabled>제보 JSON 저장</button></div>
+            <a id="feedback-submit" class="text-link" href="https://github.com/kendrick-na/tokenjuice/issues/new?template=feedback.yml" target="_blank" rel="noopener noreferrer" hidden>GitHub 공개 제보 양식 열기 ↗</a>
+            <p class="resume-limit">이 링크는 초안을 전달하지 않습니다. 양식에 직접 붙여넣고 제출해야 접수됩니다. 로컬 미리보기·복사·저장은 접수가 아닙니다.</p>
+          </section>
+        </div>
+      </details>
       <p id="live-region" class="sr-only" aria-live="polite"></p>
       </div>
 
-      <footer><span>LOCAL-FIRST · V1</span><a class="privacy-link" href="./guide.html">설치·FAQ</a><a class="privacy-link" href="./privacy.html">개인정보</a><a class="privacy-link" href="https://github.com/kendrick-na/tokenjuice/issues/new/choose">피드백</a><button id="clear" type="button" hidden>이 기기에서 삭제</button></footer>
+      <footer><span>LOCAL-FIRST · V1</span><a class="privacy-link" href="./guide.html">설치·FAQ</a><a class="privacy-link" href="./privacy.html">개인정보</a><button id="feedback-open" type="button">피드백</button><button id="clear" type="button" hidden>이 기기에서 삭제</button></footer>
     </main>
     <script type="module" src="./app.js"></script>
   </body>

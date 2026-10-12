@@ -498,3 +498,22 @@ receipt는 없다. 전달 뒤 소비자가 종료되거나 OS가 억제하면 �
 - 한도와 컨텍스트 라벨 분리
 - 프롬프트 원문이 JSON·진단·텍스트 출력에 새지 않음
 - 절전 복귀용 SwiftBar 새로고침 디바운스
+
+## Pocket 제보 초안
+
+`tokenjuice-feedback-v1`은 사용자가 직접 입력한 문제 설명의 공유 미리보기다. `topic`은
+data/display/install/usability/feature/other 중 하나이며 설명은 입력 1~2,000자로 제한한다.
+기존 safeExcerpt로 알려진 비밀값·이메일·주소·코드 패턴 일부를 제외하며 누락이나 민감정보
+탐지의 완전성을 보증하지 않는다. 원문과 미리보기의 차이를 직접 검토해야 한다.
+
+진단 포함은 기본 꺼짐이다. 포함하면 source(no_snapshot/demo_only/imported_snapshot_not_live),
+30분 기준 파일 age, 최대 20개의 provider 종류(claude/codex/other)와 고정 state만 투영한다.
+추가 제공자의 label/id와 계정·프로젝트·정확한 quota/reset/시각·대화·경로·기기 식별자는
+투영하지 않는다. demo는 providers를 비워 실제 진단과 구분하며 imported도 live가 아니다.
+
+초안은 화면 메모리 전용이다. 내용/유형/진단 선택 변경은 미리보기와 검토를 해제한다.
+공개 범위 확인 뒤에만 복사·JSON 저장·GitHub 양식 이동이 가능하다. 이동 URL은 고정된
+feedback.yml 선택값만 가지며 report/원문/스냅샷을 URL/본문으로 전송하지 않는다.
+실제 접수는 별도 GitHub 로그인·직접 붙여넣기·제출 뒤에만 성립한다. 초안 지우기/새로고침은
+클립보드·다운로드 파일·이미 제출된 공개 이슈를 삭제하지 않는다. 엔진 진단 자동 수집이나
+새 hosting/auth/API 호출은 없다.

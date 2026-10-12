@@ -44,6 +44,8 @@ jobs:
           bun test tests/work-summary.test.js
           python tests/work-summary.test.py
           python tests/work-files.test.py
+          bun test tests/feedback.test.js
+          python tests/feedback.test.py
       - name: Upload static PWA
         uses: actions/upload-pages-artifact@v3
         with:

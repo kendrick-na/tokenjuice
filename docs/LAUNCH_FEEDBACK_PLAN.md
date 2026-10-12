@@ -156,6 +156,13 @@ TokenJuice는 현재 모든 플랫폼에 같은 형태로 출시할 수 없다. 
 
 ## 3. 빠른 배포 순서
 
+Pocket 제보 후속: 하단 **피드백** 또는 **문제 제보 준비**에서 유형·재현 설명을 입력하고
+공유 JSON을 먼저 확인한다. 상태 요약은 opt-in이며 계정/프로젝트/raw 대신 제한된 범주만
+포함한다. 검토 뒤 복사/저장하고 고정 GitHub feedback.yml 양식에 직접 붙여넣어 제출한다.
+자동 업로드·Local Storage 보관·접수 완료 표시는 없다. 이 동선 구현을 실제 사용자 제보
+접수·응답·수정·재배포 1건이나 인터뷰 완료로 처리하지 않는다. DATA_CONTRACT의 Pocket
+제보 초안을 따른다.
+
 ### 1단계 — 공개 베타
 
 대상은 Claude Code 또는 Codex를 매일 사용하는 Mac 개발자다. GitHub Pages에서 Pocket을 체험하게 하고, GitHub Release에서 Mac/Windows 설치본을 제공한다.

@@ -2,6 +2,7 @@ import { initResume, normalizeCheckpoint } from "./resume.js";
 import { initWorkSummary } from "./work-summary.js";
 import { initHistory } from "./history.js";
 import { projectWidgetSnapshot } from "./snapshot.js";
+import { initFeedback } from "./feedback.js";
 initHistory();
 initWorkSummary();
 const showResume = initResume();
@@ -249,6 +250,7 @@ function priority(snapshot) {
   };
 }
 let currentSnapshot = null, currentSnapshotIsDemo = false, snapshotExpired = false, snapshotExpiryApplied = false;
+initFeedback(() => ({ snapshot: currentSnapshot, demo: currentSnapshotIsDemo, expired: snapshotExpired }));
 function refreshSnapshotAge() {
   if (!currentSnapshot || currentSnapshotIsDemo || document.visibilityState === "hidden") return;
   snapshotExpired ||= snapshotNeedsRefresh(currentSnapshot);
