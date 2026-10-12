@@ -33,6 +33,7 @@ export function triageIssues(input, now = Date.now()) {
     return {
       number: issue.number, url: issue.url, area: area ?? "unclassified",
       priority: priority ?? "review", stage: stage ?? "review",
+      updatedAt: new Date(updated).toISOString(),
       needsClassification: !area || !priority || !stage,
       daysSinceUpdate: Math.floor((now - updated) / 86400000),
     };

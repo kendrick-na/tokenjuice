@@ -1838,3 +1838,31 @@ skipped다. 공개 index.html/app.js/app.css/sw.js/feedback.js/privacy.html/hist
 work-summary.js/work-files.js/manifest.webmanifest 10개 HTTP 200·SHA-256 소스 일치다.
 현재 공개 Pocket은 3c0951b/v27이며 desktop v1.2.2 고정 release를 새로 발행하지 않았다.
 단순 코드 push만으로 공개 반영을 주장하지 않으며 공개 byte 검증 이후 기록했다.
+
+### 9.84 기존 heartbeat에 제보 점검 결합
+
+OpenAI Docs의 [공식 예약 작업 안내](https://learn.chatgpt.com/docs/automations?surface=app)와
+현재 app automation을 확인했다. tokenjuice id의 기존 heartbeat가 컨트롤타워에 연결되어
+있으므로 새 자동화를 만들지 않고 기존 prompt에 metadata-only 제보 점검을 추가했다.
+app 도구의 update 성공 및 실제 TOML 재조회로 이름·15분 cadence·target·ACTIVE와
+기존 prompt+새 점검 문구의 정확한 일치를 확인했다. 로컬 파일 필요 실행은 컴퓨터/앱이
+켜져 있어야 하며 hosted 24시간 감시/첫 예약 실행을 검증한 것으로 기록하지 않는다.
+
+02:55 KST 실제 readFeedback 조회는 열린 이슈 0건·상한 미도달이었다. 이 값을 첫 기준으로
+삼고 새 번호/updatedAt/분류/단계 변화·처음 7일 미갱신만 actionable로 처리한다. 조회
+시간이나 age 증가를 새 제보로 오인하지 않고 실패 시 성공 기준을 보존한다. 목록에서
+사라졌거나 상한에 도달한 경우 해결로 단정하지 않는다. 제목/본문/작성자/댓글/진단은
+요청하지 않으며 issue/label/comment/외부 연락·배포 변경도 허용하지 않는다. 실행 중인
+구현 checkout을 자동화가 함께 수정하지 않도록 명시했다. 무변화/성공 빈 결과는 무알림이다.
+
+CLI 결과에 정규화된 updatedAt을 추가했다. 기존 daysSinceUpdate만으로는 같은 날의
+갱신을 구분할 수 없으므로 이슈 갱신 시각과 단순 polling 시각을 별도 유지한다. 신규
+회귀는 같은 날 변경/동일 데이터 재조회/같은 시각의 다른 timezone 표기 정규화를 확인한다.
+triage suite 9 pass/49 assertions, 전체 strict release-verify --require-browser exit 0
+(266 pass·1 skip·2891 assertions), 기존 browser 및 설치 engine/helper 일치다.
+실제 신규 제보/자동 실행·분류/재현/수정 효과를 가짜 결과로 채우지 않았다.
+
+02:58 KST installed --diagnostics는 Claude HTTP401/auth expired·blocked·마지막 성공
+6h 전·retry 9m(03:07), Codex fresh/live다. 02:40의 429와 다른 후속 관측이며 현재
+Claude 복구가 아니다. 기존 관측만 읽고 API/renewal·설정 변경을 하지 않았다.
+P3-05 전체 및 실제 사용자/모델/스토어·수집 복구 게이트는 여전히 미완료다.

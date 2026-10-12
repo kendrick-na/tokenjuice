@@ -28,6 +28,18 @@ test("missing or conflicting labels require human review, not invented severity"
   expect(report.issues[0].priority).toBe("review");expect(report.issues[0].area).toBe("unclassified");
   expect(report.limits.join(" ")).toContain("not unique users");
 });
+test("same-day updates remain observable without treating polling time or age as new feedback",()=>{
+  const first={...issue(1),updatedAt:new Date(now-60000).toISOString()};
+  const before=triageIssues([first],now).issues[0];
+  const unchanged=triageIssues([first],now+30000).issues[0];
+  const after=triageIssues([{...first,updatedAt:new Date(now-30000).toISOString()}],now).issues[0];
+  expect(before.updatedAt).toBe(first.updatedAt);
+  expect(unchanged.updatedAt).toBe(before.updatedAt);
+  expect(after.updatedAt).not.toBe(before.updatedAt);
+  expect(after.daysSinceUpdate).toBe(before.daysSinceUpdate);
+  const normalized=triageIssues([{...first,updatedAt:new Date(now-60000).toISOString().replace("Z","+00:00")}],now).issues[0];
+  expect(normalized.updatedAt).toBe(before.updatedAt);
+});
 test("invalid metadata fails closed instead of showing a successful empty report",()=>{
   for(const value of [null,{},[null],[issue(1),issue(1)],[{...issue(1),url:"https://evil.example"}],
     [{...issue(1),state:"CLOSED"}],[{...issue(1),updatedAt:"bad"}],[{...issue(1),updatedAt:new Date(now+1).toISOString()}],
