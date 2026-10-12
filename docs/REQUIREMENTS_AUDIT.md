@@ -1904,3 +1904,12 @@ browser gate를 연결하고 Pocket cache v28 후보로 갱신했다. 설정/설
 호출은 하지 않았고 경쟁 앱 결제·로그인·native 실행도 없다. 기존 편집을 강제로 reload하지
 않는다. 전체 UI 우열/경쟁사 수준·실계정/새 설치·메뉴바/노치·사용자 5명 및 전체 목표는
 여전히 미완료다.
+
+ae52a35의 Engine 38291054714·Windows 38291054675·Pages 38291054681는 모두 success다.
+Pages verify job 114950972898에서 신규 mobile-before-Mac/manual platform browser PASS를
+로그로 확인했다. Windows EXE 생성·실행·artifact 업로드도 success이며 tag release는 skipped다.
+index.html/app.js/app.css/sw.js/guide.html/guide.js/feedback.js/privacy.html/history.js/
+work-summary.js/work-files.js/manifest.webmanifest 12개 공개 HTTP200·SHA-256 소스 일치다.
+신규 비로그인 browser로 실제 공개 v28의 desktop 예시 첫 화면, 375px 가로 넘침 없음,
+설치→guide→모바일/Mac 직접 선택을 확인했다. 다운로드/설치/로그인은 실행하지 않았다.
+현재 공개 Pocket은 ae52a35/v28이며 native desktop 고정 release v1.2.2와 구분한다.

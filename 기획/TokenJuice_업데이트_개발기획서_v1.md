@@ -2,6 +2,8 @@
 
 ## 출시 비교 및 실행 원장 — 최신 확인 2026년 10월 13일
 
+**최신 UI 공개 반영:** Pocket `ae52a35`/cache v28에 설치 진입·desktop 명시적 예시·기기 선택·iPhone 오분기 복구를 반영했다. Pages/Engine/Windows 모두 success, 공개 파일 12개 HTTP200/SHA-256 일치와 실제 공개 browser 이동을 확인했다(audit §9.85). [경쟁 첫 화면 비교와 개선 체크리스트](../docs/UI_BENCHMARK_2026-10-13.md)에 원자료/같은 viewport/미검증 영역을 보존한다. 아래 v27 기록은 그 당시 결과이며 실제 Claude 인증·native 비교·신규 설치·스토어/인터뷰와 전체 목표는 여전히 미완료다.
+
 **현재 공개 후속:** Pocket `3c0951b`/cache v27에 앱 내 검토형 피드백 초안을 반영했다. Pages/Engine/Windows CI 모두 success이고 주요 공개 파일 10개 HTTP 200·SHA-256 일치를 확인했다(audit §9.83). 미리보기·선택 진단·재검토·복사/저장·고정 GitHub 양식 이동이며 자동 제출/업로드는 없다. 실제 제보 접수·인터뷰·전체 투두 완료가 아니다. desktop 고정 공개 release는 여전히 v1.2.2다.
 
 **수집 최신 진단 구분:** 2026-10-13 02:58 KST 설치본 읽기 전용 진단은 Claude HTTP 401·trust blocked·마지막 성공 6h 전, Codex fresh/live였다(audit §9.84). 02:40의 HTTP 429(audit §9.82)는 이전 관측이며 현재 복구 성공 증거로 쓰지 않는다. autoRenew=false 유지·이 점검의 API/로그인 재시도 없음이며 실제 최신 Claude 수집/메뉴바 검증은 미완료다. 아래 날짜별 후속 기록은 각 검증 당시 상태다.
