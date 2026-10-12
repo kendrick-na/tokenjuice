@@ -10,11 +10,14 @@ export function normalizeCheckpoint(value) {
   if (!isRecord(value) || value.format !== "tokenjuice-checkpoint-v1" || value.privacy !== "metadata_only"
     || !["claude", "codex"].includes(value.platform) || !positive(value.createdAt)
     || !Number.isFinite(new Date(value.createdAt).getTime())
+    || (value.sourceGeneratedAt != null && (!positive(value.sourceGeneratedAt)
+      || !Number.isFinite(new Date(value.sourceGeneratedAt).getTime())))
     || ![value.project, value.branch, value.model, value.status].every(text)
     || !isRecord(value.context) || !nonnegative(value.context.used) || !nonnegative(value.context.pct)
     || !(value.context.window == null || positive(value.context.window))) throw new Error("invalid_checkpoint");
   // Unknown fields (including topic/code/nextAction) are not shown or copied.
   return { format: value.format, privacy: value.privacy, createdAt: value.createdAt, platform: value.platform,
+    ...(value.sourceGeneratedAt == null ? {} : {sourceGeneratedAt: value.sourceGeneratedAt}),
     project: value.project || null, branch: value.branch || null, model: value.model || null,
     context: { used: value.context.used, window: value.context.window ?? null, pct: value.context.pct },
     status: value.status || null };
@@ -24,11 +27,13 @@ export function resumeBrief(checkpoint) {
   return [
     "TokenJuice · 메타데이터 재개 안내 (작업 내용 요약 아님)",
     `checkpoint 저장 시각: ${new Date(checkpoint.createdAt).toLocaleString("ko-KR")}`,
+    `원본 스냅샷 파일 생성 시각: ${checkpoint.sourceGeneratedAt == null ? "정보 없음 · 저장 시각으로 대신하지 않습니다" : new Date(checkpoint.sourceGeneratedAt).toLocaleString("ko-KR")}`,
+    "파일 생성/저장 시각은 실제 세션 관측 시각이나 현재 상태의 증거가 아닙니다.",
     `이전 도구: ${checkpoint.platform === "claude" ? "Claude" : "Codex"}`,
     `프로젝트: ${checkpoint.project || "정보 없음"}`,
     `브랜치: ${checkpoint.branch || "정보 없음"}`,
     `이전 모델: ${checkpoint.model || "정보 없음"}`,
-    `저장 당시 컨텍스트: ${checkpoint.context.pct}% 사용 · 로컬 추정, 현재 값 아님`,
+    `파일에 담긴 컨텍스트: ${checkpoint.context.pct}% 사용 · 로컬 추정, 현재 값 아님`,
     "",
     "재개 전 직접 확인할 것:",
     "1. 실제 프로젝트·브랜치와 변경 파일을 확인하세요. 이 파일은 코드를 복원하지 않습니다.",
@@ -52,7 +57,8 @@ export function initResume() {
     metadata.replaceChildren();
     for (const [label, value] of [["프로젝트", checkpoint.project], ["브랜치", checkpoint.branch],
       ["이전 도구", checkpoint.platform === "claude" ? "Claude" : "Codex"], ["이전 모델", checkpoint.model],
-      ["저장 당시 컨텍스트", `${checkpoint.context.pct}% 사용 · 로컬 추정`]]) {
+      ["원본 스냅샷 파일 생성", checkpoint.sourceGeneratedAt == null ? "정보 없음 · 저장 시각과 구분" : new Date(checkpoint.sourceGeneratedAt).toLocaleString("ko-KR")],
+      ["파일에 담긴 컨텍스트", `${checkpoint.context.pct}% 사용 · 로컬 추정, 현재 값 아님`]]) {
       const term = document.createElement("dt"), description = document.createElement("dd");
       term.textContent = label; description.textContent = value || "정보 없음";
       metadata.append(term, description);

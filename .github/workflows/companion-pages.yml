@@ -47,6 +47,8 @@ jobs:
           bun test tests/feedback.test.js
           python tests/feedback.test.py
           python tests/guide-platform.test.py
+          bun test tests/checkpoint-provenance.test.js
+          python tests/context-expiry.test.py
       - name: Upload static PWA
         uses: actions/upload-pages-artifact@v3
         with:

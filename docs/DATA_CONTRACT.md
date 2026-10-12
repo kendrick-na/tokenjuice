@@ -294,10 +294,25 @@ Date로 해석 가능한 `createdAt`, context의 유한한 비음수 `used`/`pct
 또는 null을 검사한다. optional project/branch/model/status는 null 또는 제어 문자 없는
 256자 이하 문자열이다. context pct >100도 로컬 추정치로 보존한다.
 
+Pocket에서 snapshot으로 만드는 checkpoint에는 선택 필드 sourceGeneratedAt을 넣어 원본
+snapshot 파일 생성 시각을 createdAt(새 checkpoint 저장 시각)과 구분한다. null/없음은
+legacy 정보 없음으로 유지하며, 있으면 양의 유한 숫자·Date로 해석 가능한 값만 수용한다.
+저장 시각을 누락된 원본 시각의 대체값으로 쓰지 않는다. 파일 생성/저장 시각은 실제 세션의
+관측 시각이나 현재 컨텍스트의 증거가 아니며 진위 검증도 아니다. CLI/이전 checkpoint처럼
+원본 snapshot 시각이 없는 파일은 기존대로 열 수 있다.
+
 읽는 필드만 새 객체로 복사하며 unknown/topic/code/nextAction을 표시·복사하지 않는다.
 유효하지 않은 파일은 기존 안내/한도 저장본을 유지한다. 새 checkpoint 생성도 같은
 검사를 통과해야 다운로드한다. createdAt은 파일 생성 시각이며 현재 상태의 관측 시각이
 아니다. 원본의 진위를 인증하지 않고 저장 메타데이터를 live quota/현재 context로 표시하지 않는다.
+
+열린 Pocket snapshot의 기존 30분 나이 경계가 지난 뒤에는 컨텍스트 숫자를 과거 기록으로
+보존하고, 현재 작업 조언을 새 snapshot/사용 중인 세션 직접 확인 안내로 바꾼다. ARIA 라벨도
+현재 값이 아님을 표시한다. checkpoint의 명시적 메타데이터 저장은 유지하되 원본 시각을
+다시 관측한 시각으로 승격하지 않는다. clock rollback은 만료 판단을 되돌리지 않으며 새
+명시적 파일 import에서만 해당 latch를 초기화한다. 이 갱신은 편집기/포커스/Local Storage/
+provider 관측·설정을 바꾸지 않는다. 컨텍스트 점유율은 모델 품질이나 토큰 낭비·절감률
+측정값이 아니며 Usage Coach의 입력/분모/실사용 근거 게이트도 대신하지 않는다.
 
 재개 안내는 이 메타데이터와 사용자 확인 체크리스트만 담는다. 작업 의도·최근 파일·
 브랜치 내용·프롬프트·코드 복원이나 자동 세션 실행/전환은 없다. checkpoint는 화면 메모리만

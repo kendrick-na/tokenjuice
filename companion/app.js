@@ -156,11 +156,13 @@ function contextRisk(snapshot) {
   const next = pct >= 90 ? "현재 작업을 정리하고 새 세션으로 전환할 준비를 하세요." : pct >= 80 ? "다음 큰 작업 전에 checkpoint를 남길 시점입니다." : "현재 세션을 계속 사용해도 좋습니다.";
   return { session, pct, tone, label, next };
 }
-function saveCheckpoint(risk) {
+function saveCheckpoint(risk, sourceSnapshot) {
   const session = risk.session;
+  const historical = snapshotExpired || snapshotNeedsRefresh(sourceSnapshot);
   const checkpoint = {
     format: "tokenjuice-checkpoint-v1",
     createdAt: Date.now(),
+    sourceGeneratedAt: sourceSnapshot.generatedAt,
     privacy: "metadata_only",
     platform: session.platform,
     project: session.name || null,
@@ -168,7 +170,7 @@ function saveCheckpoint(risk) {
     model: session.model || null,
     context: { used: Number(session.used) || 0, window: Number(session.win) || null, pct: Number(risk.pct.toFixed(1)) },
     status: session.status || null,
-    nextAction: risk.next,
+    nextAction: historical ? "과거 스냅샷 기록입니다. 사용 중인 세션의 현재 컨텍스트와 작업을 직접 확인하세요." : risk.next,
   };
   try { normalizeCheckpoint(checkpoint); }
   catch {
@@ -193,7 +195,7 @@ function renderContext(snapshot) {
   card.hidden = false;
   card.className = `context-card ${risk.tone}`;
   card.innerHTML = `<div class="context-head"><div><p>작업 컨텍스트</p><h2 id="context-title">${escapeHtml(risk.label)}</h2></div><strong>${Math.round(risk.pct)}<small>% 사용</small></strong></div><div class="context-bar" role="progressbar" aria-label="${escapeHtml(identity)} 컨텍스트 ${Math.round(risk.pct)}% 사용" aria-valuenow="${Math.round(risk.pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, risk.pct)}%"></i></div><p class="context-meta">${escapeHtml(identity)} · ${escapeHtml(session.model || "모델 정보 없음")}</p><p class="context-next"><b>NEXT</b>${escapeHtml(risk.next)}</p><button id="checkpoint-action" type="button">메타데이터 checkpoint 저장 <b aria-hidden="true">↓</b></button>`;
-  $("#checkpoint-action").addEventListener("click", () => saveCheckpoint(risk));
+  $("#checkpoint-action").addEventListener("click", () => saveCheckpoint(risk, snapshot));
 }
 function priority(snapshot) {
   const payloads = allPayloads(snapshot);
@@ -274,6 +276,15 @@ function refreshSnapshotAge() {
   const action = $("#priority-action");
   action.dataset.target = "snapshot-file";
   action.firstChild.textContent = "새 스냅샷 가져오기 ";
+  const context = $("#context-card");
+  if (!context.hidden) {
+    context.className = "context-card caution";
+    $("#context-title").textContent = "스냅샷 당시 컨텍스트";
+    context.querySelector(".context-next").innerHTML = "<b>NEXT</b>Mac에서 새 스냅샷을 가져온 뒤 사용 중인 세션의 현재 컨텍스트를 직접 확인하세요.";
+    const bar = context.querySelector(".context-bar");
+    bar.setAttribute("aria-label", `스냅샷 당시 컨텍스트 ${bar.getAttribute("aria-valuenow")}% 사용 · 현재 값 아님`);
+    $("#checkpoint-action").title = "과거 스냅샷 메타데이터 저장 · 현재 세션 관측 아님";
+  }
   for (const payload of allPayloads(currentSnapshot)) {
     if (!["fresh", "fallback"].includes(payload.state)) continue;
     const card = document.getElementById(payload.target);

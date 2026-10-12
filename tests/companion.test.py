@@ -264,7 +264,7 @@ def check_resume(browser, directory: str) -> None:
     assert page.locator("#empty-state").is_visible()  # independent of a live snapshot
     assert page.evaluate("document.activeElement.id") == "resume-title"
     assert page.get_by_text("저장 당시 메타데이터 · 현재 한도나 컨텍스트가 아닙니다").is_visible()
-    assert page.locator("#resume-metadata").get_by_text("84% 사용 · 로컬 추정", exact=True).is_visible()
+    assert page.locator("#resume-metadata").get_by_text("84% 사용 · 로컬 추정, 현재 값 아님", exact=True).is_visible()
     assert "2026" in page.locator("#resume-source").inner_text()
     original_brief = page.locator("#resume-brief").input_value()
     assert "작업 내용 요약 아님" in original_brief and "현재 값 아님" in original_brief
@@ -540,7 +540,7 @@ def main() -> None:
             assert page.get_by_text("Cursor").is_visible()
             assert page.get_by_text("90%").is_visible()
             assert page.get_by_text("작업 컨텍스트").is_visible()
-            assert page.get_by_text("checkpoint 권장").count() >= 1
+            assert page.get_by_text("스냅샷 당시 컨텍스트").count() >= 1
             assert page.get_by_text("84% 사용").is_visible()
             assert page.locator("#snapshot-age-warning").get_by_text("스냅샷 업데이트 필요", exact=True).is_visible()
             assert "Mac에서 새 스냅샷을 내보낸 뒤 다시 가져오세요." in page.locator("#snapshot-age-warning").inner_text()

@@ -1913,3 +1913,31 @@ work-summary.js/work-files.js/manifest.webmanifest 12개 공개 HTTP200·SHA-256
 신규 비로그인 browser로 실제 공개 v28의 desktop 예시 첫 화면, 375px 가로 넘침 없음,
 설치→guide→모바일/Mac 직접 선택을 확인했다. 다운로드/설치/로그인은 실행하지 않았다.
 현재 공개 Pocket은 ae52a35/v28이며 native desktop 고정 release v1.2.2와 구분한다.
+
+### 9.86 만료 컨텍스트와 checkpoint 출처 시각
+
+Coach 입력/분모·interview/diary 우선순위 gate를 읽고 새로운 사용량 수집/생산성 점수를
+임의로 구현하지 않았다. 대신 기존 컨텍스트의 신뢰성 결함을 재현했다. 31분 지난 snapshot은
+priority/quota만 과거로 바뀌고 컨텍스트가 계속 checkpoint 권장을 보여주는 red browser
+test였다. refreshSnapshotAge의 기존 30분 latch 안에서 해당 카드 제목/다음 행동/ARIA를
+과거 기록으로 바꿨다. 수치·DOM 버튼·포커스/편집·Local Storage·provider 관측은 보존한다.
+frontend-design에 따라 기존 caution 색·카드 위계를 유지했고 합성 모바일 캡처를 검수했다.
+
+과거 metadata 저장을 막는 좁은 대체안은 쓰지 않았다. 클릭으로 만든 checkpoint의
+createdAt과 원본 snapshot 파일 생성 sourceGeneratedAt을 구분해 저장/재개 안내에 표시한다.
+이 두 시각은 실제 세션 관측/현재 상태의 증거가 아니다. optional sourceGeneratedAt은
+null/없음이면 legacy 정보 없음, 숫자/Date 범위를 검증하며 저장 시각으로 대체하지 않는다.
+기존 v1 형식·CLI/legacy 읽기를 유지하고 unknown/topic/code/nextAction은 읽기·복사에서
+제외한다. 만료 export의 nextAction도 과거 기록/실제 세션 확인으로 바꾼다.
+
+신규 normalize/resume 3 pass/17 assertions. browser는 역사적 숫자/ARIA, 새 저장 시각과
+원본 시각 구분, 명시적 다운로드, rollback latch·명시적 reimport·hidden/foreground,
+기존 초안/포커스·저장본 보존·외부/POST 수집 0회를 검증했다. 초기 추가 테스트는 textarea의
+textContent 대신 value를 읽어야 했고 기존 legacy 표시 exact assertion은 현재 값 아님
+문구를 포함하도록 강화했다. product를 되돌리거나 timeout/skip을 늘리지 않았다.
+
+최종 strict release-verify --require-browser exit 0: 269 pass·1 skip·2908 assertions,
+기존 browser 및 설치 engine/helper 일치다. snapshot v1은 바꾸지 않고 checkpoint의
+optional 출처 시각만 보강했다. Pocket v29 후보 및 Pages/Engine의 새 browser gate를
+연결했으며 모델 설치/대화 수집/AI 호출·CLI 갱신·설정/설치본 변경은 없다. 실제 사용자
+행동/토큰 절감·전체 Coach/resume·Claude 복구·스토어/인터뷰 및 전체 목표는 미완료다.

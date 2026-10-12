@@ -74,6 +74,7 @@ jobs:
           python tests/work-files.test.py
           python tests/feedback.test.py
           python tests/guide-platform.test.py
+          python tests/context-expiry.test.py
       - name: 로컬 AI 요약 승인 및 검토 화면 검증
         run: |
           bun tests/serve-summary-fixture.mjs >/tmp/tokenjuice-summary-fixture.log 2>&1 &
