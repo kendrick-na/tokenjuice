@@ -103,6 +103,45 @@ await 중 logout/철회/만료가 발생하면 과거 권한 응답으로 접근
 
 ## 출시 TODO
 
+### 2026-10-13 개통 구성 추천 — 선택/가입/배포 전
+
+**권장 후보는 Render 유료 단일 Bun 서버 + 지속 디스크 + Clerk 로그인이다.** 현재 코드의
+단일 instance/private POSIX 원장과 초기 출시 작업량을 기준으로 한 추론이며 사용자 선택이나
+운영 승인으로 간주하지 않는다. 기존 타 프로젝트의 인증 앱·키·회원 DB는 재사용하지 않는다.
+
+| 후보 | 공식 비용/제약 근거 | 현재 코드 적합성 판단 |
+|---|---|---|
+| Render 유료 서버+disk | [공식 가격](https://render.com/pricing): Starter 서버 $7/월, disk $0.25/GB·월. [Bun 지원](https://render.com/docs/language-support) | 1GB disk 가정이면 서버+disk 약 $7.25/월. 실제 결제 화면 재확인·세금/트래픽/빌드·AI·인증 추가 비용 별도. 512MB의 실제 부하 검증 필요 |
+| Render 무료 서버 | [무료 제약](https://render.com/docs/free): 15분 idle 뒤 중단, filesystem 휘발, persistent disk 불가 | 현재 디스크 원장으로 운영 불가. 무료 서버에 재시작마다 새 quota/예산을 주는 우회는 금지 |
+| Railway Hobby | [공식 요금](https://docs.railway.com/pricing/plans): $5/월에 $5 사용량 포함, 초과분 별도 | CPU/RAM/volume/전송 실측 없이 $5 고정 총비용이라고 안내하지 않는다. 대안이며 mount/TLS/종료 검증 선행 |
+| Fly Machine+volume | [공식 저장 요금](https://fly.io/docs/about/pricing/): volume $0.15/GB·월, compute 별도. [볼륨 제약](https://fly.io/docs/volumes/overview/) | volume은 단일 Machine에 붙고 자동 복제하지 않는다. 공급자는 가용성 위해 복수 구성을 권고하지만 현재 원장은 다중 replica 미지원. 초기 운영 복잡성이 더 큰 대안 |
+
+Render disk도 [단일 instance·runtime에서만 mount·배포 중 중단](https://render.com/docs/disks)이
+있다. 따라서 추천은 무중단/고가용성 보장이 아니다. 중단 시 새 승인/생성을 차단하고 편집은
+기기에 유지한다. 재시작으로 앱 세션/승인은 사라질 수 있지만 디스크 원장의 시도/금액은 유지해야
+한다. 오래된 disk snapshot 복원으로 이미 사용한 예산을 다시 허용하지 않도록 운영 복구 계약과
+수동 감사가 필요하다. 고가용성 목표는 추후 분산 원장·승인/세션 계층과 별도 검증으로 해결한다.
+
+로그인은 [Clerk Hobby 공식 가격](https://clerk.com/pricing)의 무료 50,000 MRU/app 범위와
+제공 sign-in UI를 초기 후보로 검토했다. MRU는 MAU와 다른 단위이며 무료가 보안/개인정보·회원
+권한 구현을 대신하지 않는다. [서버 authenticateRequest](https://clerk.com/docs/reference/backend/authenticate-request)
+검증·정확한 authorizedParties 및 TokenJuice 전용 설정을 통합하고, summaryEnabled는 신뢰할 수
+있는 서버 권한 저장소에서 별도로 결정해야 한다. 브라우저 전달 ID/토큰 디코딩만으로 신원을
+인정하거나 Clerk 로그인 성공을 요약 유료 권한으로 취급하지 않는다. 현재 strict CSP·logout과
+실제 session 만료/철회 연결은 구현/실제 TLS 검증 전이다. SDK 선택만으로 완료되지 않는다.
+
+운영 비용은 `서버 + disk + 인증/권한 저장소 + AI 실제 사용 + 전송/빌드 + 세금`으로 계산한다.
+`30 × 승인한 globalDailyMaxUSD`는 30일 구간의 모델 **예약액** 계획치이지 전체 결제 상한이나
+실제 청구액이 아니다. 월 총비용 상한 답변을 기다리고 있으며 테스트의 test-model·$0.02·
+합성 토큰 단가를 운영 값으로 복사하지 않는다. 실제 모델·가격 확인일·최대 출력/발췌·무료
+시도 수·제공자 결제 제한·인프라 과금 제한은 각각 확정해야 한다.
+
+다음 실행 순서는 구성/비용 승인 → 전용 auth·권한 통합 → HTTPS ingress/Host·health/종료와
+disk 재시작 보존 검증 → 실제 브라우저 로그인/철회/계정 격리 → 운영 정책/비용 제한 확정 →
+승인된 합성 문장 실제 API 비용·품질 검증 → 제한 명시 베타·실제 인터뷰다. ingress에서 사용자
+제공 forwarded header를 그대로 신뢰해 origin/Host 검사를 통과시키지 않는다. 이 추천은
+요약 트랙이며 Claude quota 인증·Android 자동 연결·스토어 목표의 완료나 축소가 아니다.
+
 - [x] 서버 키 비노출·세션 검증 주입 경계·기능 활성화 확인·2단계 동의 API 후보.
 - [x] 계정 격리·승인 재사용 차단·실패 예약 유지·사용자/전체 예산 재시작 보존 합성 검증.
 - [x] 기본 추적 / 준비 중 운영형 클라우드 / 고급 BYOK·Ollama 화면 구분.

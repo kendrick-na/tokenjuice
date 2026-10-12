@@ -1601,3 +1601,25 @@ index.html·app.js·app.css·sw.js·history.js·work-summary.js·work-files.js·
 skip·2605 assertions와 전체 browser 회귀·설치본 일치가 통과했다. 마지막 코드 fdd5ca6의
 Engine 38277023788·Windows 38277023775 success도 재확인했다. 문서-only 변경은 새 CI나
 배포 실행을 의미하지 않으며 실제 개통 구성 추천을 위해 월 총비용 상한을 사용자에게 요청했다.
+
+### 9.76 운영형 요약의 실제 호스트/auth 후보 조사
+
+월 총비용 상한 답변 없이 가입·결제·계정/키·배포를 실행하지 않고 공식 문서로 Render,
+Railway, Fly 저장/과금 제약과 Clerk 가격/서버 검증 경계를 조사했다. strategy-advisor의
+현재 상태·제약·대안·위험 기준으로 Render 유료 단일 Bun 서버+지속 disk 및 Clerk 로그인을
+우선 후보로 추천했다. Render 무료 disk 불가와 filesystem 휘발은 현재 원장에 부적합하며,
+유료 disk도 배포 중 중단·단일 instance·runtime mount만 가능하다. Railway $5는 포함 usage
+기준이지 무제한 총요금이 아니고 Fly는 volume 자동 복제/가용성 구성이 별도다.
+
+서버+1GB disk 약 $7.25/월 계산은 총비용 상한/사용자 승인/실제 성능 증거가 아니다.
+Clerk 무료 MRU 범위와 로그인 UI는 요약 권한·CSP·logout·TLS·철회 통합을 대신하지 않는다.
+공식 링크/견적 제외 항목·disk snapshot 복원 예산 위험·운영 비용식·auth/Host 검증과 실제
+API/품질 베타 실행 순서를 MANAGED_CLOUD_SUMMARY·기획서·출시 계획에 연결했다. 특정 호스트
+선택이나 비공식 quota 정책 허용, 실제 개통 완료를 주장하지 않는다.
+
+문서-only 변경이며 기본 앱 세션/site/logout 11 pass/103 assertions와 gateway 9 pass/80
+assertions를 재확인했다. 최초 대상에 없는 managed-cloud-summary.test.js를 포함했으나 Bun은
+존재하는 3개 파일만 실행했으므로 이를 gateway 검증으로 계산하지 않았다. 파일 목록 확인 후
+실제 managed-summary-gateway.test.js의 9개를 별도로 실행했다. 마지막 코드 fdd5ca6의 Engine
+38277023788·Windows 38277023775 success는 재확인했지만 이번 문서의 새 CI/배포는 아니다.
+전체 투두·실제 인증/실기기·모바일·스토어·인터뷰 게이트는 유지한다.
