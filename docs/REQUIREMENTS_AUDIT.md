@@ -1191,3 +1191,15 @@ strict release-verify exit 0: 166 tests/1920 assertions, 기존 여섯 browser s
 기존 Mac 설치본이 de84bc8 본문과 일치함을 확인하고 `/tmp/tokenjuice-coordination-backup.36WMMm/tokenjuice-battery.5s.js`에 백업했다. 엔진 한 파일만 3c4be09로 갱신했으며 shebang·아이콘·설정·인증·helper·LaunchAgent는 유지했다. 설치 plugin/helper 소스 일치와 SwiftBar 실행을 확인했다. 갱신 후 실제 diagnostics 전후 config/Claude cache/fail cache 해시가 동일하다. 18:32 KST 관측은 여전히 HTTP 429 대기이며 다음 확인 표시가 18:59다. 제한 종료 후 실제 새 quota 대조는 미완료다.
 
 설치본 반영 후 strict release-verify exit 0: Bun 테스트 171개 통과·실패 0개·assertion 2000개, 여섯 browser suite, 번들·스크립트/Windows 문법·격리 알림·설치본 일치. 공개 Pocket v20과 desktop release v1.2.2는 유지한다. 지속 수집·신규 설치·절전·실대화 요약 가치·사용자 조사·디자인 경쟁 검증·모바일 연결/스토어 게이트는 남아 있다.
+
+### 9.50 Android 환경 재확인과 현재 인증 실패
+
+2026-10-12 프리플라이트에서 main 0e216bc·origin 일치·미커밋 변경 없음을 확인했다. Android Studio JBR Java 21.0.10과 SDK platform android-36.1·build-tools 36.1.0/37.0.0·ADB를 실행 확인했다. SDK manager의 공백 경로 버전 검사 경고는 설치 파일 변경 없이 임시 JBR 별칭 경로로 재실행해 해소했다. D8/aapt2 버전 조회도 성공했다. 환경 전체가 없다는 판단은 정정한다.
+
+Gradle 실행기·기본 wrapper 배포 캐시와 저장소의 Android 앱 구조가 없어 TokenJuice Android 빌드는 실행할 수 없다. 연결된 adb 기기도 없다. [모바일 연결 조건](MOBILE_CONNECTION_GATE.md)에 구현 구조·빌드 도구·실기기·서명/제출 조건을 구분했다. 앱·wrapper·서명 키·스토어 등록·기기 설치는 추가하지 않았다.
+
+10:11 KST 설치본의 읽기 전용 진단은 Claude HTTP 401/auth 상태와 다음 확인 10:20을 표시한다. 자동 갱신은 꺼져 있고 실제 수집 복구는 미완료다. Codex 관측은 fresh이나 공식 계정 대조를 대신하지 않는다. 인증 갱신·키체인/쿠키 접근·실패 캐시 삭제·API 추가 요청은 하지 않았다. 공식 Claude Code 로그인 상태 확인을 사용자에게 요청했다.
+
+기존 최신 Engine 38128618767·Windows 38128618774·Pages 38078400767 success를 다시 확인했다. 공개 Pocket index.html·app.js·app.css·sw.js·manifest.webmanifest는 각각 HTTP 200이며 로컬 파일 SHA-256과 일치한다. Android 결과가 아니다.
+
+이번 strict release-verify exit 0: 테스트 171개·실패 0개·assertion 2000개, 여섯 browser suite, 번들·문법·격리 알림·설치 plugin/helper 일치. 앱 코드는 변경하지 않았으며 위 결과로 실제 Claude 복구·Android 빌드·신규 설치·절전·사용자 조사·스토어 완료를 판정하지 않는다.

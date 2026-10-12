@@ -2,6 +2,21 @@
 
 2026년 10월 11일 기준, TokenJuice의 Android 연결은 구현 전이다. 모바일 자동 갱신·위젯·reset 알림 목표는 유지한다. 현재 Pocket의 수동 암호화 파일 전달은 자동 동기화가 아니며 Android 앱·스토어 패키지도 없다.
 
+## Android 환경 재확인 2026년 10월 12일
+
+Android 환경 전체가 없다는 판단은 정정한다. Android Studio의 JBR로 Java 21.0.10을 실행했고 SDK manager에서 platform android-36.1, build-tools 36.1.0·37.0.0, platform-tools 37.0.0, emulator 36.6.11을 확인했다. aapt2·D8 버전 조회도 성공했다. 시스템 기본 Java 명령의 runtime 탐색 실패를 설치된 JBR 부재로 해석하지 않는다.
+
+SDK manager의 최초 버전 검사 경고는 공백이 포함된 JBR 경로를 검사 스크립트가 따옴표 없이 실행하면서 발생했다. 설치 파일이나 전역 설정을 수정하지 않고 공백 없는 임시 심볼릭 링크를 JAVA_HOME으로 지정해 재실행했고, 경고 없이 설치 목록 조회 exit 0을 확인했다. 버전 검사를 우회하지 않았다.
+
+현재 PATH에 Gradle 실행기가 없고 기본 Gradle wrapper 배포 캐시도 없다. 저장소에도 Gradle 설정·wrapper·AndroidManifest·Android 앱 모듈이 없다. 따라서 실행할 TokenJuice Android 빌드 작업 자체가 없으며 APK/AAB 빌드 성공을 주장하지 않는다. adb 기기 목록은 비어 있다. 에뮬레이터 도구 설치는 앱 실행·실기기 검증의 증거가 아니다.
+
+구현과 검증에 필요한 조건은 다음과 같다.
+
+- Android 앱 모듈·manifest·고정된 Gradle/Android plugin 버전·검증된 wrapper와 SDK 호환성. Pocket assets를 포함하는 것만으로 자동 연결·위젯이 구현되지는 않는다.
+- 허용된 quota 수집·페어링·암호화 자동 전달·키 폐기, 앱/위젯의 동일한 최신성 판정과 실제 백그라운드 동작.
+- 사용자가 연결한 Android 테스트 기기 또는 별도로 준비한 에뮬레이터에서 설치·표시·오프라인·복구를 검증. 실기기 검증은 별도 유지한다.
+- 승인된 release 범위·서명 키 등록·Play 내부 테스트/제출. 이번 점검에서는 앱 등록·키 생성·설치·제출을 실행하지 않았다.
+
 ## Claude 인증 방식
 
 [Anthropic 인증 정책](https://code.claude.com/docs/en/legal-and-compliance#authentication-and-credential-use)은 타사 앱의 Claude.ai 로그인 제공과 구독 자격증명 중개를 제한한다. [개발자 로그인 안내](https://support.claude.com/en/articles/13189465-log-in-to-your-claude-account#developers)는 제품 개발자에게 Console API key 또는 지원 클라우드 인증을 안내한다. 이 안내만으로 읽기 전용 quota endpoint의 허용 여부를 확정할 수 없다. 기존 OAuth usage 수집이 기술적으로 동작한 것과 출시용 지원·허용이 확인된 것은 다르다.
