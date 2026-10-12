@@ -4,6 +4,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from playwright.sync_api import sync_playwright, expect
 
+def bootstrap_response(payload):
+    body=json.dumps(payload)
+    def handle(route):
+        route.fulfill(status=200,content_type="application/json",body=body)
+    return handle
+
 with sync_playwright() as p:
     browser=p.chromium.launch(headless=True)
     page=browser.new_page(viewport={"width":375,"height":812})
@@ -18,11 +24,71 @@ with sync_playwright() as p:
     assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(16, 24, 27)"
     assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
     assert page.locator("#pocket-link").bounding_box()["height"]>=44
+    for width,height in [(375,812),(1280,900)]:
+        page.set_viewport_size({"width":width,"height":height})
+        bounds=page.locator("#pocket-link").bounding_box()
+        assert bounds["y"]+bounds["height"]<=height
+        assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
+    page.set_viewport_size({"width":375,"height":812})
     assert not [r for r in requests if r.url.startswith(("http:","https:"))]
     assert not [r for r in requests if "/api/" in r.url]
     page.screenshot(path="/tmp/tokenjuice-file-recovery-mobile.png",full_page=True)
     browser.close()
 print("PASS: direct-file recovery, relative styling, disabled AI actions and no automatic network requests")
+
+with sync_playwright() as p:
+    browser=p.chromium.launch(headless=True)
+    valid={"accessToken":"a"*64,"provider":"anthropic","model":"test-model","dailyMaxUSD":0.04}
+    invalid=[{}, {**valid,"accessToken":"PRIVATE_BAD_TOKEN"}, {**valid,"accessToken":["a"*64]}, {**valid,"provider":"unknown"},
+             {**valid,"model":""}, {**valid,"model":"PRIVATE_MODEL\n"}, {**valid,"dailyMaxUSD":0},
+             {**valid,"dailyMaxUSD":"1"}, {**valid,"provider":"ollama_local","model":"untagged"}]
+    for payload in invalid:
+        page=browser.new_page(viewport={"width":375,"height":812})
+        requests=[]
+        page.on("request",lambda request:requests.append(request))
+        page.route("**/api/session",bootstrap_response(payload))
+        page.goto("http://127.0.0.1:4181",wait_until="networkidle")
+        expect(page.locator("#connection-help")).to_be_visible()
+        expect(page.locator("#status")).to_contain_text("연결 정보를 확인하지 못했습니다")
+        expect(page.locator("#file")).to_be_disabled()
+        expect(page.locator("#generate")).to_be_disabled()
+        assert "PRIVATE" not in page.locator("#status").inner_text()
+        assert not [r for r in requests if "/api/summary/" in r.url]
+        page.close()
+    browser.close()
+print("PASS: malformed bootstrap fails closed without fake connection or private-value disclosure")
+
+with TemporaryDirectory() as directory, sync_playwright() as p:
+    browser=p.chromium.launch(headless=True)
+    source=Path(directory)/"synthetic.txt"
+    source.write_text("합성 테스트 작업",encoding="utf-8")
+    for endpoint in ["session","summary/preview"]:
+        for failure in ["redirect","invalid-json"]:
+            page=browser.new_page()
+            requests=[]
+            page.on("request",lambda request:requests.append(request))
+            if failure=="redirect":
+                page.route(f"**/api/{endpoint}",lambda route:route.fulfill(status=307,headers={"location":"/redirect-sink"}))
+            else:
+                page.route(f"**/api/{endpoint}",lambda route:route.fulfill(status=200,content_type="application/json",body="PRIVATE_INVALID_JSON"))
+            page.goto("http://127.0.0.1:4181",wait_until="networkidle")
+            if endpoint=="session":
+                expect(page.locator("#connection-help")).to_be_visible()
+                expect(page.locator("#file")).to_be_disabled()
+                expect(page.locator("#status")).to_contain_text("연결")
+            else:
+                expect(page.locator("#file")).to_be_enabled()
+                page.locator("#file").set_input_files(str(source))
+                expect(page.locator("#status")).to_contain_text("이미 전송한 요청은 실행됐을 수")
+                expect(page.locator("#preview-panel")).to_be_hidden()
+                expect(page.locator("#generate")).to_be_disabled()
+            assert "PRIVATE" not in page.locator("#status").inner_text()
+            assert not [r for r in requests if "/redirect-sink" in r.url]
+            assert len([r for r in requests if r.url.endswith(f"/api/{endpoint}")])==1
+            assert not [r for r in requests if r.url.endswith("/generate")]
+            page.close()
+    browser.close()
+print("PASS: bootstrap/preview redirect and invalid JSON stay sanitized with no reroute or automatic retry")
 
 with TemporaryDirectory() as directory, sync_playwright() as p:
     browser=p.chromium.launch(headless=True)

@@ -2,6 +2,18 @@ import { reviewedSummary } from "/work-summary.js";
 const get=id=>document.getElementById(id), fields=["goal","completed","blocked","next"];
 let token=null, preview=null, draft=null, busy=false, consumed=false, expiryTimer;
 const notice=text=>{get("status").textContent=text;};
+function validateSession(value){
+  const fail=()=>{throw new Error("로컬 서버의 연결 정보를 확인하지 못했습니다. 파일·발췌를 전송하지 않았습니다. 실행 주소와 서버 설정을 확인하세요.");};
+  if(!value||typeof value!=="object"||Array.isArray(value)
+    ||typeof value.accessToken!=="string"||!/^[a-f0-9]{64}$/.test(value.accessToken)
+    ||!["anthropic","ollama_local"].includes(value.provider)
+    ||typeof value.model!=="string"||value.model.length>128||!/^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$/.test(value.model))fail();
+  if(value.provider==="ollama_local"){
+    if(!/^[a-zA-Z0-9][a-zA-Z0-9._/-]*:[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(value.model)
+      ||/cloud/i.test(value.model)||value.model.includes(".."))fail();
+  }else if(!Number.isFinite(value.dailyMaxUSD)||value.dailyMaxUSD<=0)fail();
+  return {accessToken:value.accessToken,provider:value.provider,model:value.model,dailyMaxUSD:value.dailyMaxUSD};
+}
 function controls(){
   get("file").disabled=busy||!token; get("clear").disabled=busy||!preview;
   get("generate").disabled=busy||!preview||consumed||Date.now()>=preview.expiresAt||!get("consent").checked;
@@ -21,8 +33,13 @@ const errors={approval_unavailable:"미리보기가 만료됐습니다. 파일�
   invalid_field:"네 항목을 모두 1~4,000자로 작성하세요.",
   authentication_required:"로컬 서버 연결이 바뀌었습니다. 검토한 내용을 따로 보관한 뒤 페이지를 다시 여세요."};
 async function api(route,body){
-  const response=await fetch(`/api/summary/${route}`,{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${token}`},body:JSON.stringify(body)});
-  const result=await response.json(); if(!response.ok)throw new Error(errors[result.error]||"요청에 실패했습니다. 자동 재시도하지 않았습니다. 입력과 서버 설정을 확인하고 새 미리보기를 만드세요."); return result;
+  let response,result;
+  try{
+    response=await fetch(`/api/summary/${route}`,{method:"POST",credentials:"same-origin",redirect:"error",signal:AbortSignal.timeout(100000),headers:{"content-type":"application/json",authorization:`Bearer ${token}`},body:JSON.stringify(body)});
+    result=await response.json();
+  }catch{throw new Error("로컬 서버 응답을 확인하지 못했습니다. 이미 전송한 요청은 실행됐을 수 있으며 자동 재시도하지 않았습니다. 편집 내용은 유지합니다.");}
+  if(!result||typeof result!=="object"||Array.isArray(result))throw new Error("로컬 서버 응답 형식을 확인하지 못했습니다. 자동 재시도하지 않았습니다.");
+  if(!response.ok)throw new Error(Object.hasOwn(errors,result.error)?errors[result.error]:"요청에 실패했습니다. 자동 재시도하지 않았습니다. 입력과 서버 설정을 확인하고 새 미리보기를 만드세요."); return result;
 }
 async function run(action){if(busy)return;busy=true;controls();try{await action();}catch(error){notice(error.message||"로컬 서버에 연결할 수 없습니다. 다시 실행한 뒤 미리보기를 확인하세요.");}finally{busy=false;controls();}}
 get("file").addEventListener("change",()=>run(async()=>{
@@ -90,9 +107,13 @@ get("clear").addEventListener("click",()=>run(async()=>{
 }));
 run(async()=>{
   notice("로컬 서버 연결을 확인 중입니다. 아직 파일이나 발췌를 전송하지 않았습니다.");
-  const response=await fetch("/api/session",{method:"POST",headers:{"content-type":"application/json","x-tokenjuice-client":"local-summary"},body:"{}"});
+  let response;
+  try{response=await fetch("/api/session",{method:"POST",credentials:"same-origin",redirect:"error",signal:AbortSignal.timeout(10000),headers:{"content-type":"application/json","x-tokenjuice-client":"local-summary"},body:"{}"});}
+  catch{throw new Error("로컬 서버에 연결하지 못했습니다. 파일·발췌를 전송하지 않았습니다. 실행 주소와 서버 설정을 확인하세요.");}
   if(!response.ok)throw new Error("이 서버의 화면에서만 연결할 수 있습니다. 로컬 실행 주소를 확인하세요.");
-  const session=await response.json();token=session.accessToken;
+  let data;
+  try{data=await response.json();}catch{throw new Error("로컬 서버의 연결 정보를 확인하지 못했습니다. 파일·발췌를 전송하지 않았습니다. 실행 주소와 서버 설정을 확인하세요.");}
+  const session=validateSession(data);token=session.accessToken;
   get("connection-help").hidden=true;
   const local=session.provider==="ollama_local";
   get("active-mode").textContent=local

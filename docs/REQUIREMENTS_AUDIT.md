@@ -1760,3 +1760,31 @@ wiring 3개 PASS/actual SIGTERM 2개 skip을 로그로 확인했다. Ubuntu는 2
 2728 assertions·26 파일이다(플랫폼별 assertion 수가 다름). browser job과 Windows EXE
 생성·실행·artifact 업로드도 통과했고 tag release는 skipped다. 실제 호스팅/사용자 프로세스
 종료나 실제 대화/로그인·배포를 수행한 것으로 기록하지 않는다.
+
+### 9.82 로컬 요약 연결 검증과 첫 화면 복구 동선
+
+HTTP 200의 빈 session 응답이 복구 안내를 숨기고 연결됨·undefined를 표시하는 것을
+합성 browser red test로 재현했다. 토큰 문자열/64hex·제공자·모델·cloud 예약 예산과
+local 명시 tag를 검증한 뒤에만 token을 저장하고 입력/연결 상태를 활성화하도록 고쳤다.
+잘못된 응답 9종은 복구 화면 유지·입력/생성 잠금·private marker 비노출을 확인했다.
+최초 route lambda의 두 번째 인자에 Playwright Request가 들어가 JSON 직렬화에 실패한
+테스트 harness 문제는 응답 body closure로 고쳤으며 제품 실패와 구분한다.
+
+bootstrap/preview의 307 및 잘못된 JSON도 합성 재현했다. bootstrap 307에서 나온
+영문 Failed to fetch는 사용자 복구 안내로 바꿨다. 요청마다 redirect:error·명시 timeout을
+적용하고 JSON/network 오류 원문은 표시하지 않는다. sink 요청 0회·각 endpoint 1회·
+generation 0회로 재전송/자동 재시도 없음을 확인했다. API 응답 불명은 이미 전송한 요청의
+실행 여부도 불명으로 알리며 취소/환불/실행 안 됨으로 과장하지 않는다.
+
+frontend-design에 따라 기존 serif/dark teal 디자인을 유지하면서 상태·복구 카드·Pocket
+이동을 소개/기능 카드보다 앞으로 옮겼다. 고급 개발 안내는 details로 접어 일반 사용자
+행동과 구분했다. 직접 file:// 화면의 375×812 및 1280×900에서 버튼 첫 화면 노출·
+44px 이상 타깃·가로 넘침 없음·자동 HTTP/API 요청 0회를 확인했고 모바일 스크린샷을
+시각 검수했다. 사용자 브라우저의 정책상 차단된 탭을 우회해 연 것이 아니라 저장소의
+격리 headless 합성 테스트이며 실제 메뉴바/사용자 테스트를 대체하지 않는다.
+
+최종 strict release-verify --require-browser exit 0: 262 pass·1 skip·2869 assertions,
+기존 browser 흐름 및 신규 회귀 통과·설치 engine/helper 소스 일치다. 실제 대화/유료 API·
+모델 다운로드·자격증명/설정 갱신·운영 배포는 하지 않았다. 기획서 P1-04/P1-05 전체는
+미완료다. Claude 인증 fresh 관측/실기기, 실서비스 로그인/hosting, 실제 요약 품질,
+신규 설치·경쟁 화면 비교·스토어·인터뷰는 별도 남은 gate다.
