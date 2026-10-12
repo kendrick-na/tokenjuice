@@ -1480,3 +1480,27 @@ assertions·21 Bun 파일이며 최종 strict verifier exit 0이다. 테스트 �
 인터뷰는 미완료다. Claude도 마지막 13:29 진단은 auth expired이고 재로그인 완료 확인이 없다.
 코드·CI 수정은 실제 계정 수집이나 전체 목표의 완료 증거가 아니다. 실제 대화/유료 API·
 로그인/키·Mac 설정·공개 클라우드 배포·스토어 제출은 이번 작업에서 변경하지 않았다.
+
+### 9.71 로그아웃 route/UI와 늦은 작업 응답 제외
+
+managed-summary-site에 선택적 동일 appSessions 연결을 추가하고 `/auth/logout`을 구현했다.
+same HTTPS origin/Host·POST JSON·confirmed true만 허용하며 query/extra subject·CSRF·비 JSON·
+1024-byte 초과를 거부한다. 읽기 5초와 대기 3개 제한을 적용한다. cookie는 header로만 반환하고
+응답 본문은 loggedOut true다. 세션 미구성/실패를 성공으로 표시하지 않으며 정책의 capability가
+있을 때만 버튼을 표시한다. 실제 로그인 제공자/회원 DB/호스팅/TLS는 아직 미구현이다.
+
+native 확인 뒤 새 전송을 즉시 막되 발췌/편집/저장을 기기에 유지한다. 생성/파일 읽기 중에도
+로그아웃할 수 있고 connection epoch/작업 ID로 늦은 응답이 이전 상태를 복원하지 못하게 한다.
+이미 승인한 실행의 취소/환불이나 서버 초안 삭제를 확인했다고 하지 않는다. 로그아웃 때문에
+서버 삭제를 확인하지 못한 초안은 이후 화면 지우기에서도 확인 불가로 표시한다. 보조 버튼 간격·
+조건부 focus 복귀는 UI 스킬 기준으로 기존 디자인 토큰을 유지했다.
+
+합성 fixture에서 opaque 세션을 실제로 폐기해 다음 policy가 401임을 확인했다. bridge는 cookie를
+서버에서 주입하고 `/test/session`은 고정 합성 identity만 발급한다. production site에는 이 route가
+없으며 실제 로그인/브라우저 Secure-cookie/TLS 검증의 대안이 아니다. browser에서는 실패/성공
+logout·편집 보존/저장 가능·늦은 파일 읽기/생성 응답 제외·새 API 거부를 확인했다. 원문/유료
+API/실제 계정·설정·모델 설치·스토어 제출은 변경하지 않았다.
+
+전체 Bun 233 pass·1 platform skip·2605 assertions·22 파일. strict release-verify exit 0이며
+확장 7 browser suite·번들·문법·격리 알림·Mac 설치본 일치를 통과했다. 코드/UI 후보 연결과
+합성 검증이지 실계정/실모델/클라우드 개통이나 전체 투두 완료가 아니다.

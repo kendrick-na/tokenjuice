@@ -10,6 +10,7 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     errors=[]; requests=[]
     page.on("pageerror",lambda error:errors.append(str(error)))
     page.on("request",lambda request:requests.append(request))
+    page.on("dialog",lambda dialog:dialog.accept())
     page.goto("http://127.0.0.1:4183",wait_until="networkidle")
     expect(page.locator("#file")).to_be_enabled()
     expect(page.locator("#quota")).to_contain_text("2/2회 남음")
@@ -64,6 +65,27 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     source.write_text("{broken",encoding="utf-8");page.locator("#file").set_input_files(str(source))
     expect(page.locator("#file")).to_be_enabled()
     assert page.locator("#next").input_value()==saved["next"]
+    page.route("**/auth/logout",lambda route:route.fulfill(status=503,content_type="application/json",body='{"error":"logout_unavailable"}'))
+    page.locator("#logout").click()
+    expect(page.locator("#status")).to_contain_text("서버 로그아웃을 확인하지 못했습니다")
+    assert page.locator("#file").is_disabled() and page.locator("#save").is_enabled()
+    assert page.locator("#next").input_value()==saved["next"]
+    page.locator("#connect").click();expect(page.locator("#file")).to_be_enabled()
+    page.unroute("**/auth/logout")
+    page.evaluate("""() => {
+      const original=File.prototype.text;
+      File.prototype.text=function(){return this.name==='delayed.txt'
+        ?new Promise(resolve=>{window.releaseDelayedFile=resolve;}):original.call(this);};
+    }""")
+    delayed=Path(directory)/"delayed.txt";delayed.write_text("로그아웃 뒤 반영하면 안 되는 새 선택",encoding="utf-8")
+    page.locator("#file").set_input_files(str(delayed))
+    page.wait_for_function("typeof window.releaseDelayedFile==='function'")
+    page.locator("#logout").click()
+    expect(page.locator("#status")).to_contain_text("서버 세션에서 로그아웃했습니다")
+    page.evaluate("async()=>{window.releaseDelayedFile('뒤늦은 선택');await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame)}")
+    assert page.locator("#next").input_value()==saved["next"] and page.locator("#save").is_enabled()
+    page.locator("#connect").click()
+    expect(page.locator("#status")).to_contain_text("계정 로그인 확인")
     page.route("**/api/summary/policy",lambda route:route.fulfill(status=401,content_type="application/json",body='{"error":"authentication_required"}'))
     page.locator("#connect").click()
     expect(page.locator("#status")).to_contain_text("계정 로그인 확인")
@@ -90,6 +112,8 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     page.on("request",lambda request:requests.append(request))
     page.on("pageerror",lambda error:errors.append(str(error)))
     page.goto("http://127.0.0.1:4183",wait_until="networkidle")
+    page.request.post("http://127.0.0.1:4183/test/session",headers={"origin":"http://127.0.0.1:4183","content-type":"application/json"},data="{}")
+    page.locator("#connect").click();expect(page.locator("#file")).to_be_enabled()
     expect(page.locator("#quota")).to_contain_text("1/2회 남음")
     source=Path(directory)/"session.txt"
     source.write_text("두 번째 합성 작업 확인",encoding="utf-8")
@@ -116,3 +140,28 @@ with TemporaryDirectory() as directory, sync_playwright() as p:
     assert not errors,errors
     browser.close()
 print("PASS: actual synthetic attempt exhaustion, zero distinct from unknown, no new generation at fresh zero, stale observation labels and no automatic provider retry")
+
+with TemporaryDirectory() as directory, sync_playwright() as p:
+    browser=p.chromium.launch(headless=True)
+    page=browser.new_page(viewport={"width":375,"height":812})
+    page.on("dialog",lambda dialog:dialog.accept())
+    page.request.post("http://127.0.0.1:4183/test/session",headers={"origin":"http://127.0.0.1:4183","content-type":"application/json"},data='{"scenario":"race"}')
+    page.goto("http://127.0.0.1:4183",wait_until="networkidle")
+    source=Path(directory)/"session.txt";source.write_text("지연 합성 생성 검증",encoding="utf-8")
+    page.locator("#file").set_input_files(str(source));page.locator("#upload-panel").wait_for(state="visible")
+    page.locator("#upload-consent").check();page.locator("#upload").click();page.locator("#preview-panel").wait_for(state="visible")
+    pending=[]
+    page.route("**/api/summary/generate",lambda route:pending.append(route))
+    page.locator("#generate-consent").check();page.locator("#generate").click()
+    expect(page.locator("#logout")).to_be_enabled()
+    page.locator("#logout").click();expect(page.locator("#status")).to_contain_text("서버 세션에서 로그아웃했습니다")
+    assert len(pending)==1
+    pending[0].fulfill(status=200,content_type="application/json",body=json.dumps({"method":"cloud_generative","summary":{field:{"text":"늦게 도착한 합성 초안"} for field in ["goal","completed","blocked","next"]}}))
+    page.evaluate("async()=>{await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame)}")
+    assert page.locator("#review-panel").is_hidden()
+    assert "로그아웃했습니다" in page.locator("#status").inner_text()
+    assert page.locator("#file").is_disabled()
+    page.locator("#connect").click();expect(page.locator("#status")).to_contain_text("계정 로그인 확인")
+    assert page.evaluate("document.documentElement.scrollWidth<=innerWidth")
+    browser.close()
+print("PASS: real synthetic session logout route, failed logout and editor preservation, logged-out API denial and late generation response discard")

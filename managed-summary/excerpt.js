@@ -37,5 +37,5 @@ export function validateManagedPolicy(value) {
     throw Error("invalid_policy");
   return { model: value.model, policyVersion: value.policyVersion, privacyPolicyURL: link.href,
     dailyRequests: value.dailyRequests, maxExcerptBytes: value.maxExcerptBytes,
-    quota: validateManagedQuota(value.quota, value.dailyRequests) };
+    quota: validateManagedQuota(value.quota, value.dailyRequests), logoutAvailable: value.logoutAvailable === true };
 }

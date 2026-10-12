@@ -4,3 +4,4 @@
 .modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:0 0 2rem}.modes article{padding:1.25rem;border-top:2px solid var(--teal);background:var(--panel);min-width:0}.modes article:nth-child(2){border-color:var(--lime)}.modes h2{margin:.6rem 0;font-size:1.5rem}.modes p{color:var(--muted);overflow-wrap:anywhere}.mode-state{display:block;color:var(--teal);font-size:.8rem}.modes>details{grid-column:1/-1;border-bottom:1px solid var(--line);padding:.25rem 0 1rem}.modes>details p{max-width:45rem}@media(max-width:600px){.modes{grid-template-columns:minmax(0,1fr)}}
 /* Policy links are explicit touch targets, never provider auto-navigation. */
 #privacy{display:block;min-height:48px;padding:.75rem 0;color:var(--teal);overflow-wrap:anywhere}
+#logout{margin-inline-start:.75rem}@media(max-width:480px){#logout{margin-inline-start:0}}

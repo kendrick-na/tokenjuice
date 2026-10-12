@@ -2,6 +2,7 @@ import { prepareManagedExcerpt, validateManagedPolicy, validateManagedQuota } fr
 import { reviewedSummary } from "/companion/work-summary.js";
 const get = id => document.getElementById(id), fields = ["goal", "completed", "blocked", "next"];
 let policy = null, selected = null, preview = null, draft = null, busy = false, consumed = false, timer;
+let connectionEpoch = 0, operationSerial = 0, activeOperation = 0, loggingOut = false, orphanedPreview = false;
 const notice = text => { get("status").textContent = text; };
 const errors = { authentication_required: "계정 로그인 확인이 필요합니다. 호스트에서 로그인한 뒤 연결을 다시 확인하세요. 선택 내용은 자동 전송하지 않습니다." };
 errors.summary_not_enabled = "이 계정의 클라우드 요약이 활성화되지 않았습니다. 기본 추적은 별도 기능입니다.";
@@ -24,8 +25,10 @@ function renderQuota() {
     : `${quotaFresh() ? "마지막 확인" : "오래된 관측 · 다시 확인 필요"}: UTC ${q.day} 구간 ${q.remaining}/${q.limit}회 남음 · ${q.used}회 시도 · ${new Date(q.resetsAt).toLocaleString()}에 구간 전환 · 확인 ${new Date(q.observedAt).toLocaleTimeString()}. 실패한 시도도 포함하며 성공 횟수·청구액이 아닙니다.`;
 }
 function controls() {
-  get("connect").disabled = busy;
-  get("file").disabled = busy || !policy;
+  get("connect").disabled = busy || loggingOut;
+  get("logout").hidden = !policy?.logoutAvailable && !loggingOut;
+  get("logout").disabled = loggingOut || !policy?.logoutAvailable;
+  get("file").disabled = busy || loggingOut || !policy;
   get("clear").disabled = busy || !(selected || preview || draft);
   get("upload").disabled = busy || !policy || !selected || !!preview || !get("upload-consent").checked;
   get("generate").disabled = busy || !policy || !preview || consumed || Date.now() >= preview.expiresAt
@@ -33,12 +36,14 @@ function controls() {
   get("save").disabled = busy || !draft || !get("reviewed").checked;
 }
 async function api(route, body) {
+  const epoch = connectionEpoch;
   let response, value;
   try {
     response = await fetch(`/api/summary/${route}`, { method: "POST", credentials: "same-origin", redirect: "error",
       headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(100000) });
     value = await response.json();
-  } catch { throw Error("요약 서버 응답을 확인하지 못했습니다. 이미 보낸 요청은 실행됐을 수 있습니다. 자동 재시도하지 않습니다."); }
+  } catch { if (epoch !== connectionEpoch) throw Error("connection_changed"); throw Error("요약 서버 응답을 확인하지 못했습니다. 이미 보낸 요청은 실행됐을 수 있습니다. 자동 재시도하지 않습니다."); }
+  if (epoch !== connectionEpoch) throw Error("connection_changed");
   if (policy && Object.hasOwn(value, "quota")) { policy.quota = validateManagedQuota(value.quota, policy.dailyRequests); renderQuota(); }
   if (!response.ok) {
     if (response.status === 401 || value.error === "summary_not_enabled") { policy = null; renderQuota(); }
@@ -48,13 +53,16 @@ async function api(route, body) {
 }
 async function run(action) {
   if (busy) return;
+  const operation = ++operationSerial; activeOperation = operation;
   busy = true; controls();
-  try { await action(); } catch (error) { notice(error.message || "요청을 완료하지 못했습니다."); }
-  finally { busy = false; controls(); }
+  try { await action(); } catch (error) { if (error.message !== "connection_changed") notice(error.message || "요청을 완료하지 못했습니다."); }
+  finally { if (activeOperation === operation) { busy = false; controls(); } }
 }
 async function connect() {
+  connectionEpoch++;
   policy = null;
   renderQuota();
+  controls();
   get("upload-consent").checked = false; get("generate-consent").checked = false;
   try { policy = validateManagedPolicy(await api("policy", {})); }
   catch (error) { if (error.message === "invalid_policy") throw Error("서버의 요약 정책 형식을 확인하지 못했습니다. 업로드하지 않았습니다."); throw error; }
@@ -64,14 +72,39 @@ async function connect() {
   notice(`계정 요약 권한 확인 · ${policy.model} · 하루 최대 ${policy.dailyRequests}회 요청 시도(UTC). 모델 다운로드나 개인 API 키 입력이 필요하지 않습니다.`);
 }
 get("connect").addEventListener("click", () => run(connect));
+get("logout").addEventListener("click", async () => {
+  if (loggingOut || !policy?.logoutAvailable || !confirm("서버 세션에서 로그아웃할까요? 발췌·편집은 이 기기에 유지합니다. 실행 중인 생성의 중단이나 환불은 보장하지 않습니다.")) return;
+  connectionEpoch++; activeOperation = ++operationSerial; busy = false; loggingOut = true;
+  if (preview) orphanedPreview = true;
+  policy = null; preview = null; consumed = true; clearInterval(timer);
+  get("upload-consent").checked = false; get("generate-consent").checked = false;
+  get("preview-panel").hidden = true; renderQuota(); controls();
+  notice("서버 로그아웃을 확인 중입니다. 편집은 유지하며 새 전송은 차단했습니다.");
+  try {
+    const response = await fetch("/auth/logout", { method: "POST", credentials: "same-origin", redirect: "error",
+      headers: { "content-type": "application/json" }, body: JSON.stringify({ confirmed: true }), signal: AbortSignal.timeout(10000) });
+    const result = await response.json();
+    if (!response.ok || result.loggedOut !== true) throw Error("logout_unconfirmed");
+    notice("서버 세션에서 로그아웃했습니다. 발췌·편집은 이 기기에 남습니다. 서버 초안 삭제나 실행 중 생성 취소를 확인한 것은 아닙니다.");
+  } catch { notice("서버 로그아웃을 확인하지 못했습니다. 새 전송은 차단했고 편집은 이 기기에 유지합니다. 연결을 직접 다시 확인하세요."); }
+  finally {
+    loggingOut = false;
+    const needsFocus = document.activeElement === get("logout") || document.activeElement === document.body;
+    controls(); if (needsFocus && !get("connect").disabled) get("connect").focus();
+  }
+});
 get("file").addEventListener("change", () => run(async () => {
-  const file = get("file").files?.[0]; if (!file) return;
+  const file = get("file").files?.[0]; if (!file || !policy) return;
+  const epoch = connectionEpoch, maxBytes = policy.maxExcerptBytes;
   try {
     if (file.size > 8 * 1024 * 1024) throw Error("8 MiB 이하 파일을 선택하세요. 기존 내용은 유지했습니다.");
     let next;
-    try { next = prepareManagedExcerpt(await file.text(), policy.maxExcerptBytes); }
+    const raw = await file.text();
+    if (epoch !== connectionEpoch) throw Error("connection_changed");
+    try { next = prepareManagedExcerpt(raw, maxBytes); }
     catch { throw Error("지원하는 한 대화 파일을 선택하세요. 기존 내용은 유지했고 업로드하지 않았습니다."); }
     if (preview) await api("discard", { id: preview.id }).catch(() => {});
+    if (epoch !== connectionEpoch) throw Error("connection_changed");
     selected = next; preview = null; draft = null; consumed = false; clearInterval(timer);
     for (const id of ["upload-consent", "generate-consent", "reviewed"]) get(id).checked = false;
     get("local-excerpt").textContent = selected.raw;
@@ -127,7 +160,7 @@ get("save").addEventListener("click", () => run(async () => {
   setTimeout(() => URL.revokeObjectURL(url), 0); notice("검토한 네 항목만 기기에 저장했습니다. 원문·근거·계정 정보는 제외했습니다.");
 }));
 get("clear").addEventListener("click", () => run(async () => {
-  let cleared = true;
+  let cleared = !orphanedPreview;
   if (preview) try { await api("discard", { id: preview.id }); } catch { cleared = false; }
   selected = preview = draft = null; consumed = false; clearInterval(timer);
   for (const id of ["upload-consent", "generate-consent", "reviewed"]) get(id).checked = false;

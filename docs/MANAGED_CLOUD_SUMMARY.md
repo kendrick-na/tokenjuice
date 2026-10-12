@@ -39,8 +39,9 @@ bearer/URL/storage 또는 중복 cookie는 받지 않는다. 기본 absolute 8�
 비협조 promise를 JS timeout으로 강제 종료할 수는 없다. gateway 자체 인증 deadline도 기본 5초다.
 
 appSessions.authenticate를 gateway authenticate에 연결한다. `logout(request)`는 same-origin
-POST를 확인하고 capability 폐기와 Max-Age=0 cookie를 반환한다. 실제 logout route/UI는 호스트
-통합에서 연결해야 하며 미구현이다. `revokeSubject`는 해당 계정의 모든 현재 세션을 폐기한다.
+POST를 확인하고 capability 폐기와 Max-Age=0 cookie를 반환한다. site adapter에 같은 appSessions를
+전달하면 `/auth/logout` route와 사용자 버튼이 활성화된다. gateway의 authenticate도 반드시 같은
+세션 계층을 사용해야 한다. 호스트의 실제 로그인 제공자 통합은 미완료다. `revokeSubject`는 해당 계정의 모든 현재 세션을 폐기한다.
 await 중 logout/철회/만료가 발생하면 과거 권한 응답으로 접근을 복구하지 않는다. 로그인 제공자와
 실제 권한 저장소·위험 사건/권한 변경 후 신원 재확인·실기기 검증은 여전히 출시 게이트다.
 
@@ -112,12 +113,32 @@ await 중 logout/철회/만료가 발생하면 과거 권한 응답으로 접근
   계정별 남은 횟수/출처 시각·오래된 값/확인 불가 화면 후보. 운영 정책/실사용 검증은 별도다.
 - [ ] 실제 로그인/만료/철회 및 운영 한도 정책 연결. 코드상 횟수 표시를 전체 출시 항목 완료로 간주하지 않는다.
   - [x] 신원 검증 뒤 앱 세션·cookie 제약·absolute/idle 만료·동적 권한·logout/철회·await 경합·
-    인증 deadline 후보. 실제 제공자/회원 DB/로그인·logout UI는 미완료다.
+    인증 deadline 후보. 실제 제공자/회원 DB/로그인은 미완료다.
+  - [x] 동일 origin POST JSON·사용자 확인·본문 크기/대기 상한 logout route, cookie 헤더만
+    반환·세션 폐기·미구성 503·로그아웃 실패 안내·로컬 편집 보존·늦은 응답 제외 화면 연결 후보.
+
 - [ ] 호스트/auth 선택·배포 및 실제 세션 만료/철회·권한 격리 검증.
 - [ ] 보존/삭제 정책 및 호스트·제공자 로그 설정 확인.
 - [ ] 무료 시도 수·운영 비용 상한·가격 정책·제공자 결제 제한 확정.
 - [ ] 서버 키 등록·합성 문장 실제 API 검증 승인 및 품질·비용 실측.
 - [ ] 실제 사용자 요약→작업 재개 검증. 기존 추적·모바일·스토어·인터뷰 게이트도 유지한다.
+
+### 로그아웃 동작과 검증 범위
+
+정책의 logoutAvailable은 site에 appSessions가 구성됐을 때만 true다. 버튼은 보조 동작으로
+표시하고 native 확인 후 `{confirmed:true}`만 POST한다. GET·cross-origin·extra subject·query·
+누락 동의·비 JSON은 거부한다. 본문은 1024 bytes/5초, 대기 logout은 최대 3개다. 결과는
+`{loggedOut:true}`이고 cookie는 Set-Cookie 헤더에만 둔다. 미구성/실패는 성공으로 표시하지 않는다.
+
+로그아웃 시작부터 UI의 새 전송을 막고 발췌/편집·검토 저장은 기기에 유지한다. 공용 기기에서는
+화면 지우기를 별도로 사용한다. 원문 전송이나 이미 실행 중인 생성의 취소·환불·서버 초안 삭제를
+확인한 것이 아니다. 서버 삭제를 확인하지 못한 이전 초안은 지우기에서도 확인 불가로 표시한다.
+connection epoch와 작업 ID로 늦게 도착한 생성/파일 읽기가 이전 상태를 복원하지 않도록 한다.
+
+합성 fixture는 실제 opaque 세션 객체를 쓰지만 loopback bridge에서 cookie를 주입하고
+`/test/session`은 고정 합성 identity 두 종류만 발급한다. 이 route는 production site에 없으며
+실제 로그인·브라우저의 Secure-cookie 처리·TLS ingress를 검증한 것으로 취급하지 않는다.
+Native confirmation·실패/성공 logout·편집 보존·401 거부·늦은 생성 응답 제외를 browser로 검증한다.
 
 ## 합성 브라우저 실행
 
