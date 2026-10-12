@@ -10,6 +10,7 @@ on:
       - 'docs/DATA_CONTRACT.md'
       - 'companion/**'
       - 'local-summary/**'
+      - 'managed-summary/**'
       - '.github/workflows/engine-verify.yml'
   pull_request:
     paths:
@@ -19,6 +20,7 @@ on:
       - 'docs/DATA_CONTRACT.md'
       - 'companion/**'
       - 'local-summary/**'
+      - 'managed-summary/**'
       - '.github/workflows/engine-verify.yml'
   workflow_dispatch:
 
@@ -80,3 +82,4 @@ jobs:
             sleep 0.1
           done
           python tests/ai-summary.test.py
+          python tests/managed-summary.test.py

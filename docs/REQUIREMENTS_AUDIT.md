@@ -1352,3 +1352,29 @@ strict release-verify --require-browser exit 0: 195 pass·1 platform skip·2380 
 합성 제공자만 사용했으며 Ollama/모델 설치·실대화·유료 API·메뉴바 설정/인증·공개 배포는 변경하지
 않았다. 합성 gateway 테스트는 실제 가입/결제/운영형 클라이언트 E2E 검증이 아니다. 전체 목표 완료로
 표시하지 않으며 기존 Claude 인증·모바일·스토어·사용자 피드백 항목은 남는다.
+
+### 9.64 운영형 클라우드 사용자 화면과 합성 gateway 연결
+
+`managed-summary/`에 모델 다운로드/개인 키 없이 사용하는 화면 후보를 추가했다. 기기에서 원문
+파일을 파싱하고 role/content만 발췌 JSON에 넣는다. 도구 결과·원문 metadata·알려진 비밀값은
+제외하며 최신 발언 유지·20,000 UTF-8 bytes·누락 안내를 적용한다. 모든 비밀값 제거나 완전한
+대화 요약을 보장하지 않는다. 파일 선택만으로 업로드하지 않는다.
+
+업로드할 정확한 발췌·수신자·정책 URL/버전을 확인한 후 명시적으로 업로드하고, 서버 미리보기의
+발언/전체 제공자 요청과 5분 승인을 다시 확인해 생성한다. 전송 정책 재확인은 두 동의를 해제한다.
+실패/불명 응답에 자동 재시도하지 않으며 인증 실패 때 선택·편집을 보존하되 업로드/생성을 막는다.
+편집/저장은 기기에서만 처리하며 `/review`로 보내지 않는다. 파일은 Pocket에서 미검토로 재열리고
+cloud 생성 출처를 유지한다. 서버 삭제 실패와 화면 삭제를 구분한다.
+
+동일 HTTPS origin용 managed-summary-site adapter는 정적 파일 whitelist·same-origin CSP·no-store를
+유지하고 config/key/source API를 노출하지 않는다. 실제 로그인/auth·호스팅·정책·운영 비용은
+연결하지 않았다. 4183 fixture의 HTTP→HTTPS bridge와 고정 계정은 테스트 전용이며 운영 배포
+대안이 아니다. 실제 제공자 호출·실대화·계정 로그인·모델 설치·Mac 설정 변경은 없다.
+
+신규 client/site와 기존 gateway targeted 8 pass/88 assertions. 전체 strict release verifier exit 0:
+198 pass·1 platform skip·2416 assertions·19 Bun 파일, 확장 7 browser suite, 번들·문법·격리
+알림·실행 Mac 설치본 일치 통과. 브라우저에서 정확한 발췌 전송·별도 생성 동의·1회 실행·재검토
+저장/재열기·잘못된 파일 입력 시 초안 보존·401 시 편집 유지·375px/가로/desktop·확대 글자·
+키보드·외부 브라우저 요청/원문 영구 저장 부재를 검증했고 모바일 screenshot을 시각 확인했다.
+이 브라우저 회귀는 Engine CI에도 추가했다. 사용자 로그인/남은 한도 표시·공개 배포·실모델 품질·
+실계정 장기 수집·모바일·스토어·인터뷰는 미완료다. 이번 증거는 전체 목표 완료를 증명하지 않는다.
