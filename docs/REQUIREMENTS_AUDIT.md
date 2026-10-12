@@ -1576,3 +1576,28 @@ fdd5ca6의 Engine 38277023788와 Windows 38277023775는 모두 success다. brows
 114904879779의 직접 파일 복구·기존 클라우드/로컬 합성 생성 3개 PASS를 확인했다.
 Windows EXE 생성·실행·artifact 업로드도 통과했고 tag release는 skipped다. 이번 복구
 화면 후보의 자동 검증 증거이며 실제 사용자 파일 탭/AI 개통 증거로 확대하지 않는다.
+
+### 9.75 현재 공개 상태와 실제 개통 의존성 재대조
+
+출시 계획서의 상단 및 최종 판정은 과거 Claude 숫자 복구와 Pocket v20을 현재 상태처럼
+서술하고 있어 바로잡았다. Pages 최신 38197439838/29bd977 success, 소스 sw v26 및
+index.html·app.js·app.css·sw.js·history.js·work-summary.js·work-files.js·manifest.webmanifest
+8개의 공개 HTTP200/SHA-256 소스 일치를 다시 확인했다. 최초 점검의 style.css는 실제
+참조 파일이 아닌 잘못된 검사 경로였으며, index.html의 app.css 참조를 확인해 재검사했다.
+이를 배포 오류로 기록하지 않는다. GitHub 최신 릴리스는 v1.2.2, publishedAt
+2026-10-08T17:01:20Z(10월 9일 02:01 KST)다. public Pocket/desktop 자산/main 후보를 분리한다.
+
+10월 13일 01:27 KST 읽기 전용 진단은 Claude HTTP401/auth expired·trust blocked·기존
+마지막 성공 4h 전·retry 01:37, Codex local fresh다. 자동 갱신 false·사용자 설정·자격증명·
+실제 API 요청을 변경하지 않았다. 이전 성공 체크박스는 과거 이력으로 명시했다.
+
+기획서의 보류 근거와 MANAGED_CLOUD_SUMMARY/MOBILE_CONNECTION_GATE/LAUNCH_FEEDBACK_PLAN을
+대조해 실제 수집·운영형 요약 auth/호스트·실모델 비용 승인·Android 전달 계약·스토어·실제
+피드백의 다음 의존성을 출시 계획에 연결했다. 임의의 호스트/신원 제공자·운영 예산·모바일
+방식 선택이나 계정/키/서명/결제를 수행하지 않는다. 작은 합성 기능 추가가 전체 목표를
+달성한 것으로 설명하지 않으며 P0~P3와 모든 플랫폼 목표는 유지한다.
+
+이번 문서 대조 뒤 strict release-verify --require-browser exit 0, Bun 233 pass·1 platform
+skip·2605 assertions와 전체 browser 회귀·설치본 일치가 통과했다. 마지막 코드 fdd5ca6의
+Engine 38277023788·Windows 38277023775 success도 재확인했다. 문서-only 변경은 새 CI나
+배포 실행을 의미하지 않으며 실제 개통 구성 추천을 위해 월 총비용 상한을 사용자에게 요청했다.
