@@ -62,6 +62,12 @@
         </div>
         <section id="snapshot-age-warning" class="snapshot-age-warning" role="status" hidden></section>
         <div id="accounts" class="accounts"></div>
+        <section id="forecast-panel" class="forecast-panel" tabindex="-1" hidden aria-labelledby="forecast-title">
+          <header><div><p class="forecast-eyebrow">LOCAL ESTIMATE</p><h2 id="forecast-title">로컬 소진 예상</h2></div><span>공식 한도와 구분</span></header>
+          <p id="forecast-limit">최근 속도가 유지된다는 조건의 로컬 추정입니다. 공식 한도가 아닙니다. 작업·모델·속도가 바뀌면 달라집니다.</p>
+          <div id="forecast-rows"></div>
+          <button id="forecast-history" type="button">과거 관측 기록 열기 <span aria-hidden="true">→</span></button>
+        </section>
         <section class="trust-notes" aria-label="개인정보와 데이터 원칙">
           <span>자격증명 없음</span><span>자동 업로드 없음</span><span>마지막 성공 시각 표시</span>
         </section>

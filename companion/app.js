@@ -110,8 +110,7 @@ function remaining(item) { return Math.max(0, Math.min(100, 100 - Number(item.us
 function metric(item) {
   const left = remaining(item);
   const tone = left < 20 ? "danger" : left < 50 ? "warn" : "";
-  const forecast = item.forecast?.beforeReset ? `<span class="forecast danger">리셋 전 소진 예상</span>` : item.forecast ? `<span class="forecast">로컬 추정</span>` : "";
-  return `<div class="metric"><div class="metric-line"><span>${escapeHtml(item.name)}</span><strong>${Math.round(left)}<small>% 남음</small></strong></div><div class="bar ${tone}" role="progressbar" aria-label="${escapeHtml(item.name)} ${Math.round(left)}% 남음" aria-valuenow="${Math.round(left)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${left}%"></i></div><div class="metric-meta"><span>${timeText(item.resets)}</span>${forecast}</div></div>`;
+  return `<div class="metric"><div class="metric-line"><span>${escapeHtml(item.name)}</span><strong>${Math.round(left)}<small>% 남음</small></strong></div><div class="bar ${tone}" role="progressbar" aria-label="${escapeHtml(item.name)} ${Math.round(left)}% 남음" aria-valuenow="${Math.round(left)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${left}%"></i></div><div class="metric-meta"><span>${timeText(item.resets)}</span></div></div>`;
 }
 function routinePayload(payload) {
   const age = Date.now() - Number(payload.lastSuccessAt);
@@ -133,7 +132,9 @@ function card(name, payload, kind, index = 0, routine = false) {
   const observedAt = payload.lastSuccessAt;
   const failureEvidence = displayable ? "" : `<div class="failure-evidence"><p><b>원인</b> ${escapeHtml(status.meaning)}</p><p>${observedAt ? timeText(observedAt, "마지막 성공") : "마지막 성공 시각 없음"}</p>${payload.state === "auth_expired" ? `<p>이 웹 화면은 재로그인하지 않습니다. Mac에서 ${kind === "claude" ? "Claude Code" : "해당 제공자"} 로그인을 갱신한 뒤 새 스냅샷을 가져오세요.</p>` : ""}</div>`;
   const detailEvidence = displayable ? `<p class="state-explainer"><b>데이터 상태</b>${status.meaning}</p><p class="last-success">${observedAt ? timeText(observedAt, "마지막 성공") : "마지막 성공 시각 없음"}</p>` : "";
-  const recovery = `<p class="recovery"><b>다음 행동</b>${status.action}${payload.retryAt ? ` ${timeText(payload.retryAt, "다음 확인")}.` : ""}</p>`;
+  const hasEstimateRisk = payload.state === "fresh" && payload.items.some(item => item.forecast?.beforeReset && forecastTime(item.forecast.exhaustionAt) > Date.now());
+  const nextAction = hasEstimateRisk ? "공식 잔여량과 아래 로컬 소진 예상을 함께 확인하세요." : status.action;
+  const recovery = `<p class="recovery"><b>다음 행동</b>${nextAction}${payload.retryAt ? ` ${timeText(payload.retryAt, "다음 확인")}.` : ""}</p>`;
   return `<article id="quota-${kind}-${index}" tabindex="-1" class="account ${kind}"><header class="account-head"><div><span class="account-name">${escapeHtml(name)}</span></div><span class="state ${status.tone}">${status.label}</span></header>${itemMarkup}${failureEvidence}${routine ? "" : recovery}<details class="account-detail"><summary>${displayable ? "데이터 신뢰·마지막 성공 보기" : "데이터 출처 보기"}</summary><div><p class="source">${escapeHtml(source)}</p>${detailEvidence}${routine ? recovery : ""}</div></details></article>`;
 }
 function allPayloads(snapshot) {
@@ -144,6 +145,45 @@ function allPayloads(snapshot) {
     ...(snapshot.providers || []).map((provider, index) => ({ ...provider, account: provider.label || "Local provider", target: `quota-provider-${index}` })),
   ];
 }
+function forecastTime(value) {
+  return Number.isFinite(value) && value > 0 && Number.isFinite(new Date(value).getTime()) ? value : null;
+}
+function renderForecast(snapshot) {
+  const estimates = allPayloads(snapshot).filter(payload => payload.state === "fresh")
+    .flatMap(payload => payload.items.filter(item => item.forecast).map(item => ({payload,item})));
+  $("#forecast-panel").hidden = estimates.length === 0;
+  $("#forecast-rows").innerHTML = estimates.map(({payload,item}) => {
+    const at = forecastTime(item.forecast.exhaustionAt);
+    return `<article class="pace-row" data-exhaustion-at="${at ?? ""}"><div><strong>${escapeHtml(payload.account)} · ${escapeHtml(item.name)}</strong><span class="pace-state">${item.forecast.beforeReset ? "리셋 전 소진 예상" : at ? "리셋 이후 소진 추정" : "소진 시각 산출 불가"}</span></div><p class="pace-time">${at ? timeText(at,"예상 소진") : "소진 예상 시각 없음"}</p><p class="pace-reset">${timeText(item.resets)}</p></article>`;
+  }).join("");
+  $("#forecast-limit").textContent = "최근 속도가 유지된다는 조건의 로컬 추정입니다. 공식 한도가 아닙니다. 작업·모델·속도가 바뀌면 달라집니다.";
+}
+function refreshForecastAge() {
+  let historical = false;
+  for (const row of document.querySelectorAll("#forecast-rows .pace-row")) {
+    const at = forecastTime(Number(row.dataset.exhaustionAt));
+    if (snapshotExpired) row.dataset.historical = "snapshot";
+    else if (at && at <= Date.now()) row.dataset.historical ||= "deadline";
+    if (!row.dataset.historical) continue;
+    historical = true;
+    row.classList.add("historical");
+    row.querySelector(".pace-state").textContent = row.dataset.historical === "snapshot" ? "과거 추정" : "예상 시각 지남";
+    row.querySelector(".pace-time").textContent = at ? timeText(at,"당시 예상 소진") : "당시 소진 예상 시각 없음";
+  }
+  if (historical) $("#forecast-limit").textContent = "과거로 표시된 항목은 현재 소진 예측이 아닙니다. Mac에서 새 스냅샷을 가져오세요. 공식 한도가 아닙니다.";
+  const action = $("#priority-action");
+  if (action?.dataset.target === "forecast-panel" && Number(action.dataset.forecastAt) <= Date.now()) {
+    $("#priority-card").querySelector("h1").textContent = "소진 예상 재확인 필요";
+    for (const block of $("#priority-card").querySelectorAll(".decision-block")) {
+      const copy = {NOW:"파일의 예상 시각이 지났습니다. 실제 소진 여부는 확인되지 않았습니다.",WHY:"로컬 속도 추정은 새로운 제공자 관측이 아닙니다.",NEXT:"Mac에서 새 스냅샷을 가져와 실제 한도를 확인하세요."};
+      block.querySelector("span").textContent = copy[block.querySelector("b").textContent];
+    }
+  }
+}
+$("#forecast-history").addEventListener("click", () => {
+  $("#history-panel").open = true;
+  $("#history-file").focus();
+});
 function contextSessions(snapshot) {
   return Array.isArray(snapshot.sessions) ? snapshot.sessions.filter((session) => session && session.kind === "context" && Number.isFinite(Number(session.pct))) : [];
 }
@@ -227,6 +267,17 @@ function priority(snapshot) {
     };
   }
   const entries = payloads.flatMap((payload) => (payload.items || []).map((item) => ({ payload, item, remaining: remaining(item) })));
+  const imminent = entries.filter(({payload,item}) => payload.state === "fresh" && item.forecast?.beforeReset
+    && forecastTime(item.forecast.exhaustionAt) > Date.now())
+    .sort((a,b) => a.item.forecast.exhaustionAt - b.item.forecast.exhaustionAt)[0];
+  if (imminent) return {
+    eyebrow:"로컬 추정 · 확인 필요",
+    title:`${imminent.payload.account} · 리셋 전 소진 예상`,
+    copy:`최근 속도가 유지될 경우 ${timeText(imminent.item.forecast.exhaustionAt,"예상 소진")}.`,
+    tone:"caution",cta:"소진 예상 보기",target:"forecast-panel",forecastAt:imminent.item.forecast.exhaustionAt,
+    why:"공식 한도가 아닌 로컬 속도 추정입니다. 작업·모델이 바뀌면 달라집니다.",
+    next:"다음 큰 작업 전에 실제 잔여량과 리셋 시각을 함께 확인하세요.",
+  };
   const lowest = entries.sort((a, b) => a.remaining - b.remaining)[0];
   if (lowest) {
     const urgency = lowest.remaining < 20 ? "한도 관리가 필요합니다." : "현재 작업 흐름은 안정적입니다.";
@@ -258,6 +309,7 @@ function refreshSnapshotAge() {
   snapshotExpired ||= snapshotNeedsRefresh(currentSnapshot);
   const ageText = snapshotExpired && !snapshotNeedsRefresh(currentSnapshot) ? "시각 변경 · 이전 스냅샷" : relativeTime(currentSnapshot.generatedAt);
   $("#snapshot-time").textContent = ageText;
+  refreshForecastAge();
   if (!snapshotExpired) return;
   $("#status-dot").className = "caution";
   const warning = $("#snapshot-age-warning");
@@ -304,6 +356,7 @@ function renderPriority(snapshot) {
   $("#priority-card").innerHTML = `<p id="priority-label">${item.eyebrow}</p><h1>${escapeHtml(item.title)}</h1>${routine ? `<div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><details class="priority-detail"><summary>데이터 출처·다음 행동</summary><div class="decision-grid"><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div></details>` : `<div class="decision-grid"><div class="decision-block"><b>NOW</b><span>${escapeHtml(item.copy)}</span></div><div class="decision-block"><b>WHY</b><span>${escapeHtml(item.why)}</span></div><div class="decision-block next"><b>NEXT</b><span>${escapeHtml(item.next)}</span></div></div>`}<button id="priority-action" type="button">${item.cta} <b aria-hidden="true">→</b></button>`;
   const action = $("#priority-action");
   action.dataset.target = item.cta.includes("가져오기") ? "snapshot-file" : item.target || "";
+  action.dataset.forecastAt = item.forecastAt ?? "";
   action.addEventListener("click", () => {
     if (action.dataset.target === "snapshot-file") fileInput.click();
     else {
@@ -333,6 +386,7 @@ function render(snapshot, { demo = false } = {}) {
   const providers = (snapshot.providers || []).map((provider, index) => card(provider.label || "Local provider", provider, "provider", index, routine));
   $("#accounts").innerHTML = [...snapshot.claude.map((account, index) => card(account.account || "Claude", account, "claude", index, routine)), card("Codex", snapshot.codex, "codex", 0, routine), ...providers].join("");
   currentSnapshot = snapshot;
+  renderForecast(snapshot);
   currentSnapshotIsDemo = demo;
   snapshotExpired = false;
   snapshotExpiryApplied = false;

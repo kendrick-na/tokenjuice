@@ -52,6 +52,7 @@ if python3 -c 'import playwright' >/dev/null 2>&1; then
   python3 tests/feedback.test.py
   python3 tests/guide-platform.test.py
   python3 tests/context-expiry.test.py
+  python3 tests/forecast-panel.test.py
   kill "$COMPANION_PID" 2>/dev/null || true
   wait "$COMPANION_PID" 2>/dev/null || true
   trap - EXIT

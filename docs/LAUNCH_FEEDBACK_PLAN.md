@@ -5,11 +5,13 @@
 
 ## 현재 출시 순서와 복구 상태 — 2026-10-13
 
-최신 읽기 전용 관측 02:58 KST: Claude는 HTTP401/auth expired·trust blocked이고 다음 확인
-표시는 03:07이다. 기존 마지막 성공은 6시간 전으로 표시되지만 현재 인증 복구의 증거가
-아니다. Codex local JSONL은 fresh이며 autoRenew=false 유지다. 사용자 Mac 잠금 해제 답변은
-받았으나 Claude Code 재로그인 완료 답변은 없다. 실제 메뉴바 화면은 SwiftBar UI 연결
-시간 초과로 확인하지 못했다. 인증 설정 변경·갱신·실패 캐시 제거는 실행하지 않았다.
+마지막 검증된 읽기 전용 진단 14:55 KST: Claude는 HTTP401/auth expired·trust blocked,
+마지막 성공 약 18시간 전이며 현재 인증 복구의 증거가 아니다. 기본 계정 credential
+메타데이터의 액세스 토큰 만료를 확인했지만 토큰값은 출력/전송하지 않았다. 공식 auth status의
+loggedIn도 usage 인증 성공을 뜻하지 않는다. Codex local JSONL은 fresh였다. 기존 autoRenew
+설정은 보존하되 미검증 백그라운드 CLI 갱신을 중지하고 과거 exit 0도 갱신 미검증으로 표시한다.
+사용자의 Claude Code 재로그인 완료 답변은 없다. SwiftBar native 접근은 timeout이었다.
+설치 plugin 한 파일만 백업/수정했고 인증·권한·설정·실패 캐시는 바꾸지 않았다(audit §9.87).
 
 Claude 실제 API 수집·사용자 메뉴바 숫자 확인(audit §9.27)과 공식 수치 대조(§9.47)는
 과거 성공 이력으로만 유지한다. 현재 수집 복구·신규 설치·절전 복귀·장기 갱신은 미완료다.
@@ -250,6 +252,6 @@ Pocket 제보 후속: 하단 **피드백** 또는 **문제 제보 준비**에서
 - 릴리스 페이지에 알려진 제한을 숨기지 않는다.
 - App Store/Google Play는 심사 완료 전까지 “준비 중”으로 표시한다.
 
-현재 판정은 **Pocket v26 공개 / Mac Claude 현재 인증 만료·전체 설치/복귀 미검증 /
+현재 판정은 **Pocket v29 공개(소진 예상 분리 v30 로컬 후보) / Mac Claude 인증 만료·전체 설치/복귀 미검증 /
 운영형 AI 미개통 / 스토어 미출시 / 실제 인터뷰 미실행**이다. 과거 숫자 복구나 자동
 검증 성공을 현재 수집 안정화·전체 출시 완료로 승격하지 않는다.

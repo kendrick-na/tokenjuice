@@ -2016,3 +2016,39 @@ Companion browser)·Windows 38354208565는 모두 success다. Windows 자산 생
 확인했다. 값/토큰/계정 식별자는 출력·보관·전송하지 않고 만료 여부만 확인했다. 재로그인
 후 실제 quota/reset/장기 갱신 재검증이 필요하다. 자동 갱신을 임의로 켜거나 직접 OAuth
 refresh token을 교환하지 않는다. 현재 인증 갱신은 인간에게 handoff할 항목이다.
+
+### 9.88 공식 quota·로컬 소진 예상·7일 관측 분리
+
+UI/UX 계획 P1을 현재 코드와 대조했다. 7일 history는 독립 입력/그래프/표가 있으나
+소진 예상은 quota/reset 옆 배지뿐이었다. frontend-design의 기존 dark 계기판·로컬
+폰트·amber 추정 신호를 유지해 quota 밖에 LOCAL ESTIMATE 영역을 추가했다.
+공식 잔여량/progressbar/reset은 보존하고 fresh payload의 기존 forecast만 읽는다.
+fallback/실패 첨부 forecast는 표시하지 않는다. 값이 없으면 패널을 숨기며 시각이 없거나
+Date 범위 밖이면 시각 미정이다. 새로운 계산/관측·알고리즘/계약 확대는 없다.
+
+미래 beforeReset 추정은 NOW에 공식 한도가 아닌 조건부 로컬 추정으로 안내하고
+키보드 CTA를 연결한다. 인증/제한·높은 컨텍스트 우선순위는 유지한다. 예상 시각 경과는
+실제 소진으로 단정하지 않고 재확인으로 전환한다. 패널의 시각 경과와 30분 파일 만료는
+각각 예상 시각 지남/과거 추정이며 rollback으로 복구하지 않는다. 명시적 reimport만
+초기화한다. 기록 버튼은 독립 history 입력을 열고 focus만 이동하며 자동 계정 매칭/
+설정 변경·수집·비용/절감/생산성 해석은 없다.
+
+systematic-debugging/webapp-testing으로 합성 fixture의 영역 부재를 먼저 red로 재현했다.
+새 browser는 공식 수치 보존·fresh/실패/fallback/unknown, 미래/시각 경과/30분 만료/
+rollback/reimport, 키보드/focus/Local Storage 보존, 375/landscape/desktop/큰 글자,
+외부/POST 호출 0회를 검사한다. 기존 테스트의 계정명 부분 일치가 새 행과 중복돼
+exact matching으로 강화했고 오래된 fixture의 현재 경고 기대는 과거 추정으로 바꿨다.
+초기 styled strong 줄바꿈·Python 들여쓰기 assertion도 수정했다. timeout/skip을 늘리지
+않았다. 모바일/desktop은 실제 사용자 데이터 없는 합성 캡처로 시각 검수한다.
+
+시각 검수에서 상단의 추정 경고와 계정 카드의 계속 작업 권장이 모순되는 것도 확인했다.
+이를 red로 재현하고 미래 beforeReset 추정이 있는 계정은 공식 잔여량과 로컬 소진
+예상을 함께 확인하도록 다음 행동을 바꿨다. 실제 소진이나 중단을 단정하지 않는다.
+
+새 browser gate는 로컬 release-verify/Engine/Pages CI에 연결했다. cache v30 후보이며
+공개 v29/desktop immutable v1.2.2와 구분한다. Claude 현재 수집·실제 추정 정확도/
+사용자 효과·native UX·host/auth/AI 운영·모바일/스토어/인터뷰·전체 목표는 미완료다.
+
+최종 strict release-verify --require-browser exit 0: 272 pass·1 skip·2925 assertions 및
+새 forecast browser 포함 전체 browser PASS, 설치 engine/helper 일치다. 새 forecast UI는
+source 후보이며 공개 반영·CI 판정은 후속 실제 결과로 기록한다.

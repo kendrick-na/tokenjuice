@@ -274,10 +274,20 @@ scalar 메타데이터 위치의 객체/배열도 복사하지 않는다. quota 
 이전 결과의 반영을 막는다. 이는 완료 결과를 무시하는 정책이며 진행 중인 WebCrypto 계산
 자체의 중단이나 탭 간/기기 간 동기화 기능은 아니다.
 
-Pocket quota 카드의 잔여량·progressbar·forecast는 `fresh` 또는 명시적으로 라벨링한
+Pocket quota 카드의 잔여량·progressbar는 `fresh` 또는 명시적으로 라벨링한
 `fallback`에서만 표시한다. export에 과거 `items[]`가 남아 있더라도 `stale`,
 `auth_expired`, `rate_limited`, `unavailable`에서는 숫자를 숨기고 상태·복구 안내와
 마지막 성공 정보를 유지한다.
+
+소진 예상은 quota 카드와 분리한 LOCAL ESTIMATE 영역에서 표시한다. 기존 snapshot
+forecast만 사용하고 새로운 계산/관측/설정 변경을 하지 않는다. fresh payload만 대상이고
+fallback/실패 상태의 forecast는 현재 예측으로 승격하지 않는다. 값이 없으면 패널을 숨기며
+정확한 소진 시각이 없거나 Date 범위 밖이면 시각 정보 없음으로 표시한다.
+미래 시각의 beforeReset 추정은 상단에서 별도 로컬 추정 경고로 안내하지만 공식 quota/
+실제 소진으로 단정하지 않는다. 예측 시각 경과 또는 30분 파일 만료는 과거 표시로 전환하며
+시계 rollback으로 신뢰를 되돌리지 않는다. 명시적 새 파일 가져오기만 표기를 초기화한다.
+과거 관측 버튼은 기존 history 파일 입력을 직접 열 뿐이며 계정 매칭·자동 history 수집/
+엔진 설정·동기화·외부 호출을 수행하지 않는다.
 
 ## Pocket 로컬 7일 관측 화면
 

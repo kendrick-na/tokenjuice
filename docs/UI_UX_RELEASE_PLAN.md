@@ -78,7 +78,7 @@ CI는 success다. 원인 불명 오류의 로그인·시계 변경 CTA를 만들
 
 ## 4. P1 화면 투두
 
-- [ ] 7일 trend와 pace forecast를 quota 카드와 분리
+- [x] 7일 관측과 pace forecast를 quota 카드와 분리 — 독립 history 입력과 LOCAL ESTIMATE 영역, 시각/조건/과거 표시·직접 기록 열기. 코드/browser 범위이며 실제 정확도·행동 근거와 native UX 완료를 뜻하지 않음.
 - [ ] account/provider별 reset·threshold·reconnect 설정 화면 — gated: Pocket snapshot 계약은 설정 override를 제외하며, 모바일에서 Mac `config.json`을 수정하면 local-only/읽기 전용 경계를 침범함. 데스크톱의 기존 local per-target 명령만 유지하고 제품·보안 결정 전에는 Pocket 설정을 추가하지 않음.
 - [x] session context 80%/90% 단계별 checkpoint CTA (80% checkpoint 권장, 90% 새 세션 전환 준비; 클릭 시 로컬 스냅샷만 내보냄)
 - [x] metadata-only checkpoint 다시 열기·재개 안내 복사/텍스트 저장 — 현재 상태와 구분, 독립 상세·메모리 전용·오류 보존·클립보드 대체 경로. 작업 의도/최근 파일을 복원하는 전체 resume brief와 효과 검증은 미완료.

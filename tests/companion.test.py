@@ -511,7 +511,7 @@ def main() -> None:
             page.get_by_text("계기판으로").click()
             expect(page.locator("#snapshot-file")).to_be_enabled()
             page.locator("#snapshot-file").set_input_files(str(snapshot))
-            page.get_by_text("Personal").wait_for()
+            page.get_by_text("Personal", exact=True).wait_for()
             assert page.locator("#demo-notice").is_hidden()
             assert page.locator("#import-feedback").get_by_text("스냅샷을 가져왔습니다.", exact=False).is_visible()
             assert "확인한 스냅샷 · 가장 먼저 확인할 상태를 표시합니다." in page.locator("#live-region").inner_text()
@@ -529,7 +529,8 @@ def main() -> None:
             for index in range(1, details.count()):
                 details.nth(index).locator("summary").click()
             assert page.get_by_text("65%").is_visible()
-            assert page.get_by_text("리셋 전 소진 예상").is_visible()
+            expect(page.locator("#forecast-panel .pace-state")).to_have_text("과거 추정")
+            assert page.locator("#accounts .forecast").count() == 0
             assert page.get_by_text("제공자 제한 중", exact=True).is_visible()
             assert page.get_by_text("다음 행동").count() >= 2
             assert page.get_by_text("이 스냅샷을 만든 시점에 성공적으로 읽은 값입니다.").count() >= 1
@@ -560,14 +561,14 @@ def main() -> None:
             assert "프로젝트: tokenjuice" in page.locator("#resume-brief").input_value()
             assert page.locator("#empty-state").is_hidden()
             page.reload(wait_until="networkidle")
-            assert page.get_by_text("Personal").is_visible()
+            assert page.get_by_text("Personal", exact=True).is_visible()
             # The static shell must remain usable offline; imported data is
             # already local and must not depend on a provider or our server.
             page.evaluate("navigator.serviceWorker.ready")
             page.reload(wait_until="networkidle")
             page.context.set_offline(True)
             page.reload(wait_until="domcontentloaded")
-            assert page.get_by_text("Personal").is_visible()
+            assert page.get_by_text("Personal", exact=True).is_visible()
             assert page.locator("#transport").inner_text() == "오프라인 · 저장된 스냅샷"
             page.context.set_offline(False)
 
@@ -831,7 +832,7 @@ def main() -> None:
             legacy_path = Path(directory) / "legacy-widget-snapshot.json"
             legacy_path.write_text(json.dumps(legacy_snapshot), encoding="utf-8")
             page.locator("#snapshot-file").set_input_files(str(legacy_path))
-            page.get_by_text("Personal").wait_for()
+            page.get_by_text("Personal", exact=True).wait_for()
             assert json.loads(page.evaluate("localStorage.getItem('tokenjuice.widget-snapshot.v1')")) == legacy_snapshot
 
             # The valid bundle must work even after an earlier failed attempt.
