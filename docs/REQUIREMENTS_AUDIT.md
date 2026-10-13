@@ -2006,3 +2006,13 @@ apply_patch로 갱신했다. plugin/helper 본문 일치다. 설정·credential�
 엔진/브라우저·Bun 번들·macOS 알림 dry-run·Windows Python·plugin/helper 일치까지
 통과했다. SwiftBar native 재접근도 timeout이어서 실제 화면 완료는 아니다. 기존 Pocket
 v29나 immutable v1.2.2 자산을 새 desktop release로 부르지 않는다.
+
+6ab317ed656e598b8d41b57b28dd33663b93809d의 Engine 38354208547(ubuntu/macOS 및
+Companion browser)·Windows 38354208565는 모두 success다. Windows 자산 생성은 CI
+후보이며 새 tag/store release가 아니다. Pocket 파일 변경/Pages 재배포는 없다.
+
+후속 읽기 전용 확인: 공식 auth status의 loggedIn은 로컬 로그인 존재 표시이며 usage
+인증 성공을 검증하지 않는다. 기본 credential 선택에서 실제 액세스 토큰 만료 메타데이터를
+확인했다. 값/토큰/계정 식별자는 출력·보관·전송하지 않고 만료 여부만 확인했다. 재로그인
+후 실제 quota/reset/장기 갱신 재검증이 필요하다. 자동 갱신을 임의로 켜거나 직접 OAuth
+refresh token을 교환하지 않는다. 현재 인증 갱신은 인간에게 handoff할 항목이다.
