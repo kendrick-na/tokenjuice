@@ -143,6 +143,13 @@ provider 필드의 스키마를 검증하거나 실계정 정확성을 보증하
   프로필 root의 `sessions/**/*.jsonl` 기록에서 읽는다. 현재
   세션이 장시간 기록을 남기지 않으면 `stale`가 될 수 있다.
 - `429`의 `Retry-After`는 우선 준수한다. 없는 경우에도 최소 5분 대기한다.
+- 기존 Claude credential의 유효한 숫자형 millisecond expiresAt이 만료되면 usage 요청을
+  보내지 않는다. 이는 로컬 credential-expired/auth_expired 상태이며 HTTP 401을 만들지
+  않는다. 로컬 만료 cooldown은 60초, 기존 provider 429는 먼저 준수한다. 재로그인/
+  credential 수정/자동 갱신은 하지 않고 다음 허용 확인에서 다시 읽는다. 만료 시각
+  없거나 형식 미정은 만료 증거로 간주하지 않으며 실제 provider 응답으로 판정한다.
+  누락/빈/비문자열 access token은 외부로 보내지 않고 비밀값 없는 로컬 로그인 안내로
+  처리한다. 이 검사도 provider HTTP 응답이나 갱신 성공을 만들어내지 않는다.
 - Claude 백그라운드 CLI 갱신은 중지했다. 과거 `autoRenew:true` 설정은 보존하지만
   실행하지 않는다. `--renew-login`도 CLI를 시작하거나 backoff를 초기화하지 않는다.
   인증 만료 시 사용자가 직접 `claude auth login`을 진행해야 한다. 과거 CLI 종료 코드

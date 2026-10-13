@@ -2062,3 +2062,49 @@ guide.js/feedback/privacy/history/work-summary/work-files/manifest 14개 HTTP200
 분리 영역·상단 CTA·공식 수치·history 동선·시각 경과/만료/rollback·focus/저장 보존·
 375/desktop/큰 글자·외부/POST 0회 검증을 통과했다. 현재 Pocket은 23a7518/v30이고
 desktop 자산은 v1.2.2다. 실제 수집/설치·사용자 만족도·스토어 완료로 확대하지 않는다.
+
+### 9.89 Claude 알려진 credential 만료의 요청 전 차단
+
+2026-10-13 15:27 KST 읽기 전용 관측은 HTTP429, retry 16:11, 마지막 성공 약 18시간
+전이다. 열린 GitHub 제보 metadata-only 조회는 0건/상한 미도달이며 실제 feedback
+접수·인터뷰·문제 해결의 증거가 아니다. 이전의 401/토큰 만료 증거와 구분하고 429를
+건너뛰거나 실패 캐시를 삭제하지 않았다.
+
+systematic-debugging으로 credential reader→fetch→backoff/state 경계를 추적했다.
+기존 reader는 이미 읽은 expiresAt을 검사하지 않아 만료가 알려진 토큰도 전송할 수
+있었다. 같은 parser를 사용하는 credential fixture로 먼저 red 재현한 뒤 숫자형
+millisecond 만료 시각이 유효하고 지났을 때만 요청 전 차단했다. 알 수 없는 형식/문자열/
+시각 부재는 만료의 증거로 간주하지 않는다. 실제 quota 응답 없이 fresh를 만들지 않는다.
+
+선택한 읽기 가능한 credential의 만료를 이유로 다른 Keychain 계정으로 전환하지 않는다.
+로컬 credential-expired/auth_expired를 기록하지만 HTTP401을 만들어내지 않는다.
+60초 로컬 cooldown을 사용하고 기존 429/Retry-After가 먼저 적용된다. 다음 허용 확인에서
+사용자가 갱신한 credential을 다시 읽을 수 있으며 자동 CLI/refresh token 교환은 없다.
+원본 credential·토큰·expiresAt을 오류/cache/출력에 복제하지 않는다. 누락/빈/비문자열 토큰도
+잘못된 Bearer 값으로 요청하지 않고 비밀값 없는 로그인 안내를 유지한다. 기존 최근 Desktop
+대체 경로·과거 성공 시각은 유지하고 오래된 quota를 현재 값으로 승격하지 않는다.
+
+macOS와 Windows 문구에 로컬 만료/제공자 응답 실패를 구분했다. Windows README의
+macOS-only 자동 갱신 설명도 현재 양 플랫폼 갱신 중지 계약으로 수정했다. 신규 4 tests/
+54 assertions는 요청 0·허위 HTTP 없음·설정/토큰 무노출·429 보존·로컬 cooldown 후
+갱신 fixture 회복·unknown 형식의 허위 만료 금지를 확인한다. 실제 credential 갱신이나
+Mac API 복구를 이 fixture로 완료 처리하지 않는다.
+
+설치 plugin 한 파일의 이전 본문 일치를 확인하고 /tmp/tokenjuice-before-expiry-guard.pBeYg3에
+백업 후 apply_patch로 갱신했다. helper/engine 소스 일치다. 설정/권한/credential/CLI/
+모델/실제 대화는 변경하지 않았다. 실제 복구·장기 갱신·전체 출시 gate는 남아 있다.
+
+Windows native toast 경계도 현재 코드와 공식 안내로 재점검했다. 과거 §6과 달리 엔진
+notificationEvents 계약은 이미 있으나 현재 sender는 Win32 balloon뿐이다. 공식
+Windows App SDK 경로는 별도 helper/runtime와 앱 COM 등록/제거 설계·실기기 검증이
+필요하다. 기존 Python 경로의 Windows-Toasts도 별도 SDK binding/앱 식별과 클릭 수명
+검증이 필요해 현재 dependency를 임의로 교체하지 않았다. helper·설치 경계 변경에 대해
+사용자에게 질문했으며 답변/실제 설치·등록·알림 활성화·스토어 제출은 아직 없다.
+
+근거: [Microsoft local app notification/COM registration](https://learn.microsoft.com/en-us/windows/apps/develop/notifications/app-notifications/app-notifications-dotnet),
+[Windows-Toasts 공식 프로젝트 문서](https://windows-toasts.readthedocs.io/en/latest/).
+
+최종 strict release-verify --require-browser exit 0: 276 pass·1 skip·2979 assertions,
+기존 전체 browser·Bun 번들·알림 dry-run·Windows Python 문법 및 설치 engine/helper 일치다.
+이 결과는 로컬/API fixture와 renderer 범위이며 실제 Windows 알림 발화·현재 Claude
+수집 복구·신규 사용자 설치·스토어 출시를 대신하지 않는다.

@@ -81,6 +81,7 @@ def check_degenerate() -> None:
     for reason in ("needs-api", "login", "rate-limit", None, "unrecognised"):
         assert t.explain_no_limits(reason), f"no explanation for {reason!r}"
     assert t.explain_no_limits(None, "auth_expired"), "no explanation for auth_expired"
+    assert "no provider request sent" in " ".join(t.explain_no_limits("credential-expired", "auth_expired"))
     assert t.explain_no_limits(None, "rate_limited"), "no explanation for rate_limited"
     assert t.state_display_label("stale") == "업데이트 필요"
     assert t.state_display_label("auth_expired") == "다시 연결 필요"

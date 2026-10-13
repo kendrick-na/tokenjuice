@@ -306,9 +306,9 @@ def render_icon(groups: list[dict], error: bool = False) -> Image.Image:
 
 def explain_no_limits(reason: str | None, state: str | None = None) -> list[str]:
     """Why the Claude limit batteries are blank, and what to do about it."""
-    if state == "auth_expired" or reason == "auth":
+    if state == "auth_expired" or reason in ("auth", "credential-expired"):
         return [
-            "usage API login expired",
+            "local login token expired — no provider request sent" if reason == "credential-expired" else "usage API login expired",
             "NEXT · Claude Code에서 다시 로그인",
             "Windows에서는 자동 로그인 갱신을 실행하지 않습니다",
             "last successful value is never shown as live",

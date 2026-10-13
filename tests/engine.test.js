@@ -228,6 +228,73 @@ test("read-only API guard overrides persisted API configuration", () => {
   expect(calls()).toBe(0);
 });
 
+test("known expired Claude credential blocks requests without fabricating an HTTP error", () => {
+  writeFileSync(fx,JSON.stringify({status:200,body:okUsage(),credential:{claudeAiOauth:{accessToken:"SECRET_EXPIRED_TOKEN",expiresAt:Date.now()-1000}}}));
+  const result=json().claude[0];
+  expect(result.state).toBe("auth_expired");
+  expect(result.reason).toBe("credential-expired");
+  expect(result.errorCode).toBeNull();
+  expect(calls()).toBe(0);
+  expect(renewCalls()).toEqual([]);
+  const saved=JSON.parse(readFileSync(path.join(home,".cache/claude-codex-battery/claude-0.fail.json"),"utf8"));
+  expect(saved.reason).toBe("credential-expired");
+  expect(saved.status).toBeUndefined();
+  expect(saved.until).toBeGreaterThan(Date.now());
+  expect(JSON.stringify(saved)).not.toContain("SECRET_EXPIRED_TOKEN");
+  const menu=run();
+  expect(menu).toContain("NEXT · Claude Code에서 다시 로그인");
+  expect(menu).toContain("제공자 요청 전 차단");
+  expect(menu).not.toContain("SECRET_EXPIRED_TOKEN");
+  expect(calls()).toBe(0);
+});
+
+test("credential expiry never bypasses 429 and a renewed credential can resume after local cooldown", () => {
+  const credential={claudeAiOauth:{accessToken:"SECRET_RENEWED_TOKEN",expiresAt:Date.now()-1000}};
+  writeFileSync(fx,JSON.stringify({status:200,body:okUsage(),credential}));
+  const blocked={status:429,at:Date.now(),until:Date.now()+3600000};
+  const file=cache("claude-0.fail.json",blocked);
+  expect(json().claude[0].state).toBe("rate_limited");
+  expect(JSON.parse(readFileSync(file,"utf8"))).toEqual(blocked);
+  expect(calls()).toBe(0);
+  cache("claude-0.fail.json",{until:0});
+  expect(json().claude[0].state).toBe("auth_expired");
+  credential.claudeAiOauth.expiresAt=Date.now()+3600000;
+  writeFileSync(fx,JSON.stringify({status:200,body:okUsage(),credential}));
+  expect(json().claude[0].state).toBe("auth_expired");
+  expect(calls()).toBe(0);
+  cache("claude-0.fail.json",{until:0});
+  expect(json().claude[0].state).toBe("fresh");
+  expect(calls()).toBe(1);
+  expect(renewCalls()).toEqual([]);
+});
+
+test("unknown credential expiry does not fabricate expiration or expose tokens", () => {
+  for (const expiry of [undefined,null,0,"1000",false,1e25,Date.now()+3600000]) {
+    cache("claude-0.json",{});
+    cache("claude-0.fail.json",{until:0});
+    const oauth={accessToken:"SECRET_CURRENT_TOKEN"};
+    if (expiry!==undefined) oauth.expiresAt=expiry;
+    writeFileSync(fx,JSON.stringify({status:200,body:okUsage(),credential:{claudeAiOauth:oauth}}));
+    const result=json().claude[0];
+    expect(result.state).toBe("fresh"); // actual fixture response, not assumed login freshness
+    expect(JSON.stringify(result)).not.toContain("SECRET_CURRENT_TOKEN");
+  }
+  expect(calls()).toBe(7);
+  expect(renewCalls()).toEqual([]);
+});
+
+test("missing Claude access token is never sent as a bearer credential", () => {
+  for (const accessToken of [undefined,null,"", "   ",42]) {
+    const credential={claudeAiOauth:{accessToken}};
+    writeFileSync(fx,JSON.stringify({status:200,body:okUsage(),credential}));
+    const result=json().claude[0];
+    expect(result.state).toBe("unavailable");
+    expect(result.reason).toBe("login");
+    expect(result.errorCode).toBeNull();
+  }
+  expect(calls()).toBe(0);
+});
+
 test("statusline provider quota works during OAuth backoff without API requests", () => {
   const at = Date.now();
   write(".claude/tokenjuice-statusline-quota.json", { ...okUsage(28, 17), collector: "claude-code-statusline-v1", observedAt: at });

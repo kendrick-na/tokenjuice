@@ -89,7 +89,7 @@ the full native-toast release gate remain pending. See the [pystray documentatio
 
 If the tray reports an expired Claude login, sign in again in Claude Code yourself.
 The Windows tray does not automatically renew login, including when the shared
-config contains `autoRenew:true`; that execution path is macOS-only. Its recovery
+config contains `autoRenew:true`; background renewal is disabled on both platforms. Its recovery
 text is an instruction, not a button that runs the CLI or changes credentials.
 Old successful values remain labelled as historical, never live after auth failure.
 

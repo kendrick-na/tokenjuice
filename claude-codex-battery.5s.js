@@ -342,14 +342,31 @@ function loadAccounts() {
   return accounts;
 }
 
+function credentialExpiredError() {
+  const error = new Error("Claude credential expired locally; no usage request sent");
+  error.code = "credential-expired";
+  return error;
+}
+function tokenFromClaudeCredential(credential) {
+  const oauth = credential?.claudeAiOauth;
+  if (typeof oauth?.accessToken !== "string" || !oauth.accessToken.trim()) throw new Error("Claude credential: missing access token");
+  const expiry = oauth?.expiresAt;
+  // Internal credential formats can change. Only a known numeric millisecond
+  // expiry is evidence; never coerce strings or infer expiry from token text.
+  if (oauth?.accessToken && Number.isFinite(expiry) && expiry > 0
+    && Number.isFinite(new Date(expiry).getTime()) && expiry <= Date.now()) {
+    throw credentialExpiredError();
+  }
+  return oauth?.accessToken;
+}
 function readClaudeToken(acc = {}) {
   // 명시적 credFile > 플랫폼 기본
   const explicit = expandHomePath(acc.credFile);
-  if (explicit) return JSON.parse(readFileSync(explicit, "utf8")).claudeAiOauth.accessToken;
+  if (explicit) return tokenFromClaudeCredential(JSON.parse(readFileSync(explicit, "utf8")));
   // Windows / Linux: 자격증명은 평문 파일(~/.claude/.credentials.json)
   if (!IS_MAC) {
     const p = path.join(expandHomePath(acc.configDir) || claudeHome(), ".credentials.json");
-    return JSON.parse(readFileSync(p, "utf8")).claudeAiOauth.accessToken;
+    return tokenFromClaudeCredential(JSON.parse(readFileSync(p, "utf8")));
   }
   // macOS: 키체인
   const svc = acc.keychainService || "Claude Code-credentials";
@@ -359,6 +376,7 @@ function readClaudeToken(acc = {}) {
   // login with empty tokens. Try the exact account first, then any match.
   const accounts = acc.keychainAccount ? [acc.keychainAccount] : [os.userInfo().username, null];
   for (const a of accounts) {
+    let credential = null;
     try {
       // Never interpolate config values into a shell command. `keychainService`
       // and `keychainAccount` are user-editable fields in accounts.json, so
@@ -369,9 +387,10 @@ function readClaudeToken(acc = {}) {
       const raw = execFileSync("/usr/bin/security", args, {
         encoding: "utf8", timeout: 10000, stdio: ["ignore", "pipe", "ignore"],
       });
-      const token = JSON.parse(raw)?.claudeAiOauth?.accessToken;
-      if (token) return token;
+      credential = JSON.parse(raw);
     } catch {}
+    // A readable selected login that expired must not silently switch accounts.
+    if (credential?.claudeAiOauth?.accessToken) return tokenFromClaudeCredential(credential);
   }
   throw new Error("keychain: no Claude Code login with a token (find-generic-password)");
 }
@@ -873,8 +892,9 @@ function updateNotifyTarget(key, patch) {
 async function fetchClaudeUsage(acc) {
   const fx = process.env.CCB_TEST_USAGE_FIXTURE;
   if (fx) {
-    appendFileSync(fx + ".calls", `${Date.now()}\n`);
     const f = JSON.parse(readFileSync(fx, "utf8"));
+    if (Object.hasOwn(f,"credential")) tokenFromClaudeCredential(f.credential);
+    appendFileSync(fx + ".calls", `${Date.now()}\n`);
     if (Number.isSafeInteger(f.delayMs) && f.delayMs > 0 && f.delayMs <= 2000) await Bun.sleep(f.delayMs);
     return new Response(JSON.stringify(f.body ?? {}), { status: f.status ?? 200, headers: f.headers ?? {} });
   }
@@ -1008,6 +1028,7 @@ async function getClaude(acc = {}, idx = 0, waitDeadline = Date.now()+16000) {
       refreshing = !!fail.refreshing;
       failStatus = Number(fail.status) || null;
       retryAt = Number(fail.until) || null;
+      if (fail.reason === "credential-expired") throw credentialExpiredError();
       throw new Error(`usage api ${fail.status} (waiting)`);
     }
     return null;
@@ -1058,11 +1079,18 @@ async function getClaude(acc = {}, idx = 0, waitDeadline = Date.now()+16000) {
     return out;
   } catch (e) {
     const msg = String(e.message || e);
-    const failureState = failStatus ? usageStateForHttp(failStatus) : null;
+    const credentialExpired = e.code === "credential-expired";
+    if (credentialExpired && !retryAt && !READ_ONLY_DIAGNOSTICS) {
+      const at = Date.now();
+      retryAt = at + CLAUDE_TTL_MS;
+      try { writeFileSync(failFile,JSON.stringify({reason:"credential-expired",at,until:retryAt})); } catch {}
+    }
+    const failureState = credentialExpired ? "auth_expired" : failStatus ? usageStateForHttp(failStatus) : null;
     // A recent desktop sample is the next-best live value.
     if (app?.ok && Date.now() - app.at < CLAUDE_APP_LIVE_MS) {
       return {
         ...app,
+        ...(credentialExpired ? {reason:"credential-expired"} : {}),
         ...usageState({
           state: "fallback",
           source: app.source || "claude-app",
@@ -1085,6 +1113,7 @@ async function getClaude(acc = {}, idx = 0, waitDeadline = Date.now()+16000) {
       const at = c.lastSuccessAt ?? c.at;
       return {
         ...c,
+        ...(credentialExpired ? {reason:"credential-expired"} : {}),
         ...usageState({
           state: failureState || "stale",
           source: c.source || "unknown",
@@ -1101,13 +1130,14 @@ async function getClaude(acc = {}, idx = 0, waitDeadline = Date.now()+16000) {
       };
     }
     // 클린 환경(첫 설치·미로그인·키체인 거부) → raw 에러 대신 원인 분류
-    const reason = /^(refresh-in-progress|request-coordination-unavailable)$/.test(msg) ? msg
+    const reason = credentialExpired ? "credential-expired"
+      : /^(refresh-in-progress|request-coordination-unavailable)$/.test(msg) ? msg
       : READ_ONLY_DIAGNOSTICS && !failStatus ? "diagnostics-cache-miss"
       : failStatus === 401 || failStatus === 403 || /401|403|unauthorized|invalid.*token/i.test(msg)
       ? "auth"
       : failStatus === 429 || /429|rate limit/i.test(msg)
       ? "rate-limit"
-      : /find-generic-password|keychain|SecKeychain/i.test(msg)
+      : /find-generic-password|keychain|SecKeychain|credential: missing access token/i.test(msg)
       ? "login"      // 로그인 안 됨 / 키체인 접근 불가
       : /ENOENT|no such file/i.test(msg) ? "login" : "error";
     // Both sources are down: report the API cause and keep the app's last
@@ -2526,7 +2556,9 @@ for (let ai = 0; ai < accounts.length; ai++) {
   } else if (cl.reason === "invalid_timestamp") {
     out.push("⚠️ 확인할 수 없음 · 사용량 기록 시각을 확인할 수 없어 숫자를 표시하지 않습니다 | size=12 color=#ffcc00");
   } else if (cl.reason === "auth" || state === "auth_expired") {
-    out.push("🔐 다시 연결 필요 · Claude 인증 실패 (실시간 숫자 없음) | size=12 color=#ff453a");
+    out.push(cl.reason === "credential-expired"
+      ? "🔐 다시 연결 필요 · 로컬 Claude 토큰 만료 (제공자 요청 전 차단) | size=12 color=#ff453a"
+      : "🔐 다시 연결 필요 · Claude 인증 실패 (실시간 숫자 없음) | size=12 color=#ff453a");
     if (cl.appLast) {
       out.push(`--Claude app stopped sampling (last ${fmtAgo(cl.appLast.at)}: 5-hour ${100 - cl.appLast.fh}% · weekly ${100 - cl.appLast.sd}% left) | size=11 color=#8b949e`);
     }
