@@ -2052,3 +2052,13 @@ exact matching으로 강화했고 오래된 fixture의 현재 경고 기대는 �
 최종 strict release-verify --require-browser exit 0: 272 pass·1 skip·2925 assertions 및
 새 forecast browser 포함 전체 browser PASS, 설치 engine/helper 일치다. 새 forecast UI는
 source 후보이며 공개 반영·CI 판정은 후속 실제 결과로 기록한다.
+
+23a7518d956e97017486001afbb7c2a29433566d의 Engine 38355943186·Windows
+38355943168·Pages 38355943149는 모두 success다. Pages verify 115158736883/
+deploy 115159138544도 success다. 한 번의 job log 조회는 전송 timeout이었으며
+CI 실패/재실행으로 취급하지 않는다. 공개 index/app.js/app.css/sw/snapshot/resume/guide/
+guide.js/feedback/privacy/history/work-summary/work-files/manifest 14개 HTTP200·SHA-256
+소스 일치다. 신규 비로그인 headless browser에서 실제 공개 페이지에 합성 파일만 가져와
+분리 영역·상단 CTA·공식 수치·history 동선·시각 경과/만료/rollback·focus/저장 보존·
+375/desktop/큰 글자·외부/POST 0회 검증을 통과했다. 현재 Pocket은 23a7518/v30이고
+desktop 자산은 v1.2.2다. 실제 수집/설치·사용자 만족도·스토어 완료로 확대하지 않는다.
