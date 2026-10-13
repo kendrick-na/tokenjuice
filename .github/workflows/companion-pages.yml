@@ -51,7 +51,7 @@ jobs:
           python tests/context-expiry.test.py
           python tests/forecast-panel.test.py
       - name: Upload static PWA
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: companion
 
