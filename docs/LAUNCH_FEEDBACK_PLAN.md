@@ -5,13 +5,14 @@
 
 ## 현재 출시 순서와 복구 상태 — 2026-10-13
 
-마지막 검증된 읽기 전용 진단 14:55 KST: Claude는 HTTP401/auth expired·trust blocked,
-마지막 성공 약 18시간 전이며 현재 인증 복구의 증거가 아니다. 기본 계정 credential
+마지막 검증된 읽기 전용 진단 15:42 KST: Claude는 HTTP429/rate_limited·trust blocked,
+재확인 예정 16:11·마지막 성공 약 19시간 전이다. 현재 인증 복구의 증거가 아니다.
+14:55의 HTTP401/로컬 토큰 만료 증거와 구분한다. 기본 계정 credential
 메타데이터의 액세스 토큰 만료를 확인했지만 토큰값은 출력/전송하지 않았다. 공식 auth status의
 loggedIn도 usage 인증 성공을 뜻하지 않는다. Codex local JSONL은 fresh였다. 기존 autoRenew
 설정은 보존하되 미검증 백그라운드 CLI 갱신을 중지하고 과거 exit 0도 갱신 미검증으로 표시한다.
 사용자의 Claude Code 재로그인 완료 답변은 없다. SwiftBar native 접근은 timeout이었다.
-설치 plugin 한 파일만 백업/수정했고 인증·권한·설정·실패 캐시는 바꾸지 않았다(audit §9.87).
+설치 plugin 한 파일만 백업/수정했고 인증·권한·설정·실패 캐시는 바꾸지 않았다(audit §9.87~9.89).
 
 Claude 실제 API 수집·사용자 메뉴바 숫자 확인(audit §9.27)과 공식 수치 대조(§9.47)는
 과거 성공 이력으로만 유지한다. 현재 수집 복구·신규 설치·절전 복귀·장기 갱신은 미완료다.

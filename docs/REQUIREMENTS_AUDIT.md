@@ -2,7 +2,7 @@
 
 확인일: 2026-10-10
 
-최신 상태 보정(2026-10-13): §9.87을 우선한다. 백그라운드 CLI 갱신은 중지했고
+최신 상태 보정(2026-10-13): §9.87~9.89를 우선한다. 백그라운드 CLI 갱신은 중지했고
 이전 종료 코드 0/수치 대조는 현재 인증 복구의 증거가 아니다. 실제 Claude 복구는 미완료다.
 
 이 문서는 개발기획서의 요구사항을 현재 저장소의 코드·테스트·CI·release·실제
@@ -2108,3 +2108,9 @@ Windows App SDK 경로는 별도 helper/runtime와 앱 COM 등록/제거 설계�
 기존 전체 browser·Bun 번들·알림 dry-run·Windows Python 문법 및 설치 engine/helper 일치다.
 이 결과는 로컬/API fixture와 renderer 범위이며 실제 Windows 알림 발화·현재 Claude
 수집 복구·신규 사용자 설치·스토어 출시를 대신하지 않는다.
+
+52f0e9825f91e2661e9050d5cbc2dfbbe12c9dd3의 Engine 38358201058은 macOS/Ubuntu/
+Companion browser 모두 success이고 Windows 38358201027의 build/selftest·EXE 생성·
+EXE 실행·artifact 업로드도 success다. tag release는 skipped다. 공개 Pocket v30/
+desktop immutable v1.2.2는 변경되지 않았다. 설치 source 일치와 실제 인증 복구를 구분한다.
+15:42 KST 읽기 전용 설치본 진단은 여전히429·재확인16:11·마지막성공19시간전이다.
