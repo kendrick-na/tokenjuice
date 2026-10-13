@@ -2,6 +2,9 @@
 
 확인일: 2026-10-10
 
+최신 상태 보정(2026-10-13): §9.87을 우선한다. 백그라운드 CLI 갱신은 중지했고
+이전 종료 코드 0/수치 대조는 현재 인증 복구의 증거가 아니다. 실제 Claude 복구는 미완료다.
+
 이 문서는 개발기획서의 요구사항을 현재 저장소의 코드·테스트·CI·release·실제
 검증 gate로 분리해 매핑한다. `자동 통과`는 fixture/browser/CI 범위의 통과일 뿐이며,
 실사용자·실기기·정책 결정을 대신하지 않는다.
@@ -48,7 +51,7 @@ Mac 아이콘/클릭 패널 존재는 사용자 보고로 확인했다. 실제 �
 |---|---|---|---|
 | R1 | `fresh/stale/unavailable/rate_limited/auth_expired/fallback` 상태 모델 | `usageState()`, `usageStateForHttp()`, `stateLabel()`, engine state tests | 코드·fixture 완료; 실제 provider 형식 변화는 ongoing risk |
 | R2 | last success/source/retry 시각 | `buildDiagnostics()`, menu recovery rows, developer mode; stale/429/401 tests | 코드·자동 검증 완료; 실제 계정 메시지 이해는 pending |
-| R3 | 인증 만료를 명시 상태·사용자 실행 안내로 전환 | macOS `autoRenew:false` 기본값; 명시적 `autoRenew:true`일 때만 401/403 이후 10분 제한 갱신; 메뉴 정책 표시와 `--renew-login`; `tests/engine.test.js` opt-in/opt-out/수동 실행 테스트 | macOS 코드·자동 검증 및 Windows 수동 설명 selftest 완료(§9.15). Windows 자동 갱신은 미지원. 0 model-call은 2026-10-05 Claude CLI 2.1.238 실측에 한정(버전 변경 시 재검증); 실제 계정 재로그인·Keychain 및 Claude Team/조직 정책 확인은 pending |
+| R3 | 인증 만료를 명시 상태·사용자 실행 안내로 전환 | §9.87: 기존 autoRenew 설정 보존, 실제 자동 실행 중지; --renew-login도 실행하지 않음. legacy 종료 코드는 갱신 미검증. no-hidden-CLI/backoff-preservation fixture | 안전 차단 구현. 과거 0 model-call/갱신 성공 판정 철회: 종료 코드만으로 증명할 수 없음. 실제 재로그인·계정·장기 인증/절전 복구는 pending |
 | R4 | 429 Retry-After·backoff | `fetchClaudeUsage()`, 429 tests | 자동 검증 완료 |
 | R5 | wake refresh single debounce | `scripts/ensure-swiftbar-visible.sh`, 손상 tick/refresh 회복·debounce fixture, `scripts/check-installed-sources.sh`, §9.20 CI·§9.21 설치 | 코드·fixture·한 파일 백업/갱신 완료. 실제 sleep/wake 관찰 필요 |
 | R6 | threshold/reset/forecast/reconnect 알림 | `runNotifications()`, target/account overrides, threshold/reset/reconnect·reset-soon·forecast tests, §9.56~9.61 | 지원 범위 구현: threshold·잔여량 회복·reconnect·별도 opt-in reset-soon/Claude 및 Codex local forecast 발화. Codex는 별도 수집/알림 동의와 유효 미래 reset 필요. Windows Win32 tray sender·실제 엔진 연결은 CI 통과; macOS/Windows 사용자 기기 presentation은 pending |
@@ -1951,3 +1954,55 @@ HTTP200·SHA-256 소스 일치다. 신규 비로그인 browser에서 실제 공�
 snapshot만 가져와 역사적 컨텍스트 표시·checkpoint 생성/원본 시각 구분·POST/외부 전송
 없음을 확인했다. 실제 계정/대화나 native 메뉴바 복구로 확대하지 않는다.
 현재 공개 Pocket은 8565152/v29이며 desktop 고정 release는 v1.2.2다.
+
+### 9.87 Claude 수집 현황과 미검증 CLI 갱신 차단
+
+systematic-debugging에 따라 인증/설정 변경 없이 기존 관측·공식 문서·native 화면부터
+점검했다. 최초 429 관측 뒤 최신 2026-10-13 14:55 KST 읽기 전용 진단은 401/auth_expired,
+마지막 성공 약 18시간 전이다. 정상/복구로 판정하지 않는다. Claude native 앱에는 주간
+사용량/reset 표시가 있었지만 이 값이 현재 freshly fetched인지, TokenJuice의 계정과
+일치하는지는 미검증이다. 실제 사용자 quota/대화는 공개 문서에 복제하지 않았다.
+SwiftBar native 접근은 timeout으로 화면을 확인하지 못했다. 다른 Claude 작업의 권한
+요청은 승인/거절/변경하지 않았다.
+
+기존 statusLine 설정·wrapper의 collector 경로/실행권한·stdin 전달·Bash 문법은 정상이나
+quota 출력 파일은 없다. CLI 2.1.238 실행 프로세스의 TTY 메타데이터만 점검했고 모두
+TTY가 없었다. callback 호출 여부나 구독 플랜 지원을 증명하지 않으므로 임의로 Claude
+설정/로그인/버전을 바꾸지 않았다. 공식 statusline 문서는 rate_limits를 Pro/Max 또는
+apps gateway spend-limit 조건으로 설명한다. Team/Desktop/headless에서 같은 callback을
+받는다고 가정하지 않는다.
+
+더 중요한 안전 결함은 기존 `claude -p /usage` 종료 코드 0을 갱신 성공으로 표시하고
+모델 호출/대화 기록이 없다고 단정했던 것이다. 공식 문서는 -p를 비대화형 prompt 실행으로
+설명하고 terminal 전용 built-in 명령은 사용할 수 없다고 한다. /usage는 사용량 화면
+명령이지만 무모델 갱신 계약은 명시하지 않는다. 이 CLI 버전에서 실제 모델 호출이
+발생했다고 단정하지도 않는다. 과거 증거는 무토큰/갱신 보장에 부족하므로 경로를 중지했다.
+실제 suspect 명령을 재실행하지 않았다.
+
+autoRenew 기존 설정은 그대로 보존한다. true여도 effective renewal은 false이고 JSON에
+requestedAuto/disabledReason을 분리한다. CLI와 메뉴는 중지 상태/직접 claude auth login을
+안내하며 자동 갱신 켜기/숨은 수동 실행 버튼을 제거했다. --renew-login은 CLI를 실행하지
+않고 401/429 backoff도 재설정하지 않는다. 과거 결과 파일은 보존하되 exit 0도 갱신
+미검증으로 표시한다. --auto-renew-on/off는 호환 설정 저장만 하며 실제 실행을 켜지 않는다.
+
+격리 HOME/fake CLI 테스트 두 개로 hidden invocation와 false success를 먼저 재현했다.
+이후 기존 자동/수동 갱신 테스트를 새 안전 계약으로 강화하고 반복 호출·기존 실패 파일
+보존·legacy flag 비공개를 검증했다. 첫 구현에서 남은 bin 참조를 테스트가 검출해 제거했다.
+legacy flag 테스트는 JSON 비공개 필드에 false를 기대한 assertion 오류를 undefined로
+수정했다. timeout/skip을 늘리거나 제공자/모델을 호출하지 않았다.
+
+승인된 설치본 한 파일만 /tmp/tokenjuice-engine-before-renewal-fix.u541QB에 백업하고
+apply_patch로 갱신했다. plugin/helper 본문 일치다. 설정·credential·cookie·다른 작업의
+권한·런타임/모델 설치는 변경하지 않았다. 원격 공개 후보/CI와 실제 Claude 복구·장기
+인증/절전·신규 설치·native UX·스토어/실사용 피드백·전체 목표 완료는 별도다.
+
+공식 근거:
+[비대화형 실행/명령 지원](https://code.claude.com/docs/en/headless),
+[인증 CLI](https://code.claude.com/docs/en/cli-reference),
+[사용량 화면 명령](https://code.claude.com/docs/en/commands),
+[statusline rate_limits](https://code.claude.com/docs/en/statusline).
+
+최종 strict release-verify --require-browser exit 0: 272 pass·1 skip·2925 assertions.
+엔진/브라우저·Bun 번들·macOS 알림 dry-run·Windows Python·plugin/helper 일치까지
+통과했다. SwiftBar native 재접근도 timeout이어서 실제 화면 완료는 아니다. 기존 Pocket
+v29나 immutable v1.2.2 자산을 새 desktop release로 부르지 않는다.

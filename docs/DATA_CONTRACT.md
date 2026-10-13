@@ -143,8 +143,10 @@ provider 필드의 스키마를 검증하거나 실계정 정확성을 보증하
   프로필 root의 `sessions/**/*.jsonl` 기록에서 읽는다. 현재
   세션이 장시간 기록을 남기지 않으면 `stale`가 될 수 있다.
 - `429`의 `Retry-After`는 우선 준수한다. 없는 경우에도 최소 5분 대기한다.
-- macOS의 Claude 로그인 갱신은 기본적으로 수동이다. 메뉴의 명시적 동작 또는
-  `config.json`의 `autoRenew:true`라는 사용자의 옵트인에서만 CLI를 실행한다.
+- Claude 백그라운드 CLI 갱신은 중지했다. 과거 `autoRenew:true` 설정은 보존하지만
+  실행하지 않는다. `--renew-login`도 CLI를 시작하거나 backoff를 초기화하지 않는다.
+  인증 만료 시 사용자가 직접 `claude auth login`을 진행해야 한다. 과거 CLI 종료 코드
+  0은 갱신 성공의 증거가 아니므로 갱신 미검증으로 표시한다.
 - Windows에는 이 갱신 실행 경로가 없다. 인증 만료는 Claude Code에서 다시 로그인하라는
   수동 안내만 표시하며, renderer가 CLI/로그인·설정·자격증명을 실행하거나 변경하지 않는다.
   빈 인증 오류 패널의 NEXT는 비활성 설명 행이지 로그인 버튼/자동 복구가 아니다.

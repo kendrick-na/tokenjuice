@@ -703,8 +703,8 @@ test("renewal policy menu is reversible during auth failure without duplicate re
   config({ api: true, autoRenew: false });
   usage(401);
   const manual = run();
-  expect(manual).toContain("위 실행 범위에 동의하고 자동 갱신 켜기");
-  expect(manual).toContain("param1=--auto-renew-on");
+  expect(manual).toContain("Login renewal: disabled");
+  expect(manual).not.toContain("param1=--auto-renew-on");
   expect(manual).not.toContain("Renew Claude login now");
   expect(manual).toContain("웹 쿠키 접근 없음");
   config({ api: true, autoRenew: true });
@@ -826,26 +826,63 @@ test("429 without Retry-After still backs off at least 5 minutes", () => {
 });
 
 // ── R3 · login renewal policy ────────────────────────────────────────────
-test("401 with autoRenew on: renews once in the background, never in a loop", async () => {
+test("unverified renewal never invokes Claude or writes a renewal result", async () => {
+  config({ api: true, autoRenew: true });
+  usage(401);
+  json();
+  const before = calls();
+  const result = spawnSync(process.execPath, [ENGINE, "--renew-login"], { encoding: "utf8", env: engineEnv({ CCB_CLAUDE_BIN: path.join(home, "fake-claude") }) });
+  await sleep(300);
+  expect(result.status).toBe(1);
+  expect(result.stdout).toContain("renewal disabled");
+  expect(result.stdout).toContain("claude auth login");
+  expect(calls()).toBe(before);
+  expect(renewCalls()).toEqual([]);
+  expect(existsSync(path.join(home, ".cache/claude-codex-battery/claude-refresh.json"))).toBe(false);
+  const menu = run();
+  expect(menu).not.toContain("no model call");
+  expect(menu).not.toContain("param1=--auto-renew-on");
+  expect(menu).not.toContain("param1=--renew-login");
+});
+
+test("legacy CLI exit zero is not represented as verified login renewal", () => {
+  if (process.platform !== "darwin") return;
+  config({ api: true });
+  usage(200, okUsage());
+  cache("claude-refresh.json", { at: Date.now() - 60000, trigger: "manual" });
+  write(".cache/claude-codex-battery/claude-refresh.result", "0");
+  expect(run()).toContain("renewal unverified");
+});
+
+test("legacy refreshing flag cannot advertise active renewal or shorten its retry", () => {
+  config({api:true,autoRenew:true});
+  const retryAt=Date.now()+300000;
+  const file=cache("claude-0.fail.json",{status:401,at:Date.now(),until:retryAt,refreshing:true});
+  const before=readFileSync(file,"utf8");
+  const result=json();
+  expect(result.claude[0].refreshing).toBeUndefined(); // internal legacy flag is not a public status
+  expect(result.claude[0].retryAt).toBe(retryAt);
+  expect(readFileSync(file,"utf8")).toBe(before);
+  expect(calls()).toBe(0);
+  expect(renewCalls()).toEqual([]);
+});
+test("401 with saved autoRenew on: disabled renewal never launches a background CLI", async () => {
   if (process.platform !== "darwin") return; // 갱신 CLI는 macOS 키체인 흐름 전용
   config({ api: true, autoRenew: true });
   usage(401);
   const j = json();
   expect(j.claude[0].state).toBe("auth_expired");
-  // spawn() is intentionally detached. Wait for its observable result instead
-  // of assuming the test runner has scheduled the child within 500ms.
-  await waitFor(() => renewCalls().length === 1, "the background login renewal");
-  expect(renewCalls().length).toBe(1);
-  expect(renewCalls()[0]).toContain("-p /usage");
-  expect(renewCalls()[0]).toContain("--no-session-persistence");
-  // after the short retry window, another 401 must not start a second renew
+  expect(j.renew.auto).toBe(false);
+  expect(j.renew.requestedAuto).toBe(true);
+  expect(j.renew.disabledReason).toBe("unverified-cli-renewal");
+  // Another auth failure cannot re-enable the obsolete command.
   cache("claude-0.fail.json", { until: 0 });
   run("--json");
   await sleep(300);
-  expect(renewCalls().length).toBe(1);
+  expect(renewCalls().length).toBe(0);
   const menu = run();
-  expect(menu).toContain("claude login renewal: auto");
-  expect(menu).toMatch(/auto run .* · ok/);
+  expect(menu).toContain("claude login renewal: disabled");
+  expect(menu).not.toContain("· ok");
 });
 
 test("401 with autoRenew off: nothing runs and the panel keeps one login action", async () => {
@@ -859,15 +896,19 @@ test("401 with autoRenew off: nothing runs and the panel keeps one login action"
   expect(menu).not.toContain("Renew Claude login now");
 });
 
-test("--renew-login runs on demand but not twice within a minute", async () => {
+test("--renew-login is a non-mutating manual-login handoff on repeated requests", async () => {
   if (process.platform !== "darwin") return;
   config({ api: true, autoRenew: false });
-  expect(run("--renew-login").trim()).toBe("renew started");
-  await waitFor(() => renewCalls().length === 1, "the manual background login renewal");
-  expect(renewCalls().length).toBe(1);
-  const r = spawnSync(process.execPath, [ENGINE, "--renew-login"], { encoding: "utf8", env: engineEnv({ CCB_CLAUDE_BIN: path.join(home, "fake-claude"), CCB_COMPACT: "0" }) });
-  expect(r.stdout).toContain("skipped");
-  expect(renewCalls().length).toBe(1);
+  const failure = cache("claude-0.fail.json", {status:401, at:Date.now(), until:Date.now()+300000});
+  const before = readFileSync(failure,"utf8");
+  for (let i=0;i<2;i++) {
+    const r = spawnSync(process.execPath, [ENGINE, "--renew-login"], { encoding: "utf8", env: engineEnv({ CCB_CLAUDE_BIN: path.join(home, "fake-claude"), CCB_COMPACT: "0" }) });
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain("renewal disabled");
+  }
+  await sleep(300);
+  expect(renewCalls().length).toBe(0);
+  expect(readFileSync(failure,"utf8")).toBe(before);
 });
 
 // ── R6 · opt-in notifications ────────────────────────────────────────────

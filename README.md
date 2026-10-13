@@ -439,21 +439,25 @@ bun·SwiftBar를 확인(없으면 자동 설치)하고 플러그인을 등록한
 | 대체값 (`fallback`) | Claude Desktop의 최근 표본 | 표시하되 대체값으로 라벨링 |
 | 오래됨/인증 만료/요청 제한 | 현재 값이라고 보장할 수 없음 | 메뉴바·CLI에서 숫자를 숨김 |
 
-Claude API 모드의 로그인 갱신은 **기본 수동**이다. 로그인 만료가 보이면 메뉴의
-`Renew Claude login now`를 누른다. 자동 갱신을 원할 때만 아래처럼 명시적으로 켠다.
+Claude API 모드의 백그라운드 CLI 갱신은 **중지**했다. 인증이 만료되면 사용자가
+터미널에서 직접 `claude auth login`을 진행한다. 429는 재로그인 대신 표시된 대기
+시간을 준수한다. 기존 `autoRenew:true`도 CLI를 실행하지 않는다.
 
 ```json
 // ~/.config/claude-codex-battery/config.json
 {
   "api": true,
-  "autoRenew": true,
+  "autoRenew": false,
   "notify": { "enabled": true, "threshold": 20, "reset": true },
   "forecast": { "enabled": true },
   "sessionStatus": { "enabled": true }
 }
 ```
 
-`autoRenew`는 Claude CLI를 백그라운드에서 실행할 수 있으므로, 동작을 이해한 경우에만 켠다.
+과거 `claude -p /usage`의 종료 코드만으로 인증 갱신이나 무토큰 호출을 증명할 수 없다.
+이 경로는 실행하지 않으며 이전 실행 이력은 갱신 미검증으로 표시한다.
+[공식 CLI 인증 명령](https://code.claude.com/docs/en/cli-reference)과
+[비대화형 명령의 지원 범위](https://code.claude.com/docs/en/headless)를 참고한다.
 `notify`도 기본 꺼짐이다. 켜면 최신(`fresh`) 한도만 기준으로 20% 이하 경고와 리셋 후 회복 알림을 한 번씩 보낸다.
 메뉴의 `Alert settings`에서 알림 켜기/끄기, threshold(10/20/30%), reset 알림을
 직접 바꿀 수 있다. 설정은 로컬 config.json에만 저장되고 서버로 전송되지 않는다.

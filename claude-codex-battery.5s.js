@@ -679,7 +679,7 @@ function topicsEnabled() {
 // ~/.config/claude-codex-battery/config.json — the only user-facing settings file.
 //   api        (bool)  read Claude limits via the usage endpoint (keychain token)
 //   topics     (bool)  show prompt topics in the dropdown
-//   autoRenew  (bool)  opt in to background renewal after an expired login (default false)
+//   autoRenew  (bool)  legacy opt-in retained; background CLI renewal is disabled
 //   notify     (obj)   opt-in alerts: { "enabled": true, "threshold": 20, "reset": true }
 //   forecast   (obj)   opt-in local pace estimate: { "enabled": true }
 //   sessionStatus (obj) opt-in local session-state hints: { "enabled": true }
@@ -886,22 +886,12 @@ async function fetchClaudeUsage(acc) {
 }
 
 // ───────────────────────── R3 · Claude 로그인 갱신 정책 ─────────────────────────
-// The keychain OAuth token expires every ~8h and only the Claude CLI renews it;
-// desktop-app users never run the CLI, so the usage API starts returning 401.
-// Policy (explicit, visible, reversible):
-//   • What runs: `claude -p /usage --max-turns 1 --tools "" --no-session-persistence`.
-//     /usage reads the usage endpoint; no model call, no transcript (verified
-//     2026-10-05 on CLI 2.1.238 — re-verify when the CLI changes).
-//   • When: on 401/403 only if the user explicitly sets autoRenew:true, at most
-//     once per 10 min; otherwise only on demand from the menu item.
-//     or on demand from the "Renew Claude login now" menu item.
-//   • Never: env -i or a missing $USER (that writes a stray keychain item),
-//     keychain writes by this plugin, or retries in a loop.
-//   • Shown: the dropdown always states the policy, the last run and its result;
-//     The default is manual. autoRenew:true is an explicit opt-in.
+// Legacy background renewal is disabled: a successful CLI exit is not evidence
+// of refreshed credentials or of a model-free /usage invocation in print mode.
+// Preserve old opt-in settings and result files, but never launch a hidden CLI.
+// Official interactive authentication remains a human action (claude auth login).
 const CLAUDE_REFRESH_FILE = path.join(CACHE_DIR, "claude-refresh.json");
 const CLAUDE_REFRESH_RESULT = path.join(CACHE_DIR, "claude-refresh.result");
-const RENEW_MIN_GAP_MS = 10 * 60 * 1000;
 function autoRenewEnabled() { return readConfig().autoRenew === true; }
 function findClaudeBin() {
   return [
@@ -926,34 +916,15 @@ function readRenewStatus() {
   } catch {}
   return { at: Number(r.at), trigger: r.trigger || "auto", exitCode, finishedAt };
 }
-function triggerClaudeTokenRefresh({ trigger = "auto", minGapMs = RENEW_MIN_GAP_MS } = {}) {
-  if (!IS_MAC) return false;
-  if (trigger === "auto" && !autoRenewEnabled()) return false;
-  const last = readRenewStatus();
-  if (last && Date.now() - last.at < minGapMs) return false;
-  const bin = findClaudeBin();
-  if (!bin) return false;
-  try {
-    const user = os.userInfo().username;
-    writeFileSync(CLAUDE_REFRESH_FILE, JSON.stringify({ at: Date.now(), trigger }));
-    // Run through sh so the exit code lands in a file the next render can show.
-    spawn("/bin/sh", ["-c", 'b="$1"; shift; "$b" "$@" >/dev/null 2>&1; echo "$?" > "$TJ_RESULT"', "sh",
-      bin, "-p", "/usage", "--max-turns", "1", "--tools", "", "--no-session-persistence"], {
-      cwd: CACHE_DIR, detached: true, stdio: "ignore",
-      // Without $USER the CLI saves the renewed login under account "unknown",
-      // a separate keychain item, instead of updating the real one.
-      env: { ...process.env, HOME, USER: user, LOGNAME: user, TJ_RESULT: CLAUDE_REFRESH_RESULT },
-    }).unref();
-    return true;
-  } catch { return false; }
+function triggerClaudeTokenRefresh() {
+  return false;
 }
 function renewStatusLine() {
   const r = readRenewStatus();
   if (!r) return "never run";
-  // A run normally finishes in ~3s; no result after 2 min means it was never
-  // recorded (older plugin version) or the process was killed.
-  const res = r.exitCode != null ? (r.exitCode === 0 ? "ok" : `failed (exit ${r.exitCode})`)
-    : Date.now() - r.at < 2 * 60 * 1000 ? "running…" : "result not recorded";
+  // These files are legacy process observations, not authentication evidence.
+  const res = r.exitCode != null ? `CLI exit ${r.exitCode}; renewal unverified`
+    : "legacy result not recorded; renewal unverified";
   return `${r.trigger === "manual" ? "manual" : "auto"} run ${fmtAgo(r.at)} · ${res}`;
 }
 
@@ -1061,8 +1032,7 @@ async function getClaude(acc = {}, idx = 0, waitDeadline = Date.now()+16000) {
     if (!res.ok) {
       failStatus = res.status;
       const authFail = res.status === 401 || res.status === 403;
-      // Expired login: renew in the background and retry soon instead of
-      // waiting out the full back-off.
+      // Renewal is disabled; preserve the normal authentication backoff.
       if (authFail && idx === 0) refreshing = triggerClaudeTokenRefresh();
       const retryS = Number(res.headers.get("retry-after"));
       const minMs = refreshing ? 20 * 1000 : authFail ? 10 * 60 * 1000 : 5 * 60 * 1000;
@@ -1889,8 +1859,7 @@ if (argv[0] === "--forecast-history") {
   }, null, 2));
   process.exit(0);
 }
-// --renew-login: the dropdown's "Renew Claude login now" (user-initiated, so it
-// ignores autoRenew:false but still refuses to run twice within a minute).
+// Compatibility command: no hidden CLI launch, no cache/backoff reset.
 if (argv[0] === "--renew-login") {
   // A manual action is not permission to bypass a provider Retry-After.
   try {
@@ -1900,11 +1869,8 @@ if (argv[0] === "--renew-login") {
       process.exit(0);
     }
   } catch {}
-  const started = triggerClaudeTokenRefresh({ trigger: "manual", minGapMs: 60 * 1000 });
-  // Clear the back-off so the next render retries right after the renew.
-  if (started) { try { writeFileSync(path.join(CACHE_DIR, "claude-0.fail.json"), JSON.stringify({ status: 401, at: Date.now(), until: Date.now() + 20 * 1000, refreshing: true })); } catch {} }
-  console.log(started ? "renew started" : findClaudeBin() ? "renew skipped (ran less than a minute ago)" : "claude CLI not found");
-  process.exit(started ? 0 : 1);
+  console.log("renewal disabled: run claude auth login yourself; no CLI, model or API request started");
+  process.exit(1);
 }
 
 // ───────────────────────── 메인 ─────────────────────────
@@ -2029,7 +1995,7 @@ function buildDiagnostics() {
     const retry = fmtRetryAt(cl.retryAt);
     lines.push(`claude[${i}]: ${stateLabel(state)} · trust ${b.level} · ${sourceLabel(cl.source)} · last success ${last ? fmtAgo(last) : "never"}${retry ? ` · ${retry}` : ""}${cl.errorCode ? ` · http ${cl.errorCode}` : ""}${cl.reason ? ` · reason ${cl.reason}` : ""}`);
   });
-  if (IS_MAC && apiModeEnabled()) lines.push(`claude login renewal: ${autoRenewEnabled() ? "auto" : "manual"} · ${renewStatusLine()} · cli ${findClaudeBin() ? "found" : "not found"}`);
+  if (IS_MAC && apiModeEnabled()) lines.push(`claude login renewal: disabled (saved opt-in=${autoRenewEnabled()}) · ${renewStatusLine()} · cli ${findClaudeBin() ? "found" : "not found"}`);
   codexReadings.forEach((reading, index) => {
     if (reading.items.length || !reading.profile.legacy || existsSync(reading.profile.configDir)) {
       const last = reading.lastSuccessAt ?? reading.at;
@@ -2419,7 +2385,7 @@ if (asJson) {
       state: provider.state, observedAt: provider.observedAt ?? null, lastSuccessAt: provider.lastSuccessAt ?? null,
       kind: "quota", trust: trustBadge({ state: provider.state, source: provider.source }),
     })),
-    renew: IS_MAC && apiModeEnabled() ? { auto: autoRenewEnabled(), last: readRenewStatus() } : null,
+    renew: IS_MAC && apiModeEnabled() ? { auto: false, requestedAuto: autoRenewEnabled(), disabledReason: "unverified-cli-renewal", last: readRenewStatus() } : null,
     notify: notifyConfig(),
     contractVersion: 2,
     letsur,
@@ -2586,14 +2552,10 @@ for (let ai = 0; ai < accounts.length; ai++) {
   // only in healthy panels; an error already has a single NEXT action above.
   if (ai === 0 && IS_MAC && apiModeEnabled()) {
     const auto = autoRenewEnabled();
-    const bin = findClaudeBin();
-    out.push(`Login renewal: ${auto ? "auto" : "manual"} · ${renewStatusLine()} | size=11 color=#8b949e`);
-    out.push(`--What runs: claude -p /usage (reads usage only, no model call, no transcript) | size=11 color=#8b949e`);
-    out.push(`--${auto ? "Auto: on login expiry (401), at most once per 10 min" : "Auto is off by default — renew from here when the login expires"} | size=11 color=#8b949e`);
-    out.push("--웹 쿠키 접근 없음 · 429 대기 중 실행 안 함 · CLI 버전 변경 시 재검증 필요 | size=11 color=#8b949e");
-    if (auto || bin) out.push(`--${auto ? "자동 갱신 끄기" : "위 실행 범위에 동의하고 자동 갱신 켜기"} | bash='${SELF}' param1=--auto-renew-${auto ? "off" : "on"} terminal=false refresh=true`);
-    if (bin && !recoveryAction) out.push(`--Renew Claude login now | bash='${SELF}' param1=--renew-login terminal=false refresh=true`);
-    else if (!bin) out.push("--Claude CLI not found — run  claude  in a terminal to renew | size=11 color=#ffcc00");
+    out.push(`Login renewal: disabled · ${renewStatusLine()} | size=11 color=#8b949e`);
+    out.push("--백그라운드 CLI 갱신 중지 · 인증 만료 시 직접 claude auth login | size=11 color=#8b949e");
+    out.push("--웹 쿠키 접근 없음 · 429 대기 보존 · 기존 자동 갱신 설정은 실행되지 않음 | size=11 color=#8b949e");
+    if (auto) out.push(`--자동 갱신 끄기 | bash='${SELF}' param1=--auto-renew-off terminal=false refresh=true`);
   }
 }
 
