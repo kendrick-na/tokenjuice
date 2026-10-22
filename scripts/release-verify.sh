@@ -31,6 +31,8 @@ scripts/notification-smoke.sh
 pass "macOS 알림 contract dry-run"
 
 python3 -m py_compile windows/tokenjuice_tray.py windows/selftest.py
+python3 -m unittest discover -s windows -p test_native_notifications.py
+python3 -m py_compile windows/native_notifications.py windows/native_shortcut.py
 pass "Windows Python 문법"
 
 python3 -m py_compile tests/companion.test.py

@@ -161,10 +161,13 @@ from System Settings › General › Login Items, delete that plist, and
 `brew uninstall --cask swiftbar`.
 ```powershell
 # Windows: delete the startup shortcut, then quit from the tray menu
-Remove-Item "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\tokenjuice.lnk"
+.\windows\uninstall.ps1
 ```
 
-Neither leaves anything else behind: no daemons, no registry keys. The cache in
+Windows native notifications register only owned current-user app/protocol keys
+and a Start Menu shortcut. Use the uninstaller (or portable EXE
+`--unregister-notifications`) to remove these. A changed/foreign shortcut or
+protocol is preserved, not force-deleted. The cache in
 `~/.cache/claude-codex-battery` and any config in
 `~/.config/claude-codex-battery` can be deleted too.
 

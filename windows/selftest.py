@@ -263,9 +263,39 @@ def check_notification_delivery() -> None:
     print("  opt-in engine delivery, readiness, batched presentation and failure isolation OK")
 
 
+def check_native_delivery_and_activation() -> None:
+    from native_notifications import ACTIVATION_URI
+    app=t.TrayApp()
+    app.icon=Mock(visible=True,HAS_NOTIFICATION=False)
+    app.native_notifications=Mock(ready=True,can_fallback=False,last_error=None)
+    events=[{"title":"TokenJuice","body":"fixture threshold"}]
+    with patch.object(t.sys,"platform","win32"), patch.object(t,"read_usage",return_value={"notificationEvents":events}) as read:
+        app._poll_once()
+        read.assert_called_once_with(False,notification_events=True)
+    app.native_notifications.show.assert_called_once_with("fixture threshold")
+    app.icon.notify.assert_not_called()
+    app.native_notifications.show.side_effect=RuntimeError("PRIVATE SDK detail")
+    app._present_notifications(events)
+    assert "PRIVATE" not in app.notification_error
+    app.icon.notify.assert_not_called()  # never double-send after uncertain native failure
+    app.native_notifications.ready=False
+    with patch.object(t.sys,"platform","win32"), patch.object(t,"read_usage",return_value={}) as read:
+        app._poll_once()
+        read.assert_called_once_with(False,notification_events=False)
+    with patch.object(t.sys,"platform","win32"), patch.object(t.sys,"argv",["tokenjuice","--notification-activate",ACTIVATION_URI]), patch.object(t,"show_notification_status",return_value=0) as show:
+        assert t.main()==0
+        show.assert_called_once()
+    with patch.object(t.sys,"platform","win32"), patch.object(t.sys,"argv",["tokenjuice","--notification-activate",ACTIVATION_URI,"--once"]), patch.object(t,"read_usage") as read:
+        assert t.main()==2
+        read.assert_not_called()
+    text=t.notification_status_text({"claude":[{"state":"auth_expired","items":[{"name":"5-hour","used":1}]}],"prompt":"SECRET_PROMPT"})
+    assert "99%" not in text and "다시 연결 필요" in text and "SECRET_PROMPT" not in text
+    print("  native transport/failure isolation, OS policy and strict activation route OK")
+
+
 def main() -> int:
     print(f"tokenjuice self-test on {sys.platform}")
-    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_manual_auth_recovery, check_failed_observation_menu, check_cost_menu, check_local_provider_menu, check_codex_profiles, check_notification_delivery):
+    for fn in (check_icons, check_ico, check_degenerate, check_tooltip, check_manual_auth_recovery, check_failed_observation_menu, check_cost_menu, check_local_provider_menu, check_codex_profiles, check_notification_delivery, check_native_delivery_and_activation):
         print(f"- {fn.__name__}")
         fn()
     print("all checks passed")

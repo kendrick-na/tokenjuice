@@ -27,6 +27,10 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 import pystray
 from pystray import Menu, MenuItem
+from native_notifications import (
+    NativeToastBackend, activation_requested, current_launcher, default_identity,
+    notification_message,
+)
 
 APP_NAME = "tokenjuice"
 NOTIFICATION_TITLE = "TokenJuice"  # exact engine event title, not tray internal ID
@@ -408,6 +412,7 @@ class TrayApp:
         self.groups: list[dict] = []
         self.error: str | None = None
         self.notification_error: str | None = None
+        self.native_notifications = NativeToastBackend()
         self.show_topics = os.environ.get("CCB_TOPICS") == "1"
         self.stop = threading.Event()
         self.icon = pystray.Icon(
@@ -421,6 +426,14 @@ class TrayApp:
     def _menu_items(self):
         if self.notification_error:
             yield MenuItem(self.notification_error, None, enabled=False)
+        if self.native_notifications.ready:
+            yield MenuItem("Windows 네이티브 알림 · 기록/앱 상태 열기", None, enabled=False)
+            yield MenuItem("이 앱의 Windows 알림 기록 지우기", self._clear_notification_history)
+        elif sys.platform == "win32":
+            if self.native_notifications.can_fallback:
+                yield MenuItem("Windows 네이티브 알림 설정…", self._setup_native_notifications)
+            else:
+                yield MenuItem("Windows 네이티브 알림이 꺼져 있거나 확인되지 않습니다", None, enabled=False)
         if self.error:
             yield MenuItem("⚠ " + self.error.splitlines()[0][:60], None, enabled=False)
             yield Menu.SEPARATOR
@@ -637,12 +650,17 @@ class TrayApp:
 
     def _poll_once(self):
         try:
-            ready = sys.platform == "win32" and self.icon.visible and self.icon.HAS_NOTIFICATION
+            self.native_notifications.refresh_status()
+            ready = sys.platform == "win32" and self.icon.visible and (
+                self.native_notifications.ready or
+                (self.native_notifications.can_fallback and self.icon.HAS_NOTIFICATION))
             self.data = read_usage(self.show_topics, notification_events=ready)
             self.groups = build_groups(self.data)
             self.error = None
             if ready:
                 self._present_notifications(self.data.get("notificationEvents", []))
+            if self.native_notifications.last_error:
+                self.notification_error = self.native_notifications.last_error
         except EngineError as exc:
             self.error = str(exc)
         except Exception as exc:  # keep the tray alive on anything unexpected
@@ -654,26 +672,56 @@ class TrayApp:
     def _present_notifications(self, events):
         """Present engine decisions; never recalculate quota or enable policy.
 
-        This is the existing Win32 tray notification, not an AUMID/WinRT toast.
-        Batch simultaneous events because a tray has only one active balloon.
+        Use the registered Windows toast, or legacy balloons if not installed.
         OS suppression/delivery failures are not retried as a notification storm.
         """
-        if not isinstance(events, list):
+        message = notification_message(events, 768 if self.native_notifications.ready else 240)
+        if not message:
             return
-        bodies = [event["body"] for event in events[:20]
-                  if isinstance(event, dict) and event.get("title") == NOTIFICATION_TITLE
-                  and isinstance(event.get("body"), str) and 0 < len(event["body"]) <= 1024]
-        if not bodies:
-            return
-        message = "\n".join(bodies).replace("\x00", " ")
-        if len(message) > 240:
-            message = message[:237] + "…"
         try:
-            self.icon.notify(message, NOTIFICATION_TITLE)
+            if self.native_notifications.ready:
+                self.native_notifications.show(message)
+            elif self.native_notifications.can_fallback:
+                self.icon.notify(message, NOTIFICATION_TITLE)
+            else:
+                self.notification_error = "Windows 알림이 꺼져 있거나 확인되지 않습니다."
+                return
             self.notification_error = None
         except Exception:
             # Do not expose backend exception text or hide otherwise valid quota.
             self.notification_error = "System notification failed — check Windows notification settings."
+
+    def _clear_notification_history(self, _icon=None, _item=None):
+        if sys.platform != "win32" or not self.native_notifications.ready:
+            return
+        import ctypes
+        if ctypes.windll.user32.MessageBoxW(
+            None, "TokenJuice의 Windows 알림 기록만 지울까요? 사용량/대화 파일은 지우지 않습니다.",
+            "TokenJuice", 0x21) != 1:
+            return
+        try:
+            self.native_notifications.clear_history()
+        except Exception:
+            self.notification_error = "Windows 알림 기록을 지우지 못했습니다."
+
+    def _setup_native_notifications(self, _icon=None, _item=None):
+        if sys.platform != "win32":
+            return
+        import ctypes
+        text = ("이 사용자 계정에 TokenJuice 앱 식별자·시작 메뉴 바로가기·알림 클릭 프로토콜을 등록할까요? "
+                "관리자 권한, 로그인, 사용량 수집 동의나 알림 켜기 설정은 바꾸지 않습니다.")
+        if ctypes.windll.user32.MessageBoxW(None,text,"TokenJuice · 네이티브 알림 설정",0x21)!=1:
+            return
+        try:
+            result=subprocess.run([*current_launcher(__file__),"--register-notifications"],
+                capture_output=True,text=True,timeout=20,
+                creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
+            if result.returncode:
+                raise RuntimeError("Notification identity setup failed")
+            self.native_notifications=NativeToastBackend()
+            self.notification_error=None if self.native_notifications.ready else "앱 등록 후 Windows 알림 설정을 확인하세요."
+        except Exception:
+            self.notification_error="네이티브 알림 등록 실패 · 기존 트레이와 계정 설정은 유지됩니다."
 
     def _loop(self):
         while not self.stop.is_set():
@@ -688,6 +736,44 @@ class TrayApp:
 
 
 def main() -> int:
+    args = sys.argv[1:]
+    if args == ["--native-notification-selftest"]:
+        if sys.platform != "win32":
+            return 2
+        from tempfile import TemporaryDirectory
+        from native_shortcut import create_shell_link
+        from native_notifications import AUMID, STUB_CLSID
+        with TemporaryDirectory(prefix="tokenjuice-native-test-") as folder:
+            create_shell_link(Path(folder)/"TokenJuice.lnk",current_launcher(__file__),AUMID,STUB_CLSID)
+        from windows_toasts import WindowsToaster, Toast
+        from winrt.windows.ui.notifications import ToastNotificationManager
+        print("Native SDK import and owned temporary shortcut round-trip OK; no registration, notification or login.")
+        return 0
+    if args and args[0] == "--notification-activate":
+        if not activation_requested(args) or sys.platform != "win32":
+            return 2
+        return show_notification_status()
+    if args and args[0] in ("--register-notifications", "--unregister-notifications"):
+        if len(args)!=1:
+            return 2
+        try:
+            identity = default_identity()
+            if args[0] == "--register-notifications":
+                from io import BytesIO
+                icon=BytesIO()
+                render_icon([{"label":"C","color":CLAUDE_ORANGE,"bars":[75.0]}]).save(
+                    icon,format="ICO",sizes=[(16,16),(24,24),(32,32)])
+                identity.register(current_launcher(__file__),icon_bytes=icon.getvalue())
+            else:
+                backend = NativeToastBackend(identity=identity)
+                if backend.toaster is not None:
+                    backend.clear_history()
+                identity.unregister()
+            print("Notification identity updated; alert opt-in and login settings unchanged.")
+            return 0
+        except Exception:
+            print("Notification setup failed; no account/login settings changed.", file=sys.stderr)
+            return 1
     if "--once" in sys.argv:
         try:
             data = read_usage("--topics" in sys.argv)
@@ -704,6 +790,37 @@ def main() -> int:
         return 0
 
     TrayApp().run()
+    return 0
+
+
+def notification_status_text(data: dict) -> str:
+    """Render the shared engine's current view, not a retained notification."""
+    lines = ["현재 확인 결과 · 이전 알림 시점의 잔여량이 아닙니다.",
+             "C: Claude 한도 · X: Codex 한도 · S: 로컬 컨텍스트 · L: 비용 예산(구독 한도 아님)"]
+    for group in build_groups(data)[:20]:
+        values = ["확인 불가" if value is None else f"{round(value)}% 남음" for value in group["bars"][:8]]
+        lines.append(f'{group["label"]}: {", ".join(values)}')
+    for account in (data.get("claude") or [])[:20]:
+        state = account.get("state") or "unavailable"
+        name=str(account.get("account") or "Claude").replace("\n"," ")[:60]
+        last=account.get("lastSuccessAt")
+        age=f"마지막 성공 {fmt_ago(last)}" if last else "마지막 성공 시각 없음"
+        lines.append(f'Claude {name} · {state_display_label(state)} · {age} · {state_recovery_hint(state)}')
+    status = data.get("codexStatus") or {}
+    if status.get("state"):
+        lines.append(f'Codex · {state_display_label(status["state"])}')
+    lines.append("현재 상태와 출처의 상세 내용은 실행 중인 TokenJuice 트레이에서 확인하세요.")
+    return "\n".join(lines)[:4096]
+
+
+def show_notification_status() -> int:
+    import ctypes
+    try:
+        # Not --notification-events, no topic text and no replay of old alerts.
+        text = notification_status_text(read_usage(False))
+    except Exception:
+        text = "현재 사용량을 확인하지 못했습니다. TokenJuice 트레이의 진단을 확인하세요. 이전 알림은 현재 값이 아닙니다."
+    ctypes.windll.user32.MessageBoxW(None, text, "TokenJuice · 현재 상태", 0x40)
     return 0
 
 

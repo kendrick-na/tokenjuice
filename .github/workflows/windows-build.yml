@@ -25,6 +25,11 @@ on:
       - 'local-summary/**'
       - 'docs/DATA_CONTRACT.md'
   workflow_dispatch:
+    inputs:
+      upload_artifact:
+        description: 'Store the built EXE artifact (disabled for verification-only runs)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -70,6 +75,17 @@ jobs:
         working-directory: windows
         run: python selftest.py
 
+      - name: Native notification contract (no registration or real toast)
+        working-directory: windows
+        run: python -m unittest test_native_notifications
+
+      - name: Windows SDK bindings bundled by native backend
+        run: python -c "from windows_toasts import WindowsToaster, Toast; from winrt.windows.ui.notifications import ToastNotificationManager; print('SDK imports OK; no toast emitted')"
+
+      - name: Native shortcut COM roundtrip without app registration
+        working-directory: windows
+        run: python tokenjuice_tray.py --native-notification-selftest
+
       - name: Tray --once against the real engine
         shell: pwsh
         working-directory: windows
@@ -106,9 +122,14 @@ jobs:
           Get-Content $out, $err | Where-Object { $_ }
           # 1 means "no usage data", correct on a runner with no ~/.claude.
           if ($p.ExitCode -notin 0,1) { throw "exe exited $($p.ExitCode)" }
+          $native = Start-Process -FilePath .\tokenjuice.exe -ArgumentList '--native-notification-selftest' `
+                    -NoNewWindow -Wait -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+          Get-Content $out, $err | Where-Object { $_ }
+          if ($native.ExitCode -ne 0) { throw "native SDK/shortcut packaged self-test failed ($($native.ExitCode))" }
           Write-Host "exe starts and runs (exit $($p.ExitCode))"
 
       - uses: actions/upload-artifact@v4
+        if: github.event_name != 'workflow_dispatch' || inputs.upload_artifact
         with:
           name: tokenjuice-windows
           path: |

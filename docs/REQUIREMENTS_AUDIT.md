@@ -2114,3 +2114,42 @@ Companion browser 모두 success이고 Windows 38358201027의 build/selftest·EX
 EXE 실행·artifact 업로드도 success다. tag release는 skipped다. 공개 Pocket v30/
 desktop immutable v1.2.2는 변경되지 않았다. 설치 source 일치와 실제 인증 복구를 구분한다.
 15:42 KST 읽기 전용 설치본 진단은 여전히429·재확인16:11·마지막성공19시간전이다.
+
+### 9.90 2026-10-22 Windows 네이티브 알림 로컬 구현 재개
+
+컨트롤타워의 미완료 개발 마무리 배정에 따라 Windows 로컬 구현을 추가 승인 대기로
+두지 않고 진행했다. 원본 main 7a1c2cd의 계정 이전 untracked 문서는 보존하고
+별도 codex/tokenjuice-native-notifications-20261022 worktree에서만 수정한다.
+절전 복구 담당은 비활성 상태였고 현재 Git에는 중복 Windows native 구현이 없다.
+
+기존 Python/공용 JS 엔진을 유지하고 windows-toasts 1.3.1/Windows SDK binding을
+추가했다. .NET/모델 다운로드는 없다. 엔진 notificationEvents만 전송하며 quota
+계산·설정·인증·제공자 토큰은 추가 수집/변경하지 않는다. 앱이 등록되면 native toast,
+등록/SDK가 없으면 기존 balloon을 사용한다. OS가 native 알림을 차단한 경우 balloon으로
+우회하거나 엔진 알림 이벤트를 소비하지 않는다. 불확실한 전송 실패는 재전송하지 않는다.
+
+자체 AUMID·stub CLSID·현재 사용자 Start Menu 바로가기·고정 protocol을 등록한다.
+앱 종료 뒤에도 OS의 protocol activation으로 고정 상태 창을 열 수 있도록 구현했다.
+URI/추가 인자를 엄격히 검사하고 외부 URL/파일/임의 명령/원문을 launch 인자로 전달하지
+않는다. 클릭은 공용 엔진을 알림 소비 없이 다시 읽어 현재 상태를 보여 주며 과거 알림을
+현재 quota로 재사용하지 않는다. 실제 종료 후 클릭 동작은 Windows 실기기 gate다.
+
+등록/제거는 제품 소유 marker, 바로가기 해시, protocol command를 검사한다. 타 앱이나
+사용자가 바꾼 항목은 덮어쓰거나 광범위 삭제하지 않는다. 아이콘은 기존 배터리 renderer로
+만들며 앱 전용 아이콘/shortcut만 관리한다. 사용자 확인 뒤 own AUMID 알림 기록 지우기도
+있고 config/대화/engine history는 유지한다. portable EXE에도 확인형 설정 동선을 추가했다.
+source installer, 명시적 CLI 등록/제거, uninstall.ps1 및 PyInstaller SDK 수집을 연결했다.
+
+순수 테스트 10개와 기존+신규 트레이 selftest를 Mac 격리 Python/dummy backend로 통과했다.
+Windows CI에는 실제 SDK import, 임시 .lnk COM 저장/읽기, 완성 EXE의 같은 selftest를
+추가했다. 이 검증은 실제 사용자 등록/토스트 발화/계정 접근 없이 진행한다.
+원본 계정 이전 문서·설치된 Mac plugin/helper·공용 workboard는 수정하지 않는다.
+
+근거:
+[Windows-Toasts 공식 문서](https://windows-toasts.readthedocs.io/en/latest/),
+[Microsoft AUMID 속성](https://learn.microsoft.com/en-us/windows/win32/properties/props-system-appusermodel-id),
+[ToastActivatorCLSID 속성](https://learn.microsoft.com/en-us/windows/win32/properties/props-system-appusermodel-toastactivatorclsid).
+
+Windows 10/11 알림 표시·센터/앱 종료 후 클릭·DPI/접근성의 실제 사용자 검증,
+Claude 재로그인/현재 수치 대조, 운영형 AI 계정/비용·실제 모델 품질, 모바일/스토어/
+인터뷰는 여전히 미완료다. 이 로컬 구현을 전체 출시 완료로 승격하지 않는다.

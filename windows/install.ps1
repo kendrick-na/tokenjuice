@@ -11,6 +11,7 @@
 [CmdletBinding()]
 param(
   [switch]$NoAutostart,
+  [switch]$NoNativeNotifications,
   [switch]$Yes
 )
 
@@ -120,12 +121,23 @@ Ok "Python $pyv -> $py"
 
 # ── 3. deps ──────────────────────────────────────────────────────────────
 Say '[3/4] Python packages (pystray, pillow)'
-& $py -c "import pystray, PIL" 2>$null
-if ($LASTEXITCODE -ne 0) {
-  & $py -m pip install --user --quiet --upgrade pystray pillow
-  if ($LASTEXITCODE -ne 0) { Die 'pip install failed.' }
+& $py -m pip install --user --quiet -r (Join-Path $here 'requirements.txt')
+if ($LASTEXITCODE -ne 0) { Die 'pip install failed.' }
+Ok 'tray and Windows SDK notification dependencies ready'
+
+# Registration is product-scoped HKCU + Start Menu, not a notification opt-in.
+# No account, global policy, administrator grant or real alert is changed.
+if ($NoNativeNotifications) {
+  Warn 'native notification registration skipped; legacy tray notifications remain available'
+} else {
+  & $py $tray --register-notifications
+  if ($LASTEXITCODE -ne 0) {
+    Warn 'Native notification identity not ready; legacy tray notifications remain available.'
+    Warn 'Resolve any existing protocol/shortcut ownership conflict before retrying.'
+  } else {
+    Ok 'TokenJuice native notification identity registered (alerts remain opt-in)'
+  }
 }
-Ok 'pystray + pillow ready'
 
 # ── 4. autostart ─────────────────────────────────────────────────────────
 Say '[4/4] Start at login'
